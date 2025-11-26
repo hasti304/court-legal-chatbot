@@ -15,9 +15,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Determine the correct path to data files
+# Determine the correct path to data files (inside backend/)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "..", "data")
+DATA_DIR = os.path.join(BASE_DIR, "data")  # CHANGED: removed ".."
 
 # Load triage questions
 with open(os.path.join(DATA_DIR, "triage_questions.json"), "r") as f:
