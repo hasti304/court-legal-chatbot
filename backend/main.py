@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import json
+import os
 
 app = FastAPI()
 
@@ -14,12 +15,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Determine the correct path to data files
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(BASE_DIR, "..", "data")
+
 # Load triage questions
-with open("data/triage_questions.json", "r") as f:
+with open(os.path.join(DATA_DIR, "triage_questions.json"), "r") as f:
     triage_questions = json.load(f)
 
 # Load referral map
-with open("data/referral_map.json", "r") as f:
+with open(os.path.join(DATA_DIR, "referral_map.json"), "r") as f:
     referral_map = json.load(f)
 
 # Cook County ZIP code prefixes
