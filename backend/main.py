@@ -1,100 +1,74 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import Request
-from fastapi.responses import JSONResponse
-import os
+from pydantic import BaseModel
 import json
 
 app = FastAPI()
 
+# CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For dev only
+    allow_origins=["*"],  # In production, replace with your frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Load triage questions
+with open("data/triage_questions.json", "r") as f:
+    triage_questions = json.load(f)
+
+# Load referral map
+with open("data/referral_map.json", "r") as f:
+    referral_map = json.load(f)
+
+# Cook County ZIP code prefixes
+COOK_COUNTY_ZIPS = ["606", "607", "60007", "60018", "60068", "60076", "60193"]
+
+class TriageAnswers(BaseModel):
+    answers: dict
 
 @app.get("/")
 def read_root():
     return {"message": "Hello from your legal chatbot backend!"}
 
 @app.get("/triage/questions")
-def get_triage_questions():
-    # Use absolute path to ensure it works no matter where uvicorn is run from
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    config_path = os.path.join(dir_path, '..', 'data', 'triage_config.json')
-    with open(config_path, "r") as f:
-        triage = json.load(f)
-    return triage
+def get_questions():
+    return {"questions": triage_questions}
 
 @app.post("/triage/result")
-async def triage_result(request: Request):
-    data = await request.json()
-    user_answers = data.get("answers", {})
-    zipcode = user_answers.get("zipcode", "")
-
-    # Cook County ZIP code logic
-    is_cook = False
-    # Cook County: ranges 60007–60827, majorly 606xx and 607xx as well
-    if zipcode.startswith("60") and (
-        zipcode.startswith("606") or zipcode.startswith("607") or
-        (60007 <= int(zipcode) <= 60827)
-    ):
-        is_cook = True
-
-    # Load resource mapping
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    map_path = os.path.join(dir_path, '..', 'data', 'referral_map.json')
-    with open(map_path, "r") as f:
-        referral_map = json.load(f)
-
-    # Cook County override: Emergency or Housing sends to specific resource
-    if is_cook and (
-        user_answers.get("topic") == "Housing" or
-        user_answers.get("urgency", "").startswith("Emergency")
-    ):
-        return {
-            "referral": {
-                "level": 3,
-                "resource": "Chicago Advocate Legal, NFP (Cook County) - https://chicagoadvocatelegal.org"
-            }
-        }
-
-    # Regular mapping
-    for item in referral_map:
-        if (
-            item["topic"] == user_answers.get("topic") and
-            item["urgency"] == user_answers.get("urgency") and
-            item["court_status"] == user_answers.get("court_status")
-        ):
-            return {"referral": item["referral"]}
-
-    # Default fallback
-    return {"referral": {"level": 1, "resource": "Illinois Legal Aid Online - https://www.illinoislegalaid.org"}}
+def get_result(data: TriageAnswers):
+    answers = data.answers
+    
+    # Extract key triage values
+    topic = answers.get("topic", "")
+    urgency = answers.get("urgency", "")
+    court_status = answers.get("court_status", "")
+    zipcode = answers.get("zipcode", "")
+    
+    # Determine if user is in Cook County
+    cook_county = any(zipcode.startswith(prefix) for prefix in COOK_COUNTY_ZIPS)
+    
+    # Find matching referral from map
+    result = {"level": 1, "resource": "Illinois Legal Aid Online - https://www.illinoislegalaid.org/"}
+    
+    for entry in referral_map:
+        if (entry["topic"] == topic and 
+            entry["urgency"] == urgency and 
+            entry["court_status"] == court_status):
+            result = entry["referral"]
+            break
+    
+    # Cook County override for Level 3
+    if result["level"] == 3 and cook_county:
+        if topic == "Housing" or urgency == "Emergency (court date within 30 days)":
+            result["resource"] = "Chicago Advocate Legal, NFP - https://www.chicagoadvocatelegal.com/"
+    
+    return {"referral": result}
 
 @app.post("/feedback")
-async def save_feedback(request: Request):
-    data = await request.json()
-    # Save minimal, privacy-preserving log to a file
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    log_path = os.path.join(dir_path, "..", "data", "feedback_log.jsonl")
-    # Append single JSON line
-    with open(log_path, "a") as f:
-        json.dump(data, f)
-        f.write("\n")
-    return {"ok": True}
-
-@app.post("/feedback")
-async def save_feedback(request: Request):
-    data = await request.json()
-    # Save privacy-preserving feedback to a simple log (JSON lines)
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    log_path = os.path.join(dir_path, "..", "data", "feedback_log.jsonl")
-    # Append one JSON line per feedback
-    with open(log_path, "a") as f:
-        json.dump(data, f)
-        f.write("\n")
-    return {"ok": True}
-
-
+def submit_feedback(data: dict):
+    # In production, save feedback to database
+    # For now, just acknowledge receipt
+    print("Feedback received:", data)
+    return {"status": "success", "message": "Thank you for your feedback!"}

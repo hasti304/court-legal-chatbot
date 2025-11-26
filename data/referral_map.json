@@ -1,38 +1,110 @@
 [
   {
     "topic": "Child Support",
-    "urgency": "Emergency (eviction, loss of housing, court deadline today/tomorrow)",
-    "court_status": "Yes",
+    "urgency": "Emergency (court date within 30 days)",
+    "court_status": "Already in court",
     "referral": {
       "level": 3,
-      "resource": "Chicago Advocate Legal, NFP (Cook County) - https://chicagoadvocatelegal.org"
+      "resource": "Prairie State Legal Services - https://www.pslegal.org/"
     }
   },
   {
     "topic": "Child Support",
-    "urgency": "General question (no immediate deadline)",
-    "court_status": "No",
+    "urgency": "Emergency (court date within 30 days)",
+    "court_status": "Not in court yet",
+    "referral": {
+      "level": 2,
+      "resource": "Illinois Legal Aid Online - Child Support - https://www.illinoislegalaid.org/legal-information/child-support"
+    }
+  },
+  {
+    "topic": "Child Support",
+    "urgency": "Not urgent (no immediate court date)",
+    "court_status": "Already in court",
+    "referral": {
+      "level": 2,
+      "resource": "Illinois Legal Aid Online - Child Support - https://www.illinoislegalaid.org/legal-information/child-support"
+    }
+  },
+  {
+    "topic": "Child Support",
+    "urgency": "Not urgent (no immediate court date)",
+    "court_status": "Not in court yet",
     "referral": {
       "level": 1,
-      "resource": "Illinois Legal Aid Online - https://www.illinoislegalaid.org"
+      "resource": "Illinois Courts Self-Help - https://www.illinoiscourts.gov/self-help"
     }
   },
   {
     "topic": "Education",
-    "urgency": "Upcoming (hearing, deadline, at risk)",
-    "court_status": "Not sure",
+    "urgency": "Emergency (court date within 30 days)",
+    "court_status": "Already in court",
+    "referral": {
+      "level": 3,
+      "resource": "Equip for Equality - https://www.equipforequality.org/"
+    }
+  },
+  {
+    "topic": "Education",
+    "urgency": "Emergency (court date within 30 days)",
+    "court_status": "Not in court yet",
     "referral": {
       "level": 2,
-      "resource": "Illinois Legal Aid Online - https://www.illinoislegalaid.org"
+      "resource": "Illinois Legal Aid Online - Education - https://www.illinoislegalaid.org/legal-information/education"
+    }
+  },
+  {
+    "topic": "Education",
+    "urgency": "Not urgent (no immediate court date)",
+    "court_status": "Already in court",
+    "referral": {
+      "level": 2,
+      "resource": "Illinois Legal Aid Online - Education - https://www.illinoislegalaid.org/legal-information/education"
+    }
+  },
+  {
+    "topic": "Education",
+    "urgency": "Not urgent (no immediate court date)",
+    "court_status": "Not in court yet",
+    "referral": {
+      "level": 1,
+      "resource": "Illinois State Board of Education - https://www.isbe.net/"
     }
   },
   {
     "topic": "Housing",
-    "urgency": "Emergency (eviction, loss of housing, court deadline today/tomorrow)",
-    "court_status": "Yes",
+    "urgency": "Emergency (court date within 30 days)",
+    "court_status": "Already in court",
     "referral": {
       "level": 3,
-      "resource": "Legal Aid Chicago - https://legalaidchicago.org"
+      "resource": "Legal Aid Chicago - https://legalaidchicago.org/"
+    }
+  },
+  {
+    "topic": "Housing",
+    "urgency": "Emergency (court date within 30 days)",
+    "court_status": "Not in court yet",
+    "referral": {
+      "level": 2,
+      "resource": "Illinois Legal Aid Online - Housing - https://www.illinoislegalaid.org/legal-information/housing"
+    }
+  },
+  {
+    "topic": "Housing",
+    "urgency": "Not urgent (no immediate court date)",
+    "court_status": "Already in court",
+    "referral": {
+      "level": 2,
+      "resource": "Illinois Legal Aid Online - Housing - https://www.illinoislegalaid.org/legal-information/housing"
+    }
+  },
+  {
+    "topic": "Housing",
+    "urgency": "Not urgent (no immediate court date)",
+    "court_status": "Not in court yet",
+    "referral": {
+      "level": 1,
+      "resource": "Illinois Housing Development Authority - https://www.ihda.org/"
     }
   }
 ]
