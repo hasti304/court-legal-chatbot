@@ -1,5 +1,69 @@
 import React, { useEffect, useState } from "react";
 
+// ReferralResult component (new)
+function ReferralResult({ answers }) {
+  const [referral, setReferral] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetch("http://127.0.0.1:8000/triage/result", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answers }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Network error");
+        return res.json();
+      })
+      .then((data) => {
+        setReferral(data.referral);
+        setLoading(false);
+      })
+      .catch(() => {
+  setError("Failed to fetch referral.");
+  setLoading(false);
+      });
+
+  }, [answers]);
+
+  if (loading) return <p>Finding the best resource for you...</p>;
+  if (error) return <p>{error}</p>;
+
+  // Parse the resource for a clickable link
+  let name = "";
+  let url = "";
+  if (referral && referral.resource) {
+    const splitIndex = referral.resource.indexOf(" - ");
+    if (splitIndex > -1) {
+      name = referral.resource.substring(0, splitIndex);
+      url = referral.resource.substring(splitIndex + 3);
+    } else {
+      name = referral.resource;
+      url = referral.resource;
+    }
+  }
+
+  return (
+    <div>
+      <h1>Illinois Court Legal Chatbot</h1>
+      <p>
+        Based on your answers, we suggest this resource:
+        <br />
+        <strong>Level {referral.level} Referral</strong>
+        <br />
+        <a href={url} target="_blank" rel="noopener noreferrer">
+          {name}
+        </a>
+      </p>
+      <p>
+        This chatbot provides general legal info only—not legal advice.  
+        If you need immediate legal help, contact a licensed attorney.
+      </p>
+    </div>
+  );
+}
+
 function App() {
   const [questions, setQuestions] = useState([]);
   const [step, setStep] = useState(0);
@@ -20,7 +84,7 @@ function App() {
     e.preventDefault();
     const formData = new FormData(e.target);
     const answer = formData.get("answer");
-    setAnswers({ ...answers, [current.id]: answer });
+    setAnswers((prev) => ({ ...prev, [current.id]: answer }));
 
     if (step === questions.length - 1) {
       setDone(true);
@@ -29,18 +93,9 @@ function App() {
     }
   };
 
+  // ReferralResult replaces the old placeholder when triage is complete
   if (done) {
-    // For now just print collected answers as JSON as a placeholder
-    return (
-      <div>
-        <h1>Illinois Court Legal Chatbot</h1>
-        <p>Thank you. Here are your triage answers:</p>
-        <pre>{JSON.stringify(answers, null, 2)}</pre>
-        <p>
-          (Next: backend/AI will use your answers to route you to the right info/referral.)
-        </p>
-      </div>
-    );
+    return <ReferralResult answers={answers} />;
   }
 
   return (

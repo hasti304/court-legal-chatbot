@@ -1,0 +1,38 @@
+[
+  {
+    "topic": "Child Support",
+    "urgency": "Emergency (eviction, loss of housing, court deadline today/tomorrow)",
+    "court_status": "Yes",
+    "referral": {
+      "level": 3,
+      "resource": "Chicago Advocate Legal, NFP (Cook County) - https://chicagoadvocatelegal.org"
+    }
+  },
+  {
+    "topic": "Child Support",
+    "urgency": "General question (no immediate deadline)",
+    "court_status": "No",
+    "referral": {
+      "level": 1,
+      "resource": "Illinois Legal Aid Online - https://www.illinoislegalaid.org"
+    }
+  },
+  {
+    "topic": "Education",
+    "urgency": "Upcoming (hearing, deadline, at risk)",
+    "court_status": "Not sure",
+    "referral": {
+      "level": 2,
+      "resource": "Illinois Legal Aid Online - https://www.illinoislegalaid.org"
+    }
+  },
+  {
+    "topic": "Housing",
+    "urgency": "Emergency (eviction, loss of housing, court deadline today/tomorrow)",
+    "court_status": "Yes",
+    "referral": {
+      "level": 3,
+      "resource": "Legal Aid Chicago - https://legalaidchicago.org"
+    }
+  }
+]
