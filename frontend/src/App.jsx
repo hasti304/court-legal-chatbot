@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from "react";
 
-// ReferralResult component for displaying referral and restart
+// ReferralResult component for displaying referral, restart & feedback
 function ReferralResult({ answers, onRestart }) {
   const [referral, setReferral] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Feedback state
+  const [feedback, setFeedback] = useState("");
+  const [feedbackSent, setFeedbackSent] = useState(false);
 
   useEffect(() => {
     fetch("http://127.0.0.1:8000/triage/result", {
@@ -26,12 +30,21 @@ function ReferralResult({ answers, onRestart }) {
       });
   }, [answers]);
 
+  // Feedback submit handler
+  const handleFeedback = (e) => {
+    e.preventDefault();
+    fetch("http://127.0.0.1:8000/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answers, referral, feedback }),
+    }).then(() => setFeedbackSent(true));
+  };
+
   if (loading) return <p>Finding the best resource for you...</p>;
   if (error) return <p>{error}</p>;
 
   // Parse the resource for a clickable link
-  let name = "";
-  let url = "";
+  let name = "", url = "";
   if (referral && referral.resource) {
     const splitIndex = referral.resource.indexOf(" - ");
     if (splitIndex > -1) {
@@ -60,6 +73,26 @@ function ReferralResult({ answers, onRestart }) {
         This chatbot provides general legal info only—not legal advice.<br/>
         If you need immediate legal help, contact a licensed attorney.
       </p>
+      <hr />
+      <form onSubmit={handleFeedback}>
+        <label>
+          Was this referral helpful?
+          <select
+            value={feedback}
+            onChange={e => setFeedback(e.target.value)}
+            required
+          >
+            <option value="">Select</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+            <option value="unsure">Not sure</option>
+          </select>
+        </label>
+        <button type="submit" disabled={feedbackSent || !feedback}>
+          Submit
+        </button>
+      </form>
+      {feedbackSent && <p>Thank you for your feedback!</p>}
     </div>
   );
 }

@@ -72,3 +72,16 @@ async def triage_result(request: Request):
 
     # Default fallback
     return {"referral": {"level": 1, "resource": "Illinois Legal Aid Online - https://www.illinoislegalaid.org"}}
+
+@app.post("/feedback")
+async def save_feedback(request: Request):
+    data = await request.json()
+    # Save minimal, privacy-preserving log to a file
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    log_path = os.path.join(dir_path, "..", "data", "feedback_log.jsonl")
+    # Append single JSON line
+    with open(log_path, "a") as f:
+        json.dump(data, f)
+        f.write("\n")
+    return {"ok": True}
+
