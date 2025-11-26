@@ -1,0 +1,39 @@
+{
+  "questions": [
+    {
+      "id": "topic",
+      "type": "choice",
+      "prompt": "What is your legal issue about?",
+      "choices": [
+        "Child Support",
+        "Education",
+        "Housing"
+      ]
+    },
+    {
+      "id": "urgency",
+      "type": "choice",
+      "prompt": "How urgent is your situation?",
+      "choices": [
+        "Emergency (eviction, loss of housing, court deadline today/tomorrow)",
+        "Upcoming (hearing, deadline, at risk)",
+        "General question (no immediate deadline)"
+      ]
+    },
+    {
+      "id": "court_status",
+      "type": "choice",
+      "prompt": "Are you already involved in a court case?",
+      "choices": [
+        "Yes",
+        "No",
+        "Not sure"
+      ]
+    },
+    {
+      "id": "zipcode",
+      "type": "text",
+      "prompt": "What is your ZIP code?"
+    }
+  ]
+}
