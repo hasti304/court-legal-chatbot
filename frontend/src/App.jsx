@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 
-// ReferralResult component (new)
-function ReferralResult({ answers }) {
+// ReferralResult component for displaying referral and restart
+function ReferralResult({ answers, onRestart }) {
   const [referral, setReferral] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -21,10 +21,9 @@ function ReferralResult({ answers }) {
         setLoading(false);
       })
       .catch(() => {
-  setError("Failed to fetch referral.");
-  setLoading(false);
+        setError("Failed to fetch referral.");
+        setLoading(false);
       });
-
   }, [answers]);
 
   if (loading) return <p>Finding the best resource for you...</p>;
@@ -56,8 +55,9 @@ function ReferralResult({ answers }) {
           {name}
         </a>
       </p>
+      <button onClick={onRestart} aria-label="Restart triage">Restart</button>
       <p>
-        This chatbot provides general legal info only—not legal advice.  
+        This chatbot provides general legal info only—not legal advice.<br/>
         If you need immediate legal help, contact a licensed attorney.
       </p>
     </div>
@@ -93,36 +93,49 @@ function App() {
     }
   };
 
-  // ReferralResult replaces the old placeholder when triage is complete
+  // Restart handler resets the flow
+  const handleRestart = () => {
+    setAnswers({});
+    setStep(0);
+    setDone(false);
+  };
+
   if (done) {
-    return <ReferralResult answers={answers} />;
+    return <ReferralResult answers={answers} onRestart={handleRestart} />;
   }
 
   return (
     <div>
       <h1>Illinois Court Legal Chatbot</h1>
-      <form onSubmit={handleNext}>
-        <label>
+      <form onSubmit={handleNext} aria-label="Legal triage form">
+        <label htmlFor="answer" style={{ fontWeight: "bold" }}>
           {current.prompt}
-          <br />
-          {current.type === "choice" ? (
-            <select name="answer" required>
-              <option value="">--Select--</option>
-              {current.choices.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          ) : (
-            <input
-              type="text"
-              name="answer"
-              required
-              pattern={current.id === "zipcode" ? "\\d{5}" : undefined}
-            />
-          )}
         </label>
         <br />
+        {current.type === "choice" ? (
+          <select id="answer" name="answer" required aria-required="true">
+            <option value="">--Select--</option>
+            {current.choices.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        ) : (
+          <input
+            type="text"
+            id="answer"
+            name="answer"
+            required
+            aria-required="true"
+            pattern={current.id === "zipcode" ? "\\d{5}" : undefined}
+            aria-label={current.id === "zipcode" ? "5-digit ZIP code" : ""}
+            inputMode={current.id === "zipcode" ? "numeric" : "text"}
+          />
+        )}
+        <br />
         <button type="submit">Next</button>
+        <button type="button" onClick={handleRestart} style={{ marginLeft: "10px" }} aria-label="Restart triage">
+          Restart
+        </button>
       </form>
       <p>
         This chatbot provides general legal info only—not legal advice.
