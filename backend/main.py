@@ -85,3 +85,16 @@ async def save_feedback(request: Request):
         f.write("\n")
     return {"ok": True}
 
+@app.post("/feedback")
+async def save_feedback(request: Request):
+    data = await request.json()
+    # Save privacy-preserving feedback to a simple log (JSON lines)
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    log_path = os.path.join(dir_path, "..", "data", "feedback_log.jsonl")
+    # Append one JSON line per feedback
+    with open(log_path, "a") as f:
+        json.dump(data, f)
+        f.write("\n")
+    return {"ok": True}
+
+
