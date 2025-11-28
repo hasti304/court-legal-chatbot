@@ -1,0 +1,10 @@
+{
+  "topics": ["child_support", "education", "housing"],
+  "urgency_levels": ["low", "medium", "high"],
+  "questions": {
+    "topic": "What legal topic do you need help with?",
+    "urgency": "Is this an emergency situation?",
+    "court_status": "Do you currently have an open court case?",
+    "zip_code": "What is your Illinois ZIP code?"
+  }
+}
