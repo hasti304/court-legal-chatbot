@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { FaGavel } from "react-icons/fa";
+import React, { useState, useEffect, useRef } from "react";
+import { FaGavel, FaPaperPlane, FaRedo } from "react-icons/fa";
 import "./App.css";
 
 function App() {
@@ -8,15 +8,26 @@ function App() {
   const [conversationState, setConversationState] = useState({});
   const [userInput, setUserInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  // Auto-scroll to bottom when new messages arrive
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const sendMessage = async (message) => {
     setLoading(true);
     
     // Add user message to chat
     setMessages(prev => [...prev, { role: "user", content: message }]);
+    setUserInput(""); // Clear input immediately
 
     try {
-      console.log("Sending request to backend..."); // Debug
+      console.log("Sending request to backend...");
       
       const response = await fetch("https://court-legal-chatbot.onrender.com/chat", {
         method: "POST",
@@ -27,14 +38,14 @@ function App() {
         }),
       });
 
-      console.log("Response status:", response.status); // Debug
+      console.log("Response status:", response.status);
 
       if (!response.ok) {
         throw new Error(`Server error: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log("Received data:", data); // Debug
+      console.log("Received data:", data);
       
       // Add bot response to chat
       setMessages(prev => [...prev, {
@@ -45,13 +56,12 @@ function App() {
       }]);
       
       setConversationState(data.conversation_state || {});
-      setUserInput("");
     } catch (error) {
-      console.error("Connection error:", error); // Debug
+      console.error("Connection error:", error);
       setMessages(prev => [...prev, {
         role: "bot",
-        content: "Connection error. The backend may be starting up (takes 30-60 seconds on Render free tier). Please wait a moment and try again.",
-        options: ["Start Over"]
+        content: "⚠️ Unable to connect to the server. The backend may be starting up (this takes 30-60 seconds on first request). Please wait a moment and try clicking 'Start Over' below.",
+        options: []
       }]);
     }
     
@@ -60,13 +70,15 @@ function App() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (userInput.trim()) {
+    if (userInput.trim() && !loading) {
       sendMessage(userInput.trim());
     }
   };
 
   const handleOptionClick = (option) => {
-    sendMessage(option);
+    if (!loading) {
+      sendMessage(option);
+    }
   };
 
   const handleRestart = () => {
@@ -79,106 +91,169 @@ function App() {
   if (!showChat) {
     return (
       <div className="landing">
-        <div className="landing-content">
-          <div className="icon-circle">
-            <FaGavel color="#fff" size={55} />
+        <div className="landing-header">
+          <div className="logo-container">
+            <div className="icon-circle">
+              <FaGavel color="#fff" size={50} />
+            </div>
+            <h1>Illinois Legal Triage</h1>
+            <p className="subtitle">Self-Help Resource Navigator</p>
           </div>
-          <h1>Illinois Court Case Inquiry Portal</h1>
+        </div>
+        
+        <div className="landing-content">
+          <h2>Welcome to the Legal Resource Portal</h2>
           <p className="tagline">
-            Welcome! This confidential chatbot helps you find legal self-help resources and referrals for issues in <strong>child support, education, and housing</strong>.
+            This confidential chatbot connects Illinois residents with legal information and referrals for:
           </p>
+          
+          <div className="topic-cards">
+            <div className="topic-card">
+              <div className="topic-icon">👨‍👩‍👧‍👦</div>
+              <h3>Child Support</h3>
+              <p>Resources for custody and support matters</p>
+            </div>
+            <div className="topic-card">
+              <div className="topic-icon">🎓</div>
+              <h3>Education</h3>
+              <p>School rights and special education help</p>
+            </div>
+            <div className="topic-card">
+              <div className="topic-icon">🏠</div>
+              <h3>Housing</h3>
+              <p>Tenant rights and eviction assistance</p>
+            </div>
+          </div>
+
           <button 
-            className="btn btn-primary btn-large" 
+            className="btn btn-primary btn-large btn-start" 
             onClick={() => {
               setShowChat(true);
               sendMessage("start");
             }}
           >
-            Begin Your Case Inquiry
+            Begin Case Inquiry
           </button>
+
+          <div className="disclaimer-box">
+            <p className="disclaimer-title">⚖️ Important Legal Notice</p>
+            <p className="disclaimer-text">
+              This tool provides general legal information only — <strong>not legal advice</strong>. 
+              For emergencies or personalized guidance, contact a licensed attorney or legal aid organization directly.
+            </p>
+          </div>
         </div>
-        <p className="footer-text">
-          ⚠️ For emergencies or immediate legal advice, contact a lawyer or legal aid directly.<br />
-          This tool provides information only, not legal advice.
-        </p>
       </div>
     );
   }
 
   return (
-    <div className="container">
-      <div className="card chat-container">
-        <h2>Illinois Legal Triage Chatbot</h2>
-        
+    <div className="chat-page">
+      <div className="chat-header">
+        <div className="header-content">
+          <FaGavel size={28} color="#fff" />
+          <div className="header-text">
+            <h2>Illinois Legal Triage Chatbot</h2>
+            <p>Information & Referrals</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="chat-container">
         <div className="messages-container">
           {messages.map((msg, idx) => (
-            <div key={idx} className={`message ${msg.role}`}>
-              <div className="message-content">
-                {msg.content}
-                
-                {/* Show referrals if present */}
-                {msg.referrals && msg.referrals.length > 0 && (
-                  <div className="referrals">
-                    {msg.referrals.map((ref, i) => (
-                      <div key={i} className="referral-card">
-                        <h3>{ref.name}</h3>
-                        <p>{ref.description}</p>
-                        <a 
-                          href={ref.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="btn btn-primary"
+            <div key={idx} className={`message-wrapper ${msg.role}`}>
+              <div className={`message ${msg.role}`}>
+                <div className="message-content">
+                  {msg.content}
+                  
+                  {/* Show referrals if present */}
+                  {msg.referrals && msg.referrals.length > 0 && (
+                    <div className="referrals">
+                      <h4 className="referrals-title">📋 Recommended Resources:</h4>
+                      {msg.referrals.map((ref, i) => (
+                        <div key={i} className="referral-card">
+                          <div className="referral-header">
+                            <h3>{ref.name}</h3>
+                          </div>
+                          <p className="referral-description">{ref.description}</p>
+                          <a 
+                            href={ref.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="btn btn-referral"
+                          >
+                            Visit Website →
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Show options as buttons */}
+                  {msg.options && msg.options.length > 0 && idx === messages.length - 1 && (
+                    <div className="options">
+                      {msg.options.map((option, i) => (
+                        <button
+                          key={i}
+                          className="btn btn-option"
+                          onClick={() => handleOptionClick(option)}
+                          disabled={loading}
                         >
-                          Visit Website
-                        </a>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                
-                {/* Show options as buttons */}
-                {msg.options && msg.options.length > 0 && (
-                  <div className="options">
-                    {msg.options.map((option, i) => (
-                      <button
-                        key={i}
-                        className="btn btn-outline"
-                        onClick={() => handleOptionClick(option)}
-                        disabled={loading}
-                      >
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}
           
-          {loading && <div className="loading">Thinking...</div>}
+          {loading && (
+            <div className="message-wrapper bot">
+              <div className="message bot">
+                <div className="typing-indicator">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
         </div>
 
-        <form onSubmit={handleSubmit} className="input-form">
-          <input
-            type="text"
-            value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            placeholder="Type your message..."
-            disabled={loading}
-          />
-          <button type="submit" className="btn btn-primary" disabled={loading || !userInput.trim()}>
-            Send
+        <div className="input-container">
+          <button onClick={handleRestart} className="btn btn-restart" title="Start Over">
+            <FaRedo size={16} />
           </button>
-        </form>
+          
+          <form onSubmit={handleSubmit} className="input-form">
+            <input
+              type="text"
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              placeholder="Type your message here..."
+              disabled={loading}
+              className="chat-input"
+            />
+            <button 
+              type="submit" 
+              className="btn btn-send" 
+              disabled={loading || !userInput.trim()}
+              title="Send message"
+            >
+              <FaPaperPlane size={18} />
+            </button>
+          </form>
+        </div>
 
-        <button onClick={handleRestart} className="btn btn-outline btn-large">
-          Start Over
-        </button>
-
-        <p className="disclaimer">
-          ⚖️ This chatbot provides general legal information only—not legal advice.<br />
-          For emergencies or personalized advice, contact a licensed attorney or legal aid provider.
-        </p>
+        <div className="chat-footer">
+          <p className="footer-disclaimer">
+            ⚖️ Information only — not legal advice. For emergencies, contact an attorney.
+          </p>
+        </div>
       </div>
     </div>
   );
