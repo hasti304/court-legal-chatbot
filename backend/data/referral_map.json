@@ -1,110 +1,101 @@
-[
-  {
-    "topic": "Child Support",
-    "urgency": "Emergency (court date within 30 days)",
-    "court_status": "Already in court",
-    "referral": {
-      "level": 3,
-      "resource": "Prairie State Legal Services - https://www.pslegal.org/"
-    }
+{
+  "child_support": {
+    "level_1": [
+      {
+        "name": "Illinois Courts - Child Support",
+        "url": "https://www.illinoiscourts.gov/resources/b1060ca9-8cd4-4e27-b8e5-1e0c6f5e4e4d",
+        "description": "General information about child support in Illinois"
+      }
+    ],
+    "level_2": [
+      {
+        "name": "Illinois Legal Aid Online - Child Support",
+        "url": "https://www.illinoislegalaid.org/legal-information/child-support",
+        "description": "Self-help resources and forms for child support"
+      }
+    ],
+    "level_3": [
+      {
+        "name": "Prairie State Legal Services",
+        "url": "https://www.pslegal.org/",
+        "description": "Free legal services for eligible low-income Illinois residents"
+      },
+      {
+        "name": "Legal Aid Chicago",
+        "url": "https://www.legalaidchicago.org/",
+        "description": "Free legal help for low-income Cook County residents"
+      },
+      {
+        "name": "Chicago Advocate Legal",
+        "url": "https://www.chicagoadvocatelegal.com/",
+        "description": "Legal assistance for Cook County residents"
+      }
+    ]
   },
-  {
-    "topic": "Child Support",
-    "urgency": "Emergency (court date within 30 days)",
-    "court_status": "Not in court yet",
-    "referral": {
-      "level": 2,
-      "resource": "Illinois Legal Aid Online - Child Support - https://www.illinoislegalaid.org/legal-information/child-support"
-    }
+  "education": {
+    "level_1": [
+      {
+        "name": "Illinois State Board of Education",
+        "url": "https://www.isbe.net/",
+        "description": "General education information and resources"
+      }
+    ],
+    "level_2": [
+      {
+        "name": "Illinois Legal Aid Online - Education",
+        "url": "https://www.illinoislegalaid.org/legal-information/education-law",
+        "description": "Self-help resources for education issues"
+      }
+    ],
+    "level_3": [
+      {
+        "name": "Equip for Equality",
+        "url": "https://www.equipforequality.org/",
+        "description": "Legal aid for people with disabilities, including education rights"
+      },
+      {
+        "name": "Prairie State Legal Services",
+        "url": "https://www.pslegal.org/",
+        "description": "Free legal services for education matters"
+      },
+      {
+        "name": "Chicago Advocate Legal",
+        "url": "https://www.chicagoadvocatelegal.com/",
+        "description": "Legal assistance for education matters in Cook County"
+      }
+    ]
   },
-  {
-    "topic": "Child Support",
-    "urgency": "Not urgent (no immediate court date)",
-    "court_status": "Already in court",
-    "referral": {
-      "level": 2,
-      "resource": "Illinois Legal Aid Online - Child Support - https://www.illinoislegalaid.org/legal-information/child-support"
-    }
-  },
-  {
-    "topic": "Child Support",
-    "urgency": "Not urgent (no immediate court date)",
-    "court_status": "Not in court yet",
-    "referral": {
-      "level": 1,
-      "resource": "Illinois Courts Self-Help - https://www.illinoiscourts.gov/self-help"
-    }
-  },
-  {
-    "topic": "Education",
-    "urgency": "Emergency (court date within 30 days)",
-    "court_status": "Already in court",
-    "referral": {
-      "level": 3,
-      "resource": "Equip for Equality - https://www.equipforequality.org/"
-    }
-  },
-  {
-    "topic": "Education",
-    "urgency": "Emergency (court date within 30 days)",
-    "court_status": "Not in court yet",
-    "referral": {
-      "level": 2,
-      "resource": "Illinois Legal Aid Online - Education - https://www.illinoislegalaid.org/legal-information/education"
-    }
-  },
-  {
-    "topic": "Education",
-    "urgency": "Not urgent (no immediate court date)",
-    "court_status": "Already in court",
-    "referral": {
-      "level": 2,
-      "resource": "Illinois Legal Aid Online - Education - https://www.illinoislegalaid.org/legal-information/education"
-    }
-  },
-  {
-    "topic": "Education",
-    "urgency": "Not urgent (no immediate court date)",
-    "court_status": "Not in court yet",
-    "referral": {
-      "level": 1,
-      "resource": "Illinois State Board of Education - https://www.isbe.net/"
-    }
-  },
-  {
-    "topic": "Housing",
-    "urgency": "Emergency (court date within 30 days)",
-    "court_status": "Already in court",
-    "referral": {
-      "level": 3,
-      "resource": "Legal Aid Chicago - https://legalaidchicago.org/"
-    }
-  },
-  {
-    "topic": "Housing",
-    "urgency": "Emergency (court date within 30 days)",
-    "court_status": "Not in court yet",
-    "referral": {
-      "level": 2,
-      "resource": "Illinois Legal Aid Online - Housing - https://www.illinoislegalaid.org/legal-information/housing"
-    }
-  },
-  {
-    "topic": "Housing",
-    "urgency": "Not urgent (no immediate court date)",
-    "court_status": "Already in court",
-    "referral": {
-      "level": 2,
-      "resource": "Illinois Legal Aid Online - Housing - https://www.illinoislegalaid.org/legal-information/housing"
-    }
-  },
-  {
-    "topic": "Housing",
-    "urgency": "Not urgent (no immediate court date)",
-    "court_status": "Not in court yet",
-    "referral": {
-      "level": 1,
-      "resource": "Illinois Housing Development Authority - https://www.ihda.org/"
-    }
+  "housing": {
+    "level_1": [
+      {
+        "name": "Illinois Housing Development Authority",
+        "url": "https://www.ihda.org/",
+        "description": "General housing information and resources"
+      }
+    ],
+    "level_2": [
+      {
+        "name": "Illinois Legal Aid Online - Housing",
+        "url": "https://www.illinoislegalaid.org/legal-information/housing",
+        "description": "Self-help resources for housing issues"
+      }
+    ],
+    "level_3": [
+      {
+        "name": "Prairie State Legal Services",
+        "url": "https://www.pslegal.org/",
+        "description": "Free legal services for housing issues"
+      },
+      {
+        "name": "Legal Aid Chicago",
+        "url": "https://www.legalaidchicago.org/",
+        "description": "Free legal help for housing problems in Cook County"
+      },
+      {
+        "name": "Chicago Advocate Legal",
+        "url": "https://www.chicagoadvocatelegal.com/",
+        "description": "Legal assistance for housing matters in Cook County"
+      }
+    ]
   }
-]
+}
