@@ -4,35 +4,52 @@ from pydantic import BaseModel
 import json
 import os
 
+# Get the directory where main.py is located
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# data/ folder is now inside backend/, so no need for ".."
 DATA_DIR = os.path.join(BASE_DIR, "data")
 
+# File paths
 TRIAGE_QUESTIONS_PATH = os.path.join(DATA_DIR, "triage_questions.json")
 REFERRAL_MAP_PATH = os.path.join(DATA_DIR, "referral_map.json")
 
 app = FastAPI()
 
+# Enhanced CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://hasti304.github.io",
+        "https://hasti304.github.io/court-legal-chatbot",
         "http://localhost:3000",
         "http://localhost:5173"
     ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
+# Load JSON data files
 def load_json_file(file_path: str):
+    """Load and return JSON data from file"""
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     except FileNotFoundError:
-        raise HTTPException(status_code=500, detail=f"Data file not found: {file_path}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Data file not found: {file_path}"
+        )
     except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail=f"Invalid JSON in file: {file_path}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Invalid JSON in file: {file_path}"
+        )
 
+# Request/Response models
 class ChatRequest(BaseModel):
     message: str
     conversation_state: dict = {}
@@ -45,6 +62,7 @@ class ChatResponse(BaseModel):
 
 @app.get("/")
 def read_root():
+    """Root endpoint"""
     return {
         "message": "Illinois Legal Triage Chatbot API",
         "status": "active",
@@ -53,6 +71,8 @@ def read_root():
 
 @app.get("/health")
 def health_check():
+    """Health check endpoint"""
+    # Verify data files exist
     triage_exists = os.path.exists(TRIAGE_QUESTIONS_PATH)
     referral_exists = os.path.exists(REFERRAL_MAP_PATH)
     
@@ -70,6 +90,9 @@ def health_check():
 
 @app.post("/chat", response_model=ChatResponse)
 def chat_endpoint(request: ChatRequest):
+    """Main chat endpoint for triage conversation"""
+    
+    # Load data files
     triage_questions = load_json_file(TRIAGE_QUESTIONS_PATH)
     referral_map = load_json_file(REFERRAL_MAP_PATH)
     
@@ -77,7 +100,7 @@ def chat_endpoint(request: ChatRequest):
     state = request.conversation_state
     
     # Initialize conversation
-    if not state or message in ["start", "restart", "begin"]:
+    if not state or message in ["start", "restart", "begin", "start over"]:
         return ChatResponse(
             response="Hello! I'm here to help connect you with Illinois legal resources. This chatbot provides information only and is not legal advice. What legal topic do you need help with?",
             options=["Child Support", "Education", "Housing"],
