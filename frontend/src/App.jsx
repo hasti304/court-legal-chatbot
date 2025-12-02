@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FaGavel, FaPaperPlane, FaRedo } from "react-icons/fa";
+import { FaGavel, FaPaperPlane, FaRedo, FaPhone, FaFileAlt } from "react-icons/fa";
 import "./App.css";
 
 function App() {
@@ -21,7 +21,6 @@ function App() {
   const sendMessage = async (message) => {
     setLoading(true);
     
-    // Add user message to chat
     const userMessage = { role: "user", content: message };
     setMessages(prev => [...prev, userMessage]);
     setUserInput("");
@@ -52,7 +51,6 @@ function App() {
       const data = await response.json();
       console.log("Received from backend:", data);
       
-      // Add bot response to chat
       setMessages(prev => [...prev, {
         role: "bot",
         content: data.response,
@@ -65,7 +63,7 @@ function App() {
       console.error("Connection error details:", error);
       setMessages(prev => [...prev, {
         role: "bot",
-        content: "⚠️ Unable to connect to the server. Please wait 60 seconds for the backend to wake up, then click 'Start Over' to try again.",
+        content: "⚠️ Unable to connect to the server. Please wait 60 seconds for the backend to wake up, then click 'Restart' to try again.",
         options: []
       }]);
     }
@@ -128,6 +126,16 @@ function App() {
               <h3>Housing</h3>
               <p>Tenant rights and eviction assistance</p>
             </div>
+            <div className="topic-card">
+              <div className="topic-icon">⚖️</div>
+              <h3>Divorce</h3>
+              <p>Divorce proceedings and legal guidance</p>
+            </div>
+            <div className="topic-card">
+              <div className="topic-icon">👶</div>
+              <h3>Custody</h3>
+              <p>Child custody and parenting time</p>
+            </div>
           </div>
 
           <button 
@@ -178,7 +186,7 @@ function App() {
                 <div className="message-content">
                   {msg.content}
                   
-                  {/* Show referrals if present */}
+                  {/* Show referrals with enhanced format */}
                   {msg.referrals && msg.referrals.length > 0 && (
                     <div className="referrals">
                       <h4 className="referrals-title">📋 Recommended Resources:</h4>
@@ -188,6 +196,32 @@ function App() {
                             <h3>{ref.name}</h3>
                           </div>
                           <p className="referral-description">{ref.description}</p>
+                          
+                          {/* Contact Information */}
+                          <div className="referral-contact">
+                            {ref.phone && ref.phone !== "" && (
+                              <div className="contact-item">
+                                <FaPhone size={14} />
+                                <span><strong>Intake Phone:</strong> {ref.phone}</span>
+                              </div>
+                            )}
+                            
+                            {ref.intake_form && ref.intake_form !== "" && (
+                              <div className="contact-item">
+                                <FaFileAlt size={14} />
+                                <a 
+                                  href={ref.intake_form} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="intake-link"
+                                >
+                                  Direct Intake Form
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Website Link */}
                           <a 
                             href={ref.url} 
                             target="_blank" 
@@ -201,7 +235,7 @@ function App() {
                     </div>
                   )}
                   
-                  {/* Show options as buttons - ALWAYS show if present */}
+                  {/* Show options as buttons */}
                   {msg.options && msg.options.length > 0 && (
                     <div className="options">
                       {msg.options.map((option, i) => (
@@ -236,7 +270,7 @@ function App() {
         </div>
 
         <div className="input-container">
-          <button onClick={handleRestart} className="btn btn-restart" title="Start Over">
+          <button onClick={handleRestart} className="btn btn-restart" title="Restart">
             <FaRedo size={16} />
           </button>
           
