@@ -10,7 +10,6 @@ function App() {
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
-  // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -23,15 +22,19 @@ function App() {
     setLoading(true);
     
     // Add user message to chat
-    setMessages(prev => [...prev, { role: "user", content: message }]);
-    setUserInput(""); // Clear input immediately
+    const userMessage = { role: "user", content: message };
+    setMessages(prev => [...prev, userMessage]);
+    setUserInput("");
 
     try {
-      console.log("Sending request to backend...");
+      console.log("Sending to backend:", message);
+      console.log("Current state:", conversationState);
       
       const response = await fetch("https://court-legal-chatbot.onrender.com/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           message: message.toLowerCase(),
           conversation_state: conversationState
@@ -41,11 +44,13 @@ function App() {
       console.log("Response status:", response.status);
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Backend error:", errorText);
         throw new Error(`Server error: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log("Received data:", data);
+      console.log("Received from backend:", data);
       
       // Add bot response to chat
       setMessages(prev => [...prev, {
@@ -57,10 +62,10 @@ function App() {
       
       setConversationState(data.conversation_state || {});
     } catch (error) {
-      console.error("Connection error:", error);
+      console.error("Connection error details:", error);
       setMessages(prev => [...prev, {
         role: "bot",
-        content: "⚠️ Unable to connect to the server. The backend may be starting up (this takes 30-60 seconds on first request). Please wait a moment and try clicking 'Start Over' below.",
+        content: "⚠️ Unable to connect to the server. Please wait 60 seconds for the backend to wake up, then click 'Start Over' to try again.",
         options: []
       }]);
     }
@@ -161,6 +166,12 @@ function App() {
 
       <div className="chat-container">
         <div className="messages-container">
+          {messages.length === 0 && !loading && (
+            <div className="empty-state">
+              <p>Starting conversation...</p>
+            </div>
+          )}
+          
           {messages.map((msg, idx) => (
             <div key={idx} className={`message-wrapper ${msg.role}`}>
               <div className={`message ${msg.role}`}>
@@ -190,8 +201,8 @@ function App() {
                     </div>
                   )}
                   
-                  {/* Show options as buttons */}
-                  {msg.options && msg.options.length > 0 && idx === messages.length - 1 && (
+                  {/* Show options as buttons - ALWAYS show if present */}
+                  {msg.options && msg.options.length > 0 && (
                     <div className="options">
                       {msg.options.map((option, i) => (
                         <button
