@@ -4,31 +4,55 @@
       {
         "name": "Illinois Courts - Child Support",
         "url": "https://www.illinoiscourts.gov/resources/b1060ca9-8cd4-4e27-b8e5-1e0c6f5e4e4d",
-        "description": "General information about child support in Illinois"
+        "description": "General information about child support in Illinois",
+        "phone": "",
+        "intake_form": ""
       }
     ],
     "level_2": [
       {
         "name": "Illinois Legal Aid Online - Child Support",
         "url": "https://www.illinoislegalaid.org/legal-information/child-support",
-        "description": "Self-help resources and forms for child support"
+        "description": "Self-help resources and forms for child support",
+        "phone": "",
+        "intake_form": ""
       }
     ],
     "level_3": [
       {
+        "name": "Chicago Advocate Legal, NFP",
+        "url": "https://www.chicagoadvocatelegal.com/",
+        "description": "Provides legal assistance for child support matters in Cook County",
+        "phone": "[INTAKE PHONE NUMBER]",
+        "intake_form": "[DIRECT INTAKE FORM LINK]"
+      },
+      {
         "name": "Prairie State Legal Services",
         "url": "https://www.pslegal.org/",
-        "description": "Free legal services for eligible low-income Illinois residents"
+        "description": "Free legal services for eligible low-income Illinois residents",
+        "phone": "",
+        "intake_form": ""
       },
       {
         "name": "Legal Aid Chicago",
         "url": "https://www.legalaidchicago.org/",
-        "description": "Free legal help for low-income Cook County residents"
+        "description": "Free legal help for low-income Cook County residents",
+        "phone": "",
+        "intake_form": ""
       },
       {
-        "name": "Chicago Advocate Legal",
-        "url": "https://www.chicagoadvocatelegal.com/",
-        "description": "Legal assistance for Cook County residents"
+        "name": "CARPLS (Coordinated Advice & Referral Program for Legal Services)",
+        "url": "https://www.carpls.org/",
+        "description": "Provides advice and referrals to legal services in Cook County",
+        "phone": "[CARPLS PHONE NUMBER]",
+        "intake_form": ""
+      },
+      {
+        "name": "Justice Entrepreneurs Project",
+        "url": "[JEP WEBSITE]",
+        "description": "Connects clients with affordable legal services from solo practitioners and small firms",
+        "phone": "[JEP PHONE NUMBER]",
+        "intake_form": ""
       }
     ]
   },
@@ -37,31 +61,69 @@
       {
         "name": "Illinois State Board of Education",
         "url": "https://www.isbe.net/",
-        "description": "General education information and resources"
+        "description": "General education information and resources",
+        "phone": "",
+        "intake_form": ""
+      },
+      {
+        "name": "Legal Advocacy Resources PDF",
+        "url": "/Legal-Advocacy-Resources.pdf",
+        "description": "Download comprehensive education law help guide",
+        "phone": "",
+        "intake_form": ""
       }
     ],
     "level_2": [
       {
         "name": "Illinois Legal Aid Online - Education",
         "url": "https://www.illinoislegalaid.org/legal-information/education-law",
-        "description": "Self-help resources for education issues"
+        "description": "Self-help resources for education issues",
+        "phone": "",
+        "intake_form": ""
+      },
+      {
+        "name": "Legal Advocacy Resources PDF",
+        "url": "/Legal-Advocacy-Resources.pdf",
+        "description": "Download comprehensive education law help guide",
+        "phone": "",
+        "intake_form": ""
       }
     ],
     "level_3": [
       {
         "name": "Equip for Equality",
         "url": "https://www.equipforequality.org/",
-        "description": "Legal aid for people with disabilities, including education rights"
+        "description": "Legal aid for people with disabilities, including education rights",
+        "phone": "",
+        "intake_form": ""
+      },
+      {
+        "name": "Chicago Advocate Legal, NFP",
+        "url": "https://www.chicagoadvocatelegal.com/",
+        "description": "Legal assistance for education matters in Cook County",
+        "phone": "[INTAKE PHONE NUMBER]",
+        "intake_form": "[DIRECT INTAKE FORM LINK]"
+      },
+      {
+        "name": "Greater Chicago Legal Clinic",
+        "url": "https://www.gclclaw.org/",
+        "description": "Provides legal services including education law assistance",
+        "phone": "[GCLC INTAKE PHONE NUMBER]",
+        "intake_form": ""
       },
       {
         "name": "Prairie State Legal Services",
         "url": "https://www.pslegal.org/",
-        "description": "Free legal services for education matters"
+        "description": "Free legal services for education matters",
+        "phone": "",
+        "intake_form": ""
       },
       {
-        "name": "Chicago Advocate Legal",
-        "url": "https://www.chicagoadvocatelegal.com/",
-        "description": "Legal assistance for education matters in Cook County"
+        "name": "Legal Advocacy Resources PDF",
+        "url": "/Legal-Advocacy-Resources.pdf",
+        "description": "Download comprehensive education law help guide",
+        "phone": "",
+        "intake_form": ""
       }
     ]
   },
@@ -70,31 +132,169 @@
       {
         "name": "Illinois Housing Development Authority",
         "url": "https://www.ihda.org/",
-        "description": "General housing information and resources"
+        "description": "General housing information and resources",
+        "phone": "",
+        "intake_form": ""
       }
     ],
     "level_2": [
       {
         "name": "Illinois Legal Aid Online - Housing",
         "url": "https://www.illinoislegalaid.org/legal-information/housing",
-        "description": "Self-help resources for housing issues"
+        "description": "Self-help resources for housing issues",
+        "phone": "",
+        "intake_form": ""
       }
     ],
     "level_3": [
       {
+        "name": "Chicago Advocate Legal, NFP",
+        "url": "https://www.chicagoadvocatelegal.com/",
+        "description": "Legal assistance for housing matters in Cook County",
+        "phone": "[INTAKE PHONE NUMBER]",
+        "intake_form": "[DIRECT INTAKE FORM LINK]"
+      },
+      {
+        "name": "Greater Chicago Legal Clinic",
+        "url": "https://www.gclclaw.org/",
+        "description": "Provides legal services for housing issues including eviction defense",
+        "phone": "[GCLC INTAKE PHONE NUMBER]",
+        "intake_form": ""
+      },
+      {
         "name": "Prairie State Legal Services",
         "url": "https://www.pslegal.org/",
-        "description": "Free legal services for housing issues"
+        "description": "Free legal services for housing issues",
+        "phone": "",
+        "intake_form": ""
       },
       {
         "name": "Legal Aid Chicago",
         "url": "https://www.legalaidchicago.org/",
-        "description": "Free legal help for housing problems in Cook County"
+        "description": "Free legal help for housing problems in Cook County",
+        "phone": "",
+        "intake_form": ""
       },
       {
-        "name": "Chicago Advocate Legal",
+        "name": "CARPLS (Coordinated Advice & Referral Program for Legal Services)",
+        "url": "https://www.carpls.org/",
+        "description": "Provides advice and referrals for housing legal services in Cook County",
+        "phone": "[CARPLS PHONE NUMBER]",
+        "intake_form": ""
+      }
+    ]
+  },
+  "divorce": {
+    "level_1": [
+      {
+        "name": "Illinois Courts - Divorce Information",
+        "url": "https://www.illinoiscourts.gov/",
+        "description": "General information about divorce proceedings in Illinois",
+        "phone": "",
+        "intake_form": ""
+      }
+    ],
+    "level_2": [
+      {
+        "name": "Illinois Legal Aid Online - Divorce",
+        "url": "https://www.illinoislegalaid.org/legal-information/divorce",
+        "description": "Self-help resources and forms for divorce",
+        "phone": "",
+        "intake_form": ""
+      }
+    ],
+    "level_3": [
+      {
+        "name": "Chicago Advocate Legal, NFP",
         "url": "https://www.chicagoadvocatelegal.com/",
-        "description": "Legal assistance for housing matters in Cook County"
+        "description": "Legal assistance for divorce matters in Cook County",
+        "phone": "[INTAKE PHONE NUMBER]",
+        "intake_form": "[DIRECT INTAKE FORM LINK]"
+      },
+      {
+        "name": "Greater Chicago Legal Clinic",
+        "url": "https://www.gclclaw.org/",
+        "description": "Provides legal services for divorce and family law matters",
+        "phone": "[GCLC INTAKE PHONE NUMBER]",
+        "intake_form": ""
+      },
+      {
+        "name": "Prairie State Legal Services",
+        "url": "https://www.pslegal.org/",
+        "description": "Free legal services for divorce matters",
+        "phone": "",
+        "intake_form": ""
+      },
+      {
+        "name": "Legal Aid Chicago",
+        "url": "https://www.legalaidchicago.org/",
+        "description": "Free legal help for divorce in Cook County",
+        "phone": "",
+        "intake_form": ""
+      },
+      {
+        "name": "Justice Entrepreneurs Project",
+        "url": "[JEP WEBSITE]",
+        "description": "Connects clients with affordable divorce attorneys",
+        "phone": "[JEP PHONE NUMBER]",
+        "intake_form": ""
+      }
+    ]
+  },
+  "custody": {
+    "level_1": [
+      {
+        "name": "Illinois Courts - Child Custody Information",
+        "url": "https://www.illinoiscourts.gov/",
+        "description": "General information about child custody in Illinois",
+        "phone": "",
+        "intake_form": ""
+      }
+    ],
+    "level_2": [
+      {
+        "name": "Illinois Legal Aid Online - Custody",
+        "url": "https://www.illinoislegalaid.org/legal-information/child-custody",
+        "description": "Self-help resources and forms for custody matters",
+        "phone": "",
+        "intake_form": ""
+      }
+    ],
+    "level_3": [
+      {
+        "name": "Chicago Advocate Legal, NFP",
+        "url": "https://www.chicagoadvocatelegal.com/",
+        "description": "Legal assistance for custody matters in Cook County",
+        "phone": "[INTAKE PHONE NUMBER]",
+        "intake_form": "[DIRECT INTAKE FORM LINK]"
+      },
+      {
+        "name": "Greater Chicago Legal Clinic",
+        "url": "https://www.gclclaw.org/",
+        "description": "Provides legal services for child custody cases",
+        "phone": "[GCLC INTAKE PHONE NUMBER]",
+        "intake_form": ""
+      },
+      {
+        "name": "Prairie State Legal Services",
+        "url": "https://www.pslegal.org/",
+        "description": "Free legal services for custody matters",
+        "phone": "",
+        "intake_form": ""
+      },
+      {
+        "name": "Legal Aid Chicago",
+        "url": "https://www.legalaidchicago.org/",
+        "description": "Free legal help for custody issues in Cook County",
+        "phone": "",
+        "intake_form": ""
+      },
+      {
+        "name": "CARPLS (Coordinated Advice & Referral Program for Legal Services)",
+        "url": "https://www.carpls.org/",
+        "description": "Provides advice and referrals for custody legal services",
+        "phone": "[CARPLS PHONE NUMBER]",
+        "intake_form": ""
       }
     ]
   }

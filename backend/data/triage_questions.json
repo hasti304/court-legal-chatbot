@@ -1,11 +1,12 @@
 {
-  "topics": ["child_support", "education", "housing"],
-  "urgency_levels": ["low", "medium", "high"],
+  "topics": ["child_support", "education", "housing", "divorce", "custody"],
+  "emergency_options": ["yes", "no", "i don't know"],
   "questions": {
-    "topic": "What legal topic do you need help with?",
-    "urgency": "Is this an emergency situation?",
+    "topic": "What legal issue do you need help with?",
+    "emergency": "Is this an emergency?",
     "court_status": "Do you currently have an open court case?",
     "income": "Are you low-income or receiving public benefits?",
     "zip_code": "What is your Illinois ZIP code?"
-  }
+  },
+  "post_referral_options": ["Continue", "Restart", "Connect with a Resource"]
 }
