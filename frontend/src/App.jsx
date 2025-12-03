@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FaGavel, FaPaperPlane, FaRedo, FaPhone, FaFileAlt } from "react-icons/fa";
+import { FaGavel, FaPaperPlane, FaRedo, FaPhone, FaFileAlt, FaInfoCircle } from "react-icons/fa";
 import "./App.css";
 
 function App() {
@@ -217,6 +217,14 @@ function App() {
                                 >
                                   Direct Intake Form
                                 </a>
+                              </div>
+                            )}
+                            
+                            {/* Intake Instructions */}
+                            {ref.intake_instructions && ref.intake_instructions !== "" && (
+                              <div className="intake-instructions">
+                                <FaInfoCircle size={14} />
+                                <span>{ref.intake_instructions}</span>
                               </div>
                             )}
                           </div>
