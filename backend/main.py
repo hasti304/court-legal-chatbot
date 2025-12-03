@@ -4,14 +4,19 @@ from pydantic import BaseModel
 import json
 import os
 
+# Get the directory where main.py is located
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# data/ folder is now inside backend/, so no need for ".."
 DATA_DIR = os.path.join(BASE_DIR, "data")
 
+# File paths
 TRIAGE_QUESTIONS_PATH = os.path.join(DATA_DIR, "triage_questions.json")
 REFERRAL_MAP_PATH = os.path.join(DATA_DIR, "referral_map.json")
 
 app = FastAPI()
 
+# Enhanced CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -27,15 +32,24 @@ app.add_middleware(
     max_age=3600,
 )
 
+# Load JSON data files
 def load_json_file(file_path: str):
+    """Load and return JSON data from file"""
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     except FileNotFoundError:
-        raise HTTPException(status_code=500, detail=f"Data file not found: {file_path}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Data file not found: {file_path}"
+        )
     except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail=f"Invalid JSON in file: {file_path}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Invalid JSON in file: {file_path}"
+        )
 
+# Request/Response models
 class ChatRequest(BaseModel):
     message: str
     conversation_state: dict = {}
@@ -48,6 +62,7 @@ class ChatResponse(BaseModel):
 
 @app.get("/")
 def read_root():
+    """Root endpoint"""
     return {
         "message": "Illinois Legal Triage Chatbot API",
         "status": "active",
@@ -56,6 +71,8 @@ def read_root():
 
 @app.get("/health")
 def health_check():
+    """Health check endpoint"""
+    # Verify data files exist
     triage_exists = os.path.exists(TRIAGE_QUESTIONS_PATH)
     referral_exists = os.path.exists(REFERRAL_MAP_PATH)
     
@@ -73,6 +90,9 @@ def health_check():
 
 @app.post("/chat", response_model=ChatResponse)
 def chat_endpoint(request: ChatRequest):
+    """Main chat endpoint for triage conversation"""
+    
+    # Load data files
     triage_questions = load_json_file(TRIAGE_QUESTIONS_PATH)
     referral_map = load_json_file(REFERRAL_MAP_PATH)
     
@@ -238,11 +258,47 @@ def chat_endpoint(request: ChatRequest):
                 conversation_state={"step": "continue_check"}
             )
         elif message == "connect with a resource":
-            return ChatResponse(
-                response="Please contact one of the organizations listed above directly using their phone number or website link. They can help you with your specific legal issue.",
-                options=["Restart"],
-                conversation_state={"step": "complete"}
-            )
+            # Get the top recommended resource based on their previous answers
+            topic = state.get("topic", "general")
+            level = state.get("level", 1)
+            zip_code = state.get("zip_code", "")
+            
+            referrals = referral_map.get(topic, {}).get(f"level_{level}", [])
+            
+            # Prioritize Chicago Advocate Legal, NFP for Cook County
+            cook_county_zips = ["60601", "60602", "60603", "60604", "60605", "60606", "60607", "60608", "60609", "60610", 
+                               "60611", "60612", "60613", "60614", "60615", "60616", "60617", "60618", "60619", "60620",
+                               "60621", "60622", "60623", "60624", "60625", "60626", "60628", "60629", "60630", "60631",
+                               "60632", "60633", "60634", "60636", "60637", "60638", "60639", "60640", "60641", "60642",
+                               "60643", "60644", "60645", "60646", "60647", "60649", "60651", "60652", "60653", "60654",
+                               "60655", "60656", "60657", "60659", "60660", "60661", "60706", "60707", "60803", "60804",
+                               "60805", "60827"]
+            
+            # Find Chicago Advocate Legal, NFP if in Cook County
+            top_resource = None
+            if zip_code in cook_county_zips:
+                for ref in referrals:
+                    if "Chicago Advocate Legal, NFP" in ref.get("name", ""):
+                        top_resource = ref
+                        break
+            
+            # Otherwise, use the first resource in the list
+            if not top_resource and referrals:
+                top_resource = referrals[0]
+            
+            if top_resource:
+                return ChatResponse(
+                    response="🎯 Here's your recommended contact for immediate assistance:",
+                    referrals=[top_resource],
+                    options=["Restart"],
+                    conversation_state={"step": "complete"}
+                )
+            else:
+                return ChatResponse(
+                    response="Please contact one of the organizations listed above for assistance with your legal issue.",
+                    options=["Restart"],
+                    conversation_state={"step": "complete"}
+                )
     
     # Default fallback
     return ChatResponse(
