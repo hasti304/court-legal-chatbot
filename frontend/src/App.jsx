@@ -9,13 +9,33 @@ function App() {
   const [userInput, setUserInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
+  // Smart scroll: only scroll to bottom for user messages, not bot referrals
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const scrollToTop = () => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
   useEffect(() => {
-    scrollToBottom();
+    // Only auto-scroll if the last message is from user
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      
+      // If bot message with referrals, scroll to top to see first resource
+      if (lastMessage.role === "bot" && lastMessage.referrals && lastMessage.referrals.length > 0) {
+        setTimeout(scrollToTop, 100); // Small delay to ensure content is rendered
+      } 
+      // Otherwise, scroll to bottom (normal conversation flow)
+      else {
+        scrollToBottom();
+      }
+    }
   }, [messages]);
 
   const sendMessage = async (message) => {
@@ -173,7 +193,7 @@ function App() {
       </div>
 
       <div className="chat-container">
-        <div className="messages-container">
+        <div className="messages-container" ref={messagesContainerRef}>
           {messages.length === 0 && !loading && (
             <div className="empty-state">
               <p>Starting conversation...</p>
@@ -304,7 +324,7 @@ function App() {
 
         <div className="chat-footer">
           <p className="footer-disclaimer">
-            ⚖️ Information only — not legal advice. For emergencies, contact an attorney.
+            ⚠️ Backend may take 60 seconds to wake up on first visit. ⚖️ Information only — not legal advice.
           </p>
         </div>
       </div>
