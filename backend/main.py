@@ -240,7 +240,7 @@ def chat_endpoint(request: ChatRequest):
                 response=response_text,
                 referrals=referrals,
                 options=["Continue", "Restart", "Connect with a Resource"],
-                conversation_state={"step": "complete"}
+                conversation_state={"step": "complete", "topic": topic, "level": level, "zip_code": message}
             )
         else:
             return ChatResponse(
@@ -291,7 +291,7 @@ def chat_endpoint(request: ChatRequest):
                     response="🎯 Here's your recommended contact for immediate assistance:",
                     referrals=[top_resource],
                     options=["Restart"],
-                    conversation_state={"step": "complete"}
+                    conversation_state={"step": "resource_selected", "topic": topic, "level": level, "zip_code": zip_code}
                 )
             else:
                 return ChatResponse(
@@ -299,11 +299,32 @@ def chat_endpoint(request: ChatRequest):
                     options=["Restart"],
                     conversation_state={"step": "complete"}
                 )
+        elif message == "restart":
+            return ChatResponse(
+                response="Hello! I'm here to help connect you with Illinois legal resources. This chatbot provides legal information only and is not legal advice. What legal issue do you need help with?",
+                options=["Child Support", "Education", "Housing", "Divorce", "Custody"],
+                conversation_state={"step": "topic_selection"}
+            )
     
-    # Default fallback
+    # Handle "continue_check" step
+    if state.get("step") == "continue_check":
+        if message == "yes":
+            return ChatResponse(
+                response="What legal issue would you like help with?",
+                options=["Child Support", "Education", "Housing", "Divorce", "Custody"],
+                conversation_state={"step": "topic_selection"}
+            )
+        elif message == "no":
+            return ChatResponse(
+                response="Thank you for using Illinois Legal Triage. If you need help in the future, feel free to return. Take care!",
+                options=["Restart"],
+                conversation_state={"step": "complete"}
+            )
+    
+    # Default fallback for unrecognized input
     return ChatResponse(
-        response="I didn't understand that. Would you like to start over?",
-        options=["Start Over"],
+        response="I'm not sure I understood that. Here are some options to help you:\n\n• Click one of the buttons above\n• Use the Restart button to begin again\n• Type your ZIP code if I asked for it\n\nHow can I assist you?",
+        options=["Restart"],
         conversation_state=state
     )
 

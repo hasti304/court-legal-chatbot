@@ -11,7 +11,7 @@ function App() {
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
-  // Smart scroll: scroll to top for referrals, bottom for normal chat
+  // Smart scroll behavior
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -23,20 +23,23 @@ function App() {
   };
 
   useEffect(() => {
-    // Only auto-scroll if there are messages
     if (messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
       
-      // If bot message with referrals, scroll to top to see first resource
-      if (lastMessage.role === "bot" && lastMessage.referrals && lastMessage.referrals.length > 0) {
-        setTimeout(scrollToTop, 100); // Small delay to ensure content is rendered
+      // ONLY scroll to top if user clicked "Connect with a Resource"
+      // This is indicated by conversation_state.step === "resource_selected"
+      if (lastMessage.role === "bot" && 
+          conversationState.step === "resource_selected" && 
+          lastMessage.referrals && 
+          lastMessage.referrals.length > 0) {
+        setTimeout(scrollToTop, 100);
       } 
-      // Otherwise, scroll to bottom (normal conversation flow)
+      // Otherwise, normal scroll to bottom
       else {
         scrollToBottom();
       }
     }
-  }, [messages]);
+  }, [messages, conversationState.step]);
 
   const sendMessage = async (message) => {
     setLoading(true);
