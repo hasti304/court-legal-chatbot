@@ -26,15 +26,13 @@ function App() {
     if (messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
       
-      // ONLY scroll to top if user clicked "Connect with a Resource"
-      // This is indicated by conversation_state.step === "resource_selected"
+      // ONLY scroll to top when "Connect with a Resource" was clicked
+      // This is when step === "resource_selected" (not "complete")
       if (lastMessage.role === "bot" && 
-          conversationState.step === "resource_selected" && 
-          lastMessage.referrals && 
-          lastMessage.referrals.length > 0) {
+          conversationState.step === "resource_selected") {
         setTimeout(scrollToTop, 100);
       } 
-      // Otherwise, normal scroll to bottom
+      // For all other cases (including initial resources), scroll to bottom
       else {
         scrollToBottom();
       }
