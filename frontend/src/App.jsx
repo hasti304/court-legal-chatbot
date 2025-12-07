@@ -8,6 +8,7 @@ function App() {
   const [conversationState, setConversationState] = useState({});
   const [userInput, setUserInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [shouldScrollToTop, setShouldScrollToTop] = useState(false); // NEW: Track if we should scroll to top
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
@@ -24,23 +25,25 @@ function App() {
 
   useEffect(() => {
     if (messages.length > 0) {
-      const lastMessage = messages[messages.length - 1];
-      
-      // ONLY scroll to top when "Connect with a Resource" was clicked
-      // This is when step === "resource_selected" (not "complete")
-      if (lastMessage.role === "bot" && 
-          conversationState.step === "resource_selected") {
+      // If we explicitly set shouldScrollToTop flag, scroll to top
+      if (shouldScrollToTop) {
         setTimeout(scrollToTop, 100);
+        setShouldScrollToTop(false); // Reset flag
       } 
-      // For all other cases (including initial resources), scroll to bottom
+      // Otherwise, always scroll to bottom
       else {
         scrollToBottom();
       }
     }
-  }, [messages, conversationState.step]);
+  }, [messages, shouldScrollToTop]);
 
-  const sendMessage = async (message) => {
+  const sendMessage = async (message, scrollTop = false) => {
     setLoading(true);
+    
+    // Set flag if this is "Connect with a Resource" click
+    if (scrollTop) {
+      setShouldScrollToTop(true);
+    }
     
     const userMessage = { role: "user", content: message };
     setMessages(prev => [...prev, userMessage]);
@@ -95,13 +98,15 @@ function App() {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (userInput.trim() && !loading) {
-      sendMessage(userInput.trim());
+      sendMessage(userInput.trim(), false);
     }
   };
 
   const handleOptionClick = (option) => {
     if (!loading) {
-      sendMessage(option);
+      // ONLY set scrollTop=true if clicking "Connect with a Resource"
+      const shouldScroll = option.toLowerCase() === "connect with a resource";
+      sendMessage(option, shouldScroll);
     }
   };
 
@@ -109,7 +114,8 @@ function App() {
     setMessages([]);
     setConversationState({});
     setUserInput("");
-    sendMessage("start");
+    setShouldScrollToTop(false);
+    sendMessage("start", false);
   };
 
   if (!showChat) {
@@ -163,7 +169,7 @@ function App() {
             className="btn btn-primary btn-large btn-start" 
             onClick={() => {
               setShowChat(true);
-              sendMessage("start");
+              sendMessage("start", false);
             }}
           >
             Begin Case Inquiry
