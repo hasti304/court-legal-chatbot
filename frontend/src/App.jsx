@@ -11,7 +11,7 @@ function App() {
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
-  // Smart scroll: only scroll to bottom for user messages, not bot referrals
+  // Smart scroll: scroll to top for referrals, bottom for normal chat
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -23,7 +23,7 @@ function App() {
   };
 
   useEffect(() => {
-    // Only auto-scroll if the last message is from user
+    // Only auto-scroll if there are messages
     if (messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
       
@@ -324,7 +324,7 @@ function App() {
 
         <div className="chat-footer">
           <p className="footer-disclaimer">
-            ⚠️ Backend may take 60 seconds to wake up on first visit. ⚖️ Information only — not legal advice.
+            ⚖️ Information only — not legal advice. For emergencies, contact an attorney.
           </p>
         </div>
       </div>
