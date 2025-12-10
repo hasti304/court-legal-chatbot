@@ -26,50 +26,49 @@ function AIChat({ topic, onBack }) {
   }, [topic]);
 
   const sendMessage = async () => {
-    if (!inputValue.trim()) return;
+  if (!inputValue.trim()) return;
 
-    const userMessage = { role: 'user', content: inputValue };
-    setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
-    setIsLoading(true);
+  const userMessage = { role: 'user', content: inputValue };
+  setMessages(prev => [...prev, userMessage]);
+  setInputValue('');
+  setIsLoading(true);
 
-    try {
-      // For local testing: http://localhost:8000/ai-chat
-      // For production: https://court-legal-chatbot.onrender.com/ai-chat
-      const response = await fetch('http://localhost:8000/ai-chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [...messages, userMessage].filter(m => m.role !== 'system'),
-          topic: topic
-        }),
-      });
+  try {
+    // Use production backend
+    const response = await fetch('https://court-legal-chatbot.onrender.com/ai-chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messages: [...messages, userMessage].filter(m => m.role !== 'system'),
+        topic: topic
+      }),
+    });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      const assistantMessage = {
-        role: 'assistant',
-        content: data.response
-      };
-      
-      setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error('Error:', error);
-      const errorMessage = {
-        role: 'assistant',
-        content: 'I apologize, but I encountered an error connecting to the AI assistant. Please try again or contact Chicago Advocate Legal at (312) 801-5918 for assistance.'
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-  };
+
+    const data = await response.json();
+    
+    const assistantMessage = {
+      role: 'assistant',
+      content: data.response
+    };
+    
+    setMessages(prev => [...prev, assistantMessage]);
+  } catch (error) {
+    console.error('Error:', error);
+    const errorMessage = {
+      role: 'assistant',
+      content: 'I apologize, but I encountered an error connecting to the AI assistant. Please try again or contact Chicago Advocate Legal at (312) 801-5918 for assistance.'
+    };
+    setMessages(prev => [...prev, errorMessage]);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
