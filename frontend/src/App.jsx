@@ -1,18 +1,20 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FaGavel, FaPaperPlane, FaRedo, FaPhone, FaFileAlt, FaInfoCircle } from "react-icons/fa";
+import { FaGavel, FaPaperPlane, FaRedo, FaPhone, FaFileAlt, FaInfoCircle, FaRobot } from "react-icons/fa";
+import AIChat from "./components/AIChat";
 import "./App.css";
 
 function App() {
   const [showChat, setShowChat] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
   const [messages, setMessages] = useState([]);
   const [conversationState, setConversationState] = useState({});
   const [userInput, setUserInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [shouldScrollToTop, setShouldScrollToTop] = useState(false); // NEW: Track if we should scroll to top
+  const [shouldScrollToTop, setShouldScrollToTop] = useState(false);
+  const [currentTopic, setCurrentTopic] = useState("");
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
-  // Smart scroll behavior
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -25,13 +27,10 @@ function App() {
 
   useEffect(() => {
     if (messages.length > 0) {
-      // If we explicitly set shouldScrollToTop flag, scroll to top
       if (shouldScrollToTop) {
         setTimeout(scrollToTop, 100);
-        setShouldScrollToTop(false); // Reset flag
-      } 
-      // Otherwise, always scroll to bottom
-      else {
+        setShouldScrollToTop(false);
+      } else {
         scrollToBottom();
       }
     }
@@ -40,7 +39,6 @@ function App() {
   const sendMessage = async (message, scrollTop = false) => {
     setLoading(true);
     
-    // Set flag if this is "Connect with a Resource" click
     if (scrollTop) {
       setShouldScrollToTop(true);
     }
@@ -50,9 +48,6 @@ function App() {
     setUserInput("");
 
     try {
-      console.log("Sending to backend:", message);
-      console.log("Current state:", conversationState);
-      
       const response = await fetch("https://court-legal-chatbot.onrender.com/chat", {
         method: "POST",
         headers: { 
@@ -64,16 +59,16 @@ function App() {
         }),
       });
 
-      console.log("Response status:", response.status);
-
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Backend error:", errorText);
         throw new Error(`Server error: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log("Received from backend:", data);
+      
+      // Track topic for AI assistant
+      if (data.conversation_state && data.conversation_state.topic) {
+        setCurrentTopic(data.conversation_state.topic.replace('_', ' '));
+      }
       
       setMessages(prev => [...prev, {
         role: "bot",
@@ -104,7 +99,6 @@ function App() {
 
   const handleOptionClick = (option) => {
     if (!loading) {
-      // ONLY set scrollTop=true if clicking "Connect with a Resource"
       const shouldScroll = option.toLowerCase() === "connect with a resource";
       sendMessage(option, shouldScroll);
     }
@@ -115,8 +109,19 @@ function App() {
     setConversationState({});
     setUserInput("");
     setShouldScrollToTop(false);
+    setCurrentTopic("");
     sendMessage("start", false);
   };
+
+  // Show AI Chat mode
+  if (showAIChat) {
+    return (
+      <AIChat 
+        topic={currentTopic} 
+        onBack={() => setShowAIChat(false)} 
+      />
+    );
+  }
 
   if (!showChat) {
     return (
@@ -213,7 +218,6 @@ function App() {
                 <div className="message-content">
                   {msg.content}
                   
-                  {/* Show referrals with enhanced format */}
                   {msg.referrals && msg.referrals.length > 0 && (
                     <div className="referrals">
                       <h4 className="referrals-title">📋 Recommended Resources:</h4>
@@ -224,7 +228,6 @@ function App() {
                           </div>
                           <p className="referral-description">{ref.description}</p>
                           
-                          {/* Contact Information */}
                           <div className="referral-contact">
                             {ref.phone && ref.phone !== "" && (
                               <div className="contact-item">
@@ -247,7 +250,6 @@ function App() {
                               </div>
                             )}
                             
-                            {/* Intake Instructions */}
                             {ref.intake_instructions && ref.intake_instructions !== "" && (
                               <div className="intake-instructions">
                                 <FaInfoCircle size={14} />
@@ -256,7 +258,6 @@ function App() {
                             )}
                           </div>
                           
-                          {/* Website Link */}
                           <a 
                             href={ref.url} 
                             target="_blank" 
@@ -267,10 +268,24 @@ function App() {
                           </a>
                         </div>
                       ))}
+                      
+                      {/* ADD AI ASSISTANT BUTTON AFTER REFERRALS */}
+                      {conversationState.step === "complete" && (
+                        <div className="ai-assistant-prompt">
+                          <button 
+                            className="btn btn-ai-assistant"
+                            onClick={() => setShowAIChat(true)}
+                          >
+                            <FaRobot size={18} /> Have Questions? Ask the AI Legal Assistant
+                          </button>
+                          <p className="ai-assistant-hint">
+                            Get answers about forms, procedures, deadlines, and court processes
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                   
-                  {/* Show options as buttons */}
                   {msg.options && msg.options.length > 0 && (
                     <div className="options">
                       {msg.options.map((option, i) => (

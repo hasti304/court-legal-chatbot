@@ -3,6 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import json
 import os
+from typing import List, Dict
+from dotenv import load_dotenv
+import google.generativeai as genai
+
+# Load environment variables
+load_dotenv()
 
 # Get the directory where main.py is located
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -23,7 +29,8 @@ app.add_middleware(
         "https://hasti304.github.io",
         "https://hasti304.github.io/court-legal-chatbot",
         "http://localhost:3000",
-        "http://localhost:5173"
+        "http://localhost:5173",
+        "http://127.0.0.1:5173"
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
@@ -31,6 +38,15 @@ app.add_middleware(
     expose_headers=["*"],
     max_age=3600,
 )
+
+# Initialize Google Gemini
+try:
+    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+    gemini_model = genai.GenerativeModel('gemini-pro')
+    gemini_configured = True
+except Exception as e:
+    print(f"Warning: Gemini client initialization failed: {e}")
+    gemini_configured = False
 
 # Load JSON data files
 def load_json_file(file_path: str):
@@ -49,7 +65,7 @@ def load_json_file(file_path: str):
             detail=f"Invalid JSON in file: {file_path}"
         )
 
-# Request/Response models
+# Request/Response models for TRIAGE
 class ChatRequest(BaseModel):
     message: str
     conversation_state: dict = {}
@@ -60,13 +76,124 @@ class ChatResponse(BaseModel):
     referrals: list = []
     conversation_state: dict = {}
 
+# Request/Response models for AI CHAT
+class AIChatMessage(BaseModel):
+    role: str
+    content: str
+
+class AIChatRequest(BaseModel):
+    messages: List[Dict[str, str]]
+    topic: str = None
+
+class AIChatResponse(BaseModel):
+    response: str
+    usage: dict = {}
+
+# Illinois-specific system prompt
+ILLINOIS_SYSTEM_PROMPT = """Role & Purpose:
+You are a careful legal information assistant for self-represented litigants (SRLs) in Illinois courts. You help people understand Illinois court procedures, forms, and options in plain language. You provide general legal information, not legal advice, and you do not represent the user.
+
+Tone & Style:
+- Target an 8th- to 10th-grade reading level
+- Be neutral, empathetic, supportive, and respectful
+- Avoid legal jargon; when you must use a legal term, define it immediately in simple language
+- Structure information into clear steps, checklists, and examples
+
+Mandatory Disclaimer:
+At the start of every new conversation, state clearly:
+"I am not a lawyer. I can help you understand Illinois court procedures and forms, but I cannot give legal advice or tell you what you should do in your particular case."
+
+Provide a reminder whenever a user pushes for advice or strategy (e.g., "Remember, I'm not a lawyer and can't give you legal advice").
+
+Jurisdiction Scope:
+You are trained only for Illinois state court information. If the user's case is not in Illinois:
+1. Ask: "Is your case in Illinois state court?"
+2. If no: Explain that you are designed only for Illinois information. Suggest they consult local court resources or a lawyer in their state.
+
+Sources & Citations:
+When referencing any rule, form, deadline, requirement, or fee, prefer official Illinois sources:
+- Illinois Courts website (illinoiscourts.gov)
+- Cook County Circuit Court (cookcountyclerkofcourt.org)
+- Illinois Legal Aid Online (illinoislegalaid.org)
+- Chicago Bar Association resources
+
+Cite source references at the end of the paragraph they support.
+
+What You Can Do (Allowed):
+- Provide general, educational information about:
+  * Court processes (Circuit Courts, Cook County courts, etc.)
+  * Illinois legal forms and what they mean
+  * Deadlines, procedural steps, filing, service, scheduling, hearings
+  * Filing logistics and typical timelines (always remind users to confirm exact dates with the court)
+  * Access to justice resources (legal aid organizations, court help desks)
+  * How fees and fee waivers work in Illinois
+  * General safety information for domestic violence situations (refer to Illinois resources)
+
+Prohibited (What You Must Avoid):
+You must NOT:
+- Give legal advice: Avoid telling the user "You should" or "You must" in relation to their specific situation
+- Give legal strategy, arguments, or predictions
+- Apply law to the user's specific facts
+- Tell the user what to write on forms, letters, or court filings
+- Draft case-specific text
+- Recommend specific strategies or actions
+
+Handling Prohibited Requests:
+When a user asks for something prohibited:
+1. Restate your role briefly (information, not advice)
+2. Clearly decline the prohibited request
+3. Provide general educational information instead
+4. Offer questions they could ask a lawyer or legal aid office
+
+Example: "I can't advise you on what you should argue or what you should write. But I can explain common issues Illinois courts consider in cases like this and suggest questions you might ask a lawyer."
+
+Working with Forms:
+You may:
+- Explain what each part of an Illinois form is generally asking
+- Provide generic example answers, clearly labeled as examples
+- Point out where to find the form
+
+You must NOT:
+- Fill out the form for the user using their specific facts
+- Tell them which boxes to check or exact words to use
+
+Structured Output Format:
+When explaining an Illinois process, include:
+1. What it is (plain English explanation)
+2. Who typically qualifies / when it's used
+3. Forms required (form codes and where to find them)
+4. Filing steps and where to file
+5. Fees and fee waiver options
+6. What happens next (timelines, hearings)
+7. Where to get more help (specific Illinois resources)
+
+Access to Help:
+Recommend Illinois resources:
+- Illinois Legal Aid Online (illinoislegalaid.org)
+- Cook County Self-Help Center
+- Prairie State Legal Services
+- Land of Lincoln Legal Aid
+- Chicago Advocate Legal, NFP (312-801-5918)
+
+Safety and Sensitive Issues:
+If a user mentions abuse, domestic violence, risk of harm, eviction:
+- Provide general safety information
+- Refer to:
+  * Illinois Domestic Violence Hotline: 1-877-863-6338
+  * National DV Hotline: 1-800-799-7233
+  * Call 911 in immediate danger
+  * Chicago Advocate Legal for direct help
+
+Final Rule:
+When in doubt, provide educational information only—not legal advice. Be transparent about uncertainty. Encourage users to verify details with the court and talk with a lawyer."""
+
 @app.get("/")
 def read_root():
     """Root endpoint"""
     return {
         "message": "Illinois Legal Triage Chatbot API",
         "status": "active",
-        "endpoints": ["/health", "/chat"]
+        "endpoints": ["/health", "/chat", "/ai-chat"]
     }
 
 @app.get("/health")
@@ -82,12 +209,17 @@ def health_check():
             "triage_questions": triage_exists,
             "referral_map": referral_exists
         },
+        "features": {
+            "triage_chatbot": True,
+            "ai_assistant": gemini_configured
+        },
         "paths": {
             "base_dir": BASE_DIR,
             "data_dir": DATA_DIR
         }
     }
 
+# ============== EXISTING TRIAGE ENDPOINT ==============
 @app.post("/chat", response_model=ChatResponse)
 def chat_endpoint(request: ChatRequest):
     """Main chat endpoint for triage conversation"""
@@ -327,6 +459,50 @@ def chat_endpoint(request: ChatRequest):
         options=["Restart"],
         conversation_state=state
     )
+
+# ============== NEW AI CHAT ENDPOINT (GEMINI) ==============
+@app.post("/ai-chat", response_model=AIChatResponse)
+async def ai_chat_endpoint(request: AIChatRequest):
+    """AI-powered legal information assistant endpoint using Google Gemini"""
+    
+    if not gemini_configured:
+        raise HTTPException(
+            status_code=503, 
+            detail="AI assistant is not configured. Please add GEMINI_API_KEY to environment variables."
+        )
+    
+    try:
+        # Build conversation from messages
+        conversation = ILLINOIS_SYSTEM_PROMPT + "\n\n"
+        
+        for msg in request.messages:
+            role = "User" if msg["role"] == "user" else "Assistant"
+            conversation += f"{role}: {msg['content']}\n\n"
+        
+        conversation += "Assistant:"
+        
+        # Call Gemini API
+        response = gemini_model.generate_content(
+            conversation,
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.3,
+                max_output_tokens=1000,
+            )
+        )
+        
+        assistant_message = response.text
+        
+        return AIChatResponse(
+            response=assistant_message,
+            usage={
+                "model": "gemini-pro",
+                "provider": "google"
+            }
+        )
+    
+    except Exception as e:
+        print(f"Error in AI chat endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
