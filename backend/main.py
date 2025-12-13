@@ -42,7 +42,7 @@ app.add_middleware(
 # Initialize Google Gemini
 try:
     genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-    gemini_model = genai.GenerativeModel('gemini-pro')
+    gemini_model = genai.GenerativeModel('gemini-1.5-flash')
     gemini_configured = True
 except Exception as e:
     print(f"Warning: Gemini client initialization failed: {e}")
@@ -495,7 +495,7 @@ async def ai_chat_endpoint(request: AIChatRequest):
         return AIChatResponse(
             response=assistant_message,
             usage={
-                "model": "gemini-pro",
+                "model": "gemini-1.5-flash",
                 "provider": "google"
             }
         )
