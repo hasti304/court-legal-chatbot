@@ -1,74 +1,75 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './AIChat.css';
 
-function AIChat({ topic, onBack }) {
-  const [messages, setMessages] = useState([]);
+const AIChat = ({ topic, onBack }) => {
+  const [messages, setMessages] = useState([
+    {
+      role: 'assistant',
+      content: 'Hello! I\'m your Illinois Legal Information Assistant. I can help you understand court procedures, forms, and processes in Illinois. Remember, I provide general legal information, not legal advice. What would you like to know?'
+    }
+  ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  useEffect(() => {
-    // Initial disclaimer message
-    const disclaimer = {
-      role: 'assistant',
-      content: "I am not a lawyer. I can help you understand Illinois court procedures and forms, but I cannot give legal advice or tell you what you should do in your particular case.\n\nWhat questions do you have about " + 
-        (topic ? topic.toLowerCase() : "Illinois court procedures") + "?"
-    };
-    setMessages([disclaimer]);
-  }, [topic]);
-
   const sendMessage = async () => {
-  if (!inputValue.trim()) return;
+    if (!inputValue.trim()) return;
 
-  const userMessage = { role: 'user', content: inputValue };
-  setMessages(prev => [...prev, userMessage]);
-  setInputValue('');
-  setIsLoading(true);
+    const userMessage = { role: 'user', content: inputValue };
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
+    setInputValue('');
+    setIsLoading(true);
 
-  try {
-    // Use production backend
-    const response = await fetch('https://court-legal-chatbot.onrender.com/ai-chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messages: [...messages, userMessage].filter(m => m.role !== 'system'),
-        topic: topic
-      }),
-    });
+    try {
+      // Use production backend
+      const response = await fetch('https://court-legal-chatbot.onrender.com/ai-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: updatedMessages.map(msg => ({
+            role: msg.role,
+            content: msg.content
+          })),
+          topic: topic || 'general'
+        }),
+      });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server error:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      const assistantMessage = {
+        role: 'assistant',
+        content: data.response
+      };
+      
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Error:', error);
+      const errorMessage = {
+        role: 'assistant',
+        content: 'I apologize, but I encountered an error. Please try asking your question again, or contact Chicago Advocate Legal at (312) 801-5918 for direct assistance.'
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
     }
-
-    const data = await response.json();
-    
-    const assistantMessage = {
-      role: 'assistant',
-      content: data.response
-    };
-    
-    setMessages(prev => [...prev, assistantMessage]);
-  } catch (error) {
-    console.error('Error:', error);
-    const errorMessage = {
-      role: 'assistant',
-      content: 'I apologize, but I encountered an error connecting to the AI assistant. Please try again or contact Chicago Advocate Legal at (312) 801-5918 for assistance.'
-    };
-    setMessages(prev => [...prev, errorMessage]);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -79,59 +80,66 @@ function AIChat({ topic, onBack }) {
 
   return (
     <div className="ai-chat-container">
-      <div className="chat-header-ai">
+      <div className="ai-chat-header">
         <button onClick={onBack} className="back-button">
           ← Back to Resources
         </button>
         <h2>Illinois Legal Information Assistant</h2>
-        {topic && <span className="topic-badge">{topic}</span>}
+        <p className="ai-disclaimer">
+          ⚖️ This AI provides general legal information only, not legal advice
+        </p>
       </div>
 
-      <div className="messages-container-ai">
-        {messages.map((msg, index) => (
-          <div key={index} className={`message-ai ${msg.role}`}>
-            <div className="message-content-ai">
-              {msg.content.split('\n').map((line, i) => (
-                <p key={i}>{line}</p>
-              ))}
+      <div className="ai-chat-messages">
+        {messages.map((message, index) => (
+          <div
+            key={index}
+            className={`ai-message ${message.role === 'user' ? 'user-message' : 'assistant-message'}`}
+          >
+            <div className="message-content">
+              {message.content}
             </div>
           </div>
         ))}
         {isLoading && (
-          <div className="message-ai assistant">
-            <div className="message-content-ai">
-              <div className="typing-indicator">
-                <span></span><span></span><span></span>
-              </div>
+          <div className="ai-message assistant-message">
+            <div className="message-content typing-indicator">
+              <span></span>
+              <span></span>
+              <span></span>
             </div>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="input-container-ai">
+      <div className="ai-chat-input-container">
         <textarea
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder="Ask about forms, procedures, deadlines, or definitions..."
-          rows="2"
+          placeholder="Ask about Illinois court procedures, forms, or legal processes..."
+          className="ai-chat-input"
+          rows="3"
           disabled={isLoading}
         />
-        <button 
-          onClick={sendMessage} 
+        <button
+          onClick={sendMessage}
           disabled={isLoading || !inputValue.trim()}
-          className="send-button-ai"
+          className="ai-send-button"
         >
           {isLoading ? 'Sending...' : 'Send'}
         </button>
       </div>
 
-      <div className="chat-footer-ai">
-        <small>⚠️ This assistant provides legal information only, not legal advice.</small>
+      <div className="ai-chat-footer">
+        <p className="help-text">
+          Need immediate help? Call Chicago Advocate Legal at{' '}
+          <a href="tel:+13128015918">(312) 801-5918</a>
+        </p>
       </div>
     </div>
   );
-}
+};
 
 export default AIChat;
