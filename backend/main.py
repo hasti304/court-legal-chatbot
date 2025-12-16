@@ -493,21 +493,23 @@ async def ai_chat_endpoint(request: AIChatRequest):
         
         # Call Groq API
         response = groq_client.chat.completions.create(
-            model="llama-3.1-70b-versatile",
-            messages=messages_for_groq,
-            temperature=0.3,
-            max_tokens=1000,
+        model="llama-3.3-70b-versatile",
+        messages=messages_for_groq,
+        temperature=0.3,
+        max_tokens=1000,
         )
+
         
         assistant_message = response.choices[0].message.content
         
         return AIChatResponse(
-            response=assistant_message,
-            usage={
-                "model": "llama-3.1-70b-versatile",
-                "provider": "groq"
-            }
-        )
+        response=assistant_message,
+        usage={
+        "model": "llama-3.3-70b-versatile",
+        "provider": "groq"
+        }
+       )
+
     
     except Exception as e:
         print(f"Error in AI chat endpoint: {str(e)}")
