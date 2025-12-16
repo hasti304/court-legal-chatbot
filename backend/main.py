@@ -43,15 +43,17 @@ app.add_middleware(
 # Initialize Groq
 try:
     api_key = os.getenv("GROQ_API_KEY")
-    if api_key:
+    if not api_key:
+        print("Warning: GROQ_API_KEY not found in environment variables")
+        groq_configured = False
+    else:
         groq_client = Groq(api_key=api_key)
         groq_configured = True
-    else:
-        print("Warning: GROQ_API_KEY not found in environment")
-        groq_configured = False
+        print("Groq client initialized successfully")
 except Exception as e:
     print(f"Warning: Groq client initialization failed: {e}")
     groq_configured = False
+
 
 
 # Load JSON data files
