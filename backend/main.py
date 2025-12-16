@@ -5,7 +5,8 @@ import json
 import os
 from typing import List, Dict
 from dotenv import load_dotenv
-import google.generativeai as genai
+from groq import Groq
+
 
 # Load environment variables
 load_dotenv()
@@ -39,14 +40,14 @@ app.add_middleware(
     max_age=3600,
 )
 
-# Initialize Google Gemini
+# Initialize Groq
 try:
-    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-    gemini_model = genai.GenerativeModel('gemini-1.5-flash')
-    gemini_configured = True
+    groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+    groq_configured = True
 except Exception as e:
-    print(f"Warning: Gemini client initialization failed: {e}")
-    gemini_configured = False
+    print(f"Warning: Groq client initialization failed: {e}")
+    groq_configured = False
+
 
 # Load JSON data files
 def load_json_file(file_path: str):
@@ -211,7 +212,7 @@ def health_check():
         },
         "features": {
             "triage_chatbot": True,
-            "ai_assistant": gemini_configured
+            "ai_assistant": groq_configured
         },
         "paths": {
             "base_dir": BASE_DIR,
@@ -463,40 +464,41 @@ def chat_endpoint(request: ChatRequest):
 # ============== NEW AI CHAT ENDPOINT (GEMINI) ==============
 @app.post("/ai-chat", response_model=AIChatResponse)
 async def ai_chat_endpoint(request: AIChatRequest):
-    """AI-powered legal information assistant endpoint using Google Gemini"""
+    """AI-powered legal information assistant endpoint using Groq"""
     
-    if not gemini_configured:
+    if not groq_configured:
         raise HTTPException(
             status_code=503, 
-            detail="AI assistant is not configured. Please add GEMINI_API_KEY to environment variables."
+            detail="AI assistant is not configured. Please add GROQ_API_KEY to environment variables."
         )
     
     try:
-        # Build conversation from messages
-        conversation = ILLINOIS_SYSTEM_PROMPT + "\n\n"
+        # Build messages for Groq
+        messages_for_groq = [
+            {"role": "system", "content": ILLINOIS_SYSTEM_PROMPT}
+        ]
         
         for msg in request.messages:
-            role = "User" if msg["role"] == "user" else "Assistant"
-            conversation += f"{role}: {msg['content']}\n\n"
+            messages_for_groq.append({
+                "role": msg["role"],
+                "content": msg["content"]
+            })
         
-        conversation += "Assistant:"
-        
-        # Call Gemini API
-        response = gemini_model.generate_content(
-            conversation,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.3,
-                max_output_tokens=1000,
-            )
+        # Call Groq API
+        response = groq_client.chat.completions.create(
+            model="llama-3.1-70b-versatile",
+            messages=messages_for_groq,
+            temperature=0.3,
+            max_tokens=1000,
         )
         
-        assistant_message = response.text
+        assistant_message = response.choices[0].message.content
         
         return AIChatResponse(
             response=assistant_message,
             usage={
-                "model": "gemini-1.5-flash",
-                "provider": "google"
+                "model": "llama-3.1-70b-versatile",
+                "provider": "groq"
             }
         )
     
@@ -504,6 +506,3 @@ async def ai_chat_endpoint(request: AIChatRequest):
         print(f"Error in AI chat endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
