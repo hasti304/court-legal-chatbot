@@ -99,21 +99,6 @@ body {
 }
 
 
-/* Hero emoji - brown-skinned baby per client request */
-.hero-emoji {
-  font-size: 120px;
-  text-align: center;
-  margin: 20px 0 30px 0;
-  animation: bounce 2s ease-in-out infinite;
-}
-
-
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-
-
 .landing-content h2 {
   color: white;
   font-size: 2rem;
@@ -401,6 +386,16 @@ body {
 
 .typing-indicator span:nth-child(2) {
   animation-delay: -0.16s;
+}
+
+
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
 }
 
 
@@ -753,11 +748,6 @@ body {
   }
 
 
-  .hero-emoji {
-    font-size: 80px;
-  }
-
-
   .landing-content {
     padding: 2rem 1rem;
   }
@@ -826,11 +816,6 @@ body {
   .icon-circle {
     width: 80px;
     height: 80px;
-  }
-
-
-  .hero-emoji {
-    font-size: 60px;
   }
 
 

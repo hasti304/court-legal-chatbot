@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { FaGavel, FaPaperPlane, FaRedo, FaPhone, FaFileAlt, FaInfoCircle, FaRobot } from "react-icons/fa";
-import AIChat from "./components/AIChat";
 import "./App.css";
 
+// Lazy load AIChat component for better performance
+const AIChat = lazy(() => import("./components/AIChat"));
 
 function App() {
   const [showChat, setShowChat] = useState(false);
@@ -16,8 +17,8 @@ function App() {
   const messagesContainerRef = useRef(null);
 
 
-  // REMOVED: shouldScrollToTop state and scrollToTop function per client request
-  // Resources will now appear at the top without forcing scroll
+  // REMOVED: auto-scroll to top functionality per client request
+  // Resources will now stay at the top so users can see them without scrolling
 
 
   const scrollToBottom = () => {
@@ -32,7 +33,7 @@ function App() {
   }, [messages]);
 
 
-  const sendMessage = async (message, scrollTop = false) => {
+  const sendMessage = async (message) => {
     setLoading(true);
     
     const userMessage = { role: "user", content: message };
@@ -65,11 +66,10 @@ function App() {
         setCurrentTopic(data.conversation_state.topic.replace('_', ' '));
       }
       
-      // Apply client's income-based logic
+      // Apply client's income-based logic - remove Legal Aid for non-low-income users
       let filteredReferrals = data.referrals || [];
       
       if (conversationState.income === 'no' || conversationState.income === 'No') {
-        // Remove Legal Aid for non-low-income users per client request
         filteredReferrals = filteredReferrals.filter(ref => 
           !ref.name.toLowerCase().includes('legal aid')
         );
@@ -99,14 +99,14 @@ function App() {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (userInput.trim() && !loading) {
-      sendMessage(userInput.trim(), false);
+      sendMessage(userInput.trim());
     }
   };
 
 
   const handleOptionClick = (option) => {
     if (!loading) {
-      sendMessage(option, false);
+      sendMessage(option);
     }
   };
 
@@ -116,17 +116,19 @@ function App() {
     setConversationState({});
     setUserInput("");
     setCurrentTopic("");
-    sendMessage("start", false);
+    sendMessage("start");
   };
 
 
-  // Show AI Chat mode
+  // Show AI Chat mode with lazy loading
   if (showAIChat) {
     return (
-      <AIChat 
-        topic={currentTopic} 
-        onBack={() => setShowAIChat(false)} 
-      />
+      <Suspense fallback={<div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh'}}>Loading AI Chat...</div>}>
+        <AIChat 
+          topic={currentTopic} 
+          onBack={() => setShowAIChat(false)} 
+        />
+      </Suspense>
     );
   }
 
@@ -145,9 +147,6 @@ function App() {
         </div>
         
         <div className="landing-content">
-          {/* Brown-skinned baby emoji per client request */}
-          <div className="hero-emoji">👶🏾</div>
-          
           <h2>Welcome to the Legal Resource Portal</h2>
           <p className="tagline">
             This confidential chatbot connects Illinois residents with legal information and referrals for:
@@ -175,7 +174,8 @@ function App() {
               <p>Divorce proceedings and legal guidance</p>
             </div>
             <div className="topic-card">
-              <div className="topic-icon">👶</div>
+              {/* Changed to brown-skinned baby emoji per client request */}
+              <div className="topic-icon">👶🏾</div>
               <h3>Custody</h3>
               <p>Child custody and parenting time</p>
             </div>
@@ -186,7 +186,7 @@ function App() {
             className="btn btn-primary btn-large btn-start" 
             onClick={() => {
               setShowChat(true);
-              sendMessage("start", false);
+              sendMessage("start");
             }}
           >
             Begin Case Inquiry

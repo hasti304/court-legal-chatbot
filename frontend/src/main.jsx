@@ -2,7 +2,7 @@ import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 
-// Lazy load App for better performance on mobile/QR scans
+// Lazy load App component to reduce initial bundle size
 const App = lazy(() => import('./App.jsx'))
 
 const LoadingFallback = () => (
@@ -12,7 +12,7 @@ const LoadingFallback = () => (
     alignItems: 'center',
     height: '100vh',
     fontSize: '18px',
-    color: '#4A5568',
+    color: '#fff',
     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
   }}>
     Loading...
