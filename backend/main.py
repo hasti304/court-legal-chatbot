@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import json
@@ -6,7 +6,8 @@ import os
 from typing import List, Dict
 from dotenv import load_dotenv
 from groq import Groq
-
+import uuid
+from datetime import datetime
 
 
 # Load environment variables
@@ -204,12 +205,13 @@ When explaining an Illinois process, include:
 
 
 Access to Help:
-Recommend Illinois resources:
-- Illinois Legal Aid Online (illinoislegalaid.org)
+When recommending Illinois resources, provide complete contact information:
+- Chicago Advocate Legal, NFP: (312) 801-5918 | Schedule appointment: https://www.chicagoadvocatelegal.com/contact.html
+- Justice Entrepreneurs Project (JEP): (312) 546-3282 | Intake form: https://jepchicago.org/intake-form/
+- Illinois Legal Aid Online: illinoislegalaid.org
 - Cook County Self-Help Center
 - Prairie State Legal Services
 - Land of Lincoln Legal Aid
-- Chicago Advocate Legal, NFP (312-801-5918)
 
 
 Safety and Sensitive Issues:
@@ -219,11 +221,11 @@ If a user mentions abuse, domestic violence, risk of harm, eviction:
   * Illinois Domestic Violence Hotline: 1-877-863-6338
   * National DV Hotline: 1-800-799-7233
   * Call 911 in immediate danger
-  * Chicago Advocate Legal for direct help
+  * Chicago Advocate Legal for direct help: (312) 801-5918
 
 
 Final Rule:
-When in doubt, provide educational information only—not legal advice. Be transparent about uncertainty. Encourage users to verify details with the court and talk with a lawyer."""
+When in doubt, provide educational information only—not legal advice. Be transparent about uncertainty. Encourage users to verify details with the court and talk with a lawyer. Always include complete contact information (phone number AND intake/appointment link) when referring to Chicago Advocate Legal, NFP or Justice Entrepreneurs Project."""
 
 
 @app.get("/")
@@ -260,7 +262,7 @@ def health_check():
     }
 
 
-# ============== UPDATED TRIAGE ENDPOINT WITH INCOME-BASED FILTERING ==============
+# ============== TRIAGE ENDPOINT ==============
 @app.post("/chat", response_model=ChatResponse)
 def chat_endpoint(request: ChatRequest):
     """Main chat endpoint for triage conversation"""
@@ -311,6 +313,11 @@ def chat_endpoint(request: ChatRequest):
         if message == "yes":
             state["emergency"] = "yes"
             state["step"] = "court_status"
+            return ChatResponse(
+                response="🚨 If this is an emergency, call the police immediately at 911.\n\nAfter you have contacted the police, I can help you find legal resources for your situation.\n\nDo you currently have an open court case related to this issue?",
+                options=["Yes", "No"],
+                conversation_state=state
+            )
         elif message == "no":
             state["emergency"] = "no"
             state["step"] = "court_status"
@@ -373,7 +380,7 @@ def chat_endpoint(request: ChatRequest):
             conversation_state=state
         )
     
-    # Step 5: ZIP code and provide referrals WITH INCOME-BASED FILTERING
+    # Step 5: ZIP code and provide referrals
     if state.get("step") == "get_zip":
         if message.isdigit() and len(message) == 5:
             state["zip_code"] = message
