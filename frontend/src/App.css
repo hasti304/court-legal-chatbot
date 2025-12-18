@@ -829,3 +829,38 @@ body {
     padding: 0.875rem 1rem;
   }
 }
+
+/* NFP Intake Button - Client Requirement */
+.btn-nfp-intake {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  margin-top: 12px;
+  margin-bottom: 8px;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.btn-nfp-intake:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+.footer-privacy-warning {
+  font-size: 0.85rem;
+  color: #c53030;
+  background: #fff5f5;
+  border: 1px solid #fc8181;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-top: 8px;
+  display: inline-block;
+  line-height: 1.4;
+}

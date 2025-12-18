@@ -66,20 +66,11 @@ function App() {
         setCurrentTopic(data.conversation_state.topic.replace('_', ' '));
       }
       
-      // Apply client's income-based logic - remove Legal Aid for non-low-income users
-      let filteredReferrals = data.referrals || [];
-      
-      if (conversationState.income === 'no' || conversationState.income === 'No') {
-        filteredReferrals = filteredReferrals.filter(ref => 
-          !ref.name.toLowerCase().includes('legal aid')
-        );
-      }
-      
       setMessages(prev => [...prev, {
         role: "bot",
         content: data.response,
         options: data.options || [],
-        referrals: filteredReferrals
+        referrals: data.referrals || []
       }]);
       
       setConversationState(data.conversation_state || {});
@@ -275,6 +266,16 @@ function App() {
                               </div>
                             )}
                           </div>
+                          
+                          {/* CLIENT REQUIREMENT: Special NFP intake button */}
+                          {ref.is_nfp && (
+                            <button 
+                              className="btn btn-nfp-intake"
+                              onClick={() => window.open('https://www.chicagoadvocatelegal.com/contact.html', '_blank')}
+                            >
+                              📅 Schedule Intake Appointment with Cindy
+                            </button>
+                          )}
                           
                           <a 
                             href={ref.url} 
