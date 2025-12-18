@@ -8,20 +8,26 @@ from dotenv import load_dotenv
 from groq import Groq
 
 
+
 # Load environment variables
 load_dotenv()
+
 
 # Get the directory where main.py is located
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+
 # data/ folder is now inside backend/, so no need for ".."
 DATA_DIR = os.path.join(BASE_DIR, "data")
+
 
 # File paths
 TRIAGE_QUESTIONS_PATH = os.path.join(DATA_DIR, "triage_questions.json")
 REFERRAL_MAP_PATH = os.path.join(DATA_DIR, "referral_map.json")
 
+
 app = FastAPI()
+
 
 # Enhanced CORS configuration
 app.add_middleware(
@@ -40,6 +46,7 @@ app.add_middleware(
     max_age=3600,
 )
 
+
 # Initialize Groq
 try:
     api_key = os.getenv("GROQ_API_KEY")
@@ -53,6 +60,7 @@ try:
 except Exception as e:
     print(f"Warning: Groq client initialization failed: {e}")
     groq_configured = False
+
 
 
 
@@ -73,10 +81,12 @@ def load_json_file(file_path: str):
             detail=f"Invalid JSON in file: {file_path}"
         )
 
+
 # Request/Response models for TRIAGE
 class ChatRequest(BaseModel):
     message: str
     conversation_state: dict = {}
+
 
 class ChatResponse(BaseModel):
     response: str
@@ -84,22 +94,27 @@ class ChatResponse(BaseModel):
     referrals: list = []
     conversation_state: dict = {}
 
+
 # Request/Response models for AI CHAT
 class AIChatMessage(BaseModel):
     role: str
     content: str
 
+
 class AIChatRequest(BaseModel):
     messages: List[Dict[str, str]]
     topic: str = None
+
 
 class AIChatResponse(BaseModel):
     response: str
     usage: dict = {}
 
+
 # Illinois-specific system prompt
 ILLINOIS_SYSTEM_PROMPT = """Role & Purpose:
 You are a careful legal information assistant for self-represented litigants (SRLs) in Illinois courts. You help people understand Illinois court procedures, forms, and options in plain language. You provide general legal information, not legal advice, and you do not represent the user.
+
 
 Tone & Style:
 - Target an 8th- to 10th-grade reading level
@@ -107,16 +122,20 @@ Tone & Style:
 - Avoid legal jargon; when you must use a legal term, define it immediately in simple language
 - Structure information into clear steps, checklists, and examples
 
+
 Mandatory Disclaimer:
 At the start of every new conversation, state clearly:
 "I am not a lawyer. I can help you understand Illinois court procedures and forms, but I cannot give legal advice or tell you what you should do in your particular case."
 
+
 Provide a reminder whenever a user pushes for advice or strategy (e.g., "Remember, I'm not a lawyer and can't give you legal advice").
+
 
 Jurisdiction Scope:
 You are trained only for Illinois state court information. If the user's case is not in Illinois:
 1. Ask: "Is your case in Illinois state court?"
 2. If no: Explain that you are designed only for Illinois information. Suggest they consult local court resources or a lawyer in their state.
+
 
 Sources & Citations:
 When referencing any rule, form, deadline, requirement, or fee, prefer official Illinois sources:
@@ -125,7 +144,9 @@ When referencing any rule, form, deadline, requirement, or fee, prefer official 
 - Illinois Legal Aid Online (illinoislegalaid.org)
 - Chicago Bar Association resources
 
+
 Cite source references at the end of the paragraph they support.
+
 
 What You Can Do (Allowed):
 - Provide general, educational information about:
@@ -137,6 +158,7 @@ What You Can Do (Allowed):
   * How fees and fee waivers work in Illinois
   * General safety information for domestic violence situations (refer to Illinois resources)
 
+
 Prohibited (What You Must Avoid):
 You must NOT:
 - Give legal advice: Avoid telling the user "You should" or "You must" in relation to their specific situation
@@ -146,6 +168,7 @@ You must NOT:
 - Draft case-specific text
 - Recommend specific strategies or actions
 
+
 Handling Prohibited Requests:
 When a user asks for something prohibited:
 1. Restate your role briefly (information, not advice)
@@ -153,7 +176,9 @@ When a user asks for something prohibited:
 3. Provide general educational information instead
 4. Offer questions they could ask a lawyer or legal aid office
 
+
 Example: "I can't advise you on what you should argue or what you should write. But I can explain common issues Illinois courts consider in cases like this and suggest questions you might ask a lawyer."
+
 
 Working with Forms:
 You may:
@@ -161,9 +186,11 @@ You may:
 - Provide generic example answers, clearly labeled as examples
 - Point out where to find the form
 
+
 You must NOT:
 - Fill out the form for the user using their specific facts
 - Tell them which boxes to check or exact words to use
+
 
 Structured Output Format:
 When explaining an Illinois process, include:
@@ -175,6 +202,7 @@ When explaining an Illinois process, include:
 6. What happens next (timelines, hearings)
 7. Where to get more help (specific Illinois resources)
 
+
 Access to Help:
 Recommend Illinois resources:
 - Illinois Legal Aid Online (illinoislegalaid.org)
@@ -182,6 +210,7 @@ Recommend Illinois resources:
 - Prairie State Legal Services
 - Land of Lincoln Legal Aid
 - Chicago Advocate Legal, NFP (312-801-5918)
+
 
 Safety and Sensitive Issues:
 If a user mentions abuse, domestic violence, risk of harm, eviction:
@@ -192,8 +221,10 @@ If a user mentions abuse, domestic violence, risk of harm, eviction:
   * Call 911 in immediate danger
   * Chicago Advocate Legal for direct help
 
+
 Final Rule:
 When in doubt, provide educational information only—not legal advice. Be transparent about uncertainty. Encourage users to verify details with the court and talk with a lawyer."""
+
 
 @app.get("/")
 def read_root():
@@ -203,6 +234,7 @@ def read_root():
         "status": "active",
         "endpoints": ["/health", "/chat", "/ai-chat"]
     }
+
 
 @app.get("/health")
 def health_check():
@@ -227,7 +259,8 @@ def health_check():
         }
     }
 
-# ============== EXISTING TRIAGE ENDPOINT ==============
+
+# ============== UPDATED TRIAGE ENDPOINT WITH INCOME-BASED FILTERING ==============
 @app.post("/chat", response_model=ChatResponse)
 def chat_endpoint(request: ChatRequest):
     """Main chat endpoint for triage conversation"""
@@ -322,8 +355,10 @@ def chat_endpoint(request: ChatRequest):
     if state.get("step") == "income_check":
         if message in ["yes", "not sure"]:
             state["income_eligible"] = True
+            state["income"] = "yes"
         elif message == "no":
             state["income_eligible"] = False
+            state["income"] = "no"
         else:
             return ChatResponse(
                 response="Please select an option.",
@@ -338,7 +373,7 @@ def chat_endpoint(request: ChatRequest):
             conversation_state=state
         )
     
-    # Step 5: ZIP code and provide referrals
+    # Step 5: ZIP code and provide referrals WITH INCOME-BASED FILTERING
     if state.get("step") == "get_zip":
         if message.isdigit() and len(message) == 5:
             state["zip_code"] = message
@@ -363,6 +398,20 @@ def chat_endpoint(request: ChatRequest):
             
             referrals = referral_map.get(topic, {}).get(f"level_{level}", [])
             
+            # CLIENT REQUIREMENT: Filter referrals based on income
+            if not income_eligible:  # Non-low-income users
+                # Remove Legal Aid organizations
+                referrals = [
+                    ref for ref in referrals
+                    if not any(keyword in ref.get("name", "").lower() 
+                              for keyword in ["legal aid", "prairie state", "carpls"])
+                ]
+                
+                # Add special "is_nfp" flag for Chicago Advocate Legal, NFP
+                for ref in referrals:
+                    if "Chicago Advocate Legal, NFP" in ref.get("name", ""):
+                        ref["is_nfp"] = True
+            
             cook_county_zips = ["60601", "60602", "60603", "60604", "60605", "60606", "60607", "60608", "60609", "60610", 
                                "60611", "60612", "60613", "60614", "60615", "60616", "60617", "60618", "60619", "60620",
                                "60621", "60622", "60623", "60624", "60625", "60626", "60628", "60629", "60630", "60631",
@@ -380,7 +429,7 @@ def chat_endpoint(request: ChatRequest):
                 response=response_text,
                 referrals=referrals,
                 options=["Continue", "Restart", "Connect with a Resource"],
-                conversation_state={"step": "complete", "topic": topic, "level": level, "zip_code": message}
+                conversation_state={"step": "complete", "topic": topic, "level": level, "zip_code": message, "income": state.get("income", "yes")}
             )
         else:
             return ChatResponse(
@@ -402,8 +451,21 @@ def chat_endpoint(request: ChatRequest):
             topic = state.get("topic", "general")
             level = state.get("level", 1)
             zip_code = state.get("zip_code", "")
+            income = state.get("income", "yes")
             
             referrals = referral_map.get(topic, {}).get(f"level_{level}", [])
+            
+            # Apply same income-based filtering
+            if income == "no":
+                referrals = [
+                    ref for ref in referrals
+                    if not any(keyword in ref.get("name", "").lower() 
+                              for keyword in ["legal aid", "prairie state", "carpls"])
+                ]
+                
+                for ref in referrals:
+                    if "Chicago Advocate Legal, NFP" in ref.get("name", ""):
+                        ref["is_nfp"] = True
             
             # Prioritize Chicago Advocate Legal, NFP for Cook County
             cook_county_zips = ["60601", "60602", "60603", "60604", "60605", "60606", "60607", "60608", "60609", "60610", 
@@ -468,7 +530,8 @@ def chat_endpoint(request: ChatRequest):
         conversation_state=state
     )
 
-# ============== NEW AI CHAT ENDPOINT (GEMINI) ==============
+
+# ============== AI CHAT ENDPOINT ==============
 @app.post("/ai-chat", response_model=AIChatResponse)
 async def ai_chat_endpoint(request: AIChatRequest):
     """AI-powered legal information assistant endpoint using Groq"""
@@ -493,25 +556,22 @@ async def ai_chat_endpoint(request: AIChatRequest):
         
         # Call Groq API
         response = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=messages_for_groq,
-        temperature=0.3,
-        max_tokens=1000,
+            model="llama-3.3-70b-versatile",
+            messages=messages_for_groq,
+            temperature=0.3,
+            max_tokens=1000,
         )
-
         
         assistant_message = response.choices[0].message.content
         
         return AIChatResponse(
-        response=assistant_message,
-        usage={
-        "model": "llama-3.3-70b-versatile",
-        "provider": "groq"
-        }
-       )
-
+            response=assistant_message,
+            usage={
+                "model": "llama-3.3-70b-versatile",
+                "provider": "groq"
+            }
+        )
     
     except Exception as e:
         print(f"Error in AI chat endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
