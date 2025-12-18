@@ -3,6 +3,7 @@ import { FaGavel, FaPaperPlane, FaRedo, FaPhone, FaFileAlt, FaInfoCircle, FaRobo
 import AIChat from "./components/AIChat";
 import "./App.css";
 
+
 function App() {
   const [showChat, setShowChat] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
@@ -10,42 +11,34 @@ function App() {
   const [conversationState, setConversationState] = useState({});
   const [userInput, setUserInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [shouldScrollToTop, setShouldScrollToTop] = useState(false);
   const [currentTopic, setCurrentTopic] = useState("");
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
+
+
+  // REMOVED: shouldScrollToTop state and scrollToTop function per client request
+  // Resources will now appear at the top without forcing scroll
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const scrollToTop = () => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
 
   useEffect(() => {
     if (messages.length > 0) {
-      if (shouldScrollToTop) {
-        setTimeout(scrollToTop, 100);
-        setShouldScrollToTop(false);
-      } else {
-        scrollToBottom();
-      }
+      scrollToBottom();
     }
-  }, [messages, shouldScrollToTop]);
+  }, [messages]);
+
 
   const sendMessage = async (message, scrollTop = false) => {
     setLoading(true);
     
-    if (scrollTop) {
-      setShouldScrollToTop(true);
-    }
-    
     const userMessage = { role: "user", content: message };
     setMessages(prev => [...prev, userMessage]);
     setUserInput("");
+
 
     try {
       const response = await fetch("https://court-legal-chatbot.onrender.com/chat", {
@@ -59,9 +52,11 @@ function App() {
         }),
       });
 
+
       if (!response.ok) {
         throw new Error(`Server error: ${response.status}`);
       }
+
 
       const data = await response.json();
       
@@ -70,11 +65,21 @@ function App() {
         setCurrentTopic(data.conversation_state.topic.replace('_', ' '));
       }
       
+      // Apply client's income-based logic
+      let filteredReferrals = data.referrals || [];
+      
+      if (conversationState.income === 'no' || conversationState.income === 'No') {
+        // Remove Legal Aid for non-low-income users per client request
+        filteredReferrals = filteredReferrals.filter(ref => 
+          !ref.name.toLowerCase().includes('legal aid')
+        );
+      }
+      
       setMessages(prev => [...prev, {
         role: "bot",
         content: data.response,
         options: data.options || [],
-        referrals: data.referrals || []
+        referrals: filteredReferrals
       }]);
       
       setConversationState(data.conversation_state || {});
@@ -90,6 +95,7 @@ function App() {
     setLoading(false);
   };
 
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (userInput.trim() && !loading) {
@@ -97,21 +103,22 @@ function App() {
     }
   };
 
+
   const handleOptionClick = (option) => {
     if (!loading) {
-      const shouldScroll = option.toLowerCase() === "connect with a resource";
-      sendMessage(option, shouldScroll);
+      sendMessage(option, false);
     }
   };
+
 
   const handleRestart = () => {
     setMessages([]);
     setConversationState({});
     setUserInput("");
-    setShouldScrollToTop(false);
     setCurrentTopic("");
     sendMessage("start", false);
   };
+
 
   // Show AI Chat mode
   if (showAIChat) {
@@ -122,6 +129,7 @@ function App() {
       />
     );
   }
+
 
   if (!showChat) {
     return (
@@ -137,6 +145,9 @@ function App() {
         </div>
         
         <div className="landing-content">
+          {/* Brown-skinned baby emoji per client request */}
+          <div className="hero-emoji">👶🏾</div>
+          
           <h2>Welcome to the Legal Resource Portal</h2>
           <p className="tagline">
             This confidential chatbot connects Illinois residents with legal information and referrals for:
@@ -170,6 +181,7 @@ function App() {
             </div>
           </div>
 
+
           <button 
             className="btn btn-primary btn-large btn-start" 
             onClick={() => {
@@ -180,17 +192,22 @@ function App() {
             Begin Case Inquiry
           </button>
 
+
+          {/* Updated disclaimer per client requirements */}
           <div className="disclaimer-box">
             <p className="disclaimer-title">⚖️ Important Legal Notice</p>
             <p className="disclaimer-text">
-              This tool provides general legal information only — <strong>not legal advice</strong>. 
-              For emergencies or personalized guidance, contact a licensed attorney or legal aid organization directly.
+              <strong>Legal information and resources only, not legal advice.</strong>
+            </p>
+            <p className="privacy-warning">
+              ⚠️ <strong>Privacy Notice:</strong> This chatbot is not private. Any information you provide could be disclosed. Do not share sensitive personal information.
             </p>
           </div>
         </div>
       </div>
     );
   }
+
 
   return (
     <div className="chat-page">
@@ -203,6 +220,7 @@ function App() {
           </div>
         </div>
       </div>
+
 
       <div className="chat-container">
         <div className="messages-container" ref={messagesContainerRef}>
@@ -269,7 +287,7 @@ function App() {
                         </div>
                       ))}
                       
-                      {/* ADD AI ASSISTANT BUTTON AFTER REFERRALS */}
+                      {/* AI Assistant button after referrals */}
                       {conversationState.step === "complete" && (
                         <div className="ai-assistant-prompt">
                           <button 
@@ -319,6 +337,7 @@ function App() {
           <div ref={messagesEndRef} />
         </div>
 
+
         <div className="input-container">
           <button onClick={handleRestart} className="btn btn-restart" title="Restart">
             <FaRedo size={16} />
@@ -344,14 +363,20 @@ function App() {
           </form>
         </div>
 
+
         <div className="chat-footer">
+          {/* Updated footer disclaimer per client requirements */}
           <p className="footer-disclaimer">
-            ⚖️ Information only — not legal advice. For emergencies, contact an attorney.
+            <strong>Legal information and resources only, not legal advice.</strong>
+          </p>
+          <p className="footer-privacy-warning">
+            ⚠️ <strong>Privacy Notice:</strong> This chatbot is not private. Any information you provide could be disclosed.
           </p>
         </div>
       </div>
     </div>
   );
 }
+
 
 export default App;

@@ -3,6 +3,7 @@ import './AIChat.css';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
+
 const AIChat = ({ topic, onBack }) => {
   const [messages, setMessages] = useState([
     {
@@ -15,13 +16,16 @@ const AIChat = ({ topic, onBack }) => {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
 
   const renderMessageContent = (content) => {
     const rawHtml = marked.parse(content, { breaks: true });
@@ -29,14 +33,17 @@ const AIChat = ({ topic, onBack }) => {
     return { __html: cleanHtml };
   };
 
+
   const sendMessage = async () => {
     if (!inputValue.trim()) return;
+
 
     const userMessage = { role: 'user', content: inputValue };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     setInputValue('');
     setIsLoading(true);
+
 
     try {
       const response = await fetch(
@@ -56,18 +63,22 @@ const AIChat = ({ topic, onBack }) => {
         }
       );
 
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Server error:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
+
       const data = await response.json();
+
 
       const assistantMessage = {
         role: 'assistant',
         content: data.response
       };
+
 
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
@@ -83,12 +94,14 @@ const AIChat = ({ topic, onBack }) => {
     }
   };
 
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
   };
+
 
   return (
     <div className="ai-chat-page">
@@ -98,10 +111,15 @@ const AIChat = ({ topic, onBack }) => {
             ← Back to Resources
           </button>
           <h2>Illinois Legal Information Assistant</h2>
+          {/* Updated disclaimer per client requirements */}
           <p className="ai-disclaimer">
-            ⚖️ This AI provides general legal information only, not legal advice
+            ⚖️ Legal information and resources only, not legal advice
+          </p>
+          <p className="ai-privacy-notice">
+            ⚠️ This chatbot is not private. Information provided could be disclosed.
           </p>
         </div>
+
 
         <div className="ai-chat-messages">
           {messages.map((message, index) => (
@@ -131,6 +149,7 @@ const AIChat = ({ topic, onBack }) => {
           <div ref={messagesEndRef} />
         </div>
 
+
         <div className="ai-chat-input-container">
           <textarea
             value={inputValue}
@@ -150,6 +169,7 @@ const AIChat = ({ topic, onBack }) => {
           </button>
         </div>
 
+
         <div className="ai-chat-footer">
           <p className="help-text">
             Need immediate help? Call Chicago Advocate Legal at{' '}
@@ -160,5 +180,6 @@ const AIChat = ({ topic, onBack }) => {
     </div>
   );
 };
+
 
 export default AIChat;

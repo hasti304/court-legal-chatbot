@@ -8,6 +8,7 @@
   padding: 24px 12px;
 }
 
+
 /* Main app card */
 .ai-chat-container {
   display: flex;
@@ -23,6 +24,7 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
 }
 
+
 /* Header */
 .ai-chat-header {
   background: linear-gradient(135deg, #4c6fff 0%, #7f5af0 60%, #c048ff 100%);
@@ -30,6 +32,7 @@
   padding: 18px 24px 16px;
   box-shadow: 0 3px 18px rgba(15, 23, 42, 0.25);
 }
+
 
 .back-button {
   background: rgba(255, 255, 255, 0.14);
@@ -43,22 +46,38 @@
   transition: all 0.2s ease;
 }
 
+
 .back-button:hover {
   background: rgba(255, 255, 255, 0.22);
   transform: translateX(-1px);
 }
 
+
 .ai-chat-header h2 {
-  margin: 0 0 4px 0;
+  margin: 0 0 6px 0;
   font-size: 22px;
   font-weight: 600;
 }
 
+
 .ai-disclaimer {
-  margin: 0;
+  margin: 0 0 6px 0;
   font-size: 13px;
   opacity: 0.96;
 }
+
+
+/* New privacy notice styling per client requirements */
+.ai-privacy-notice {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.92;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
 
 /* Messages area */
 .ai-chat-messages {
@@ -69,10 +88,12 @@
   scroll-behavior: smooth;
 }
 
+
 .ai-message {
   margin-bottom: 14px;
   animation: fadeIn 0.25s ease;
 }
+
 
 @keyframes fadeIn {
   from {
@@ -85,11 +106,13 @@
   }
 }
 
+
 /* User bubble */
 .user-message {
   display: flex;
   justify-content: flex-end;
 }
+
 
 .user-message .message-content {
   background: #4c6fff;
@@ -106,11 +129,13 @@
   user-select: text;
 }
 
+
 /* Assistant bubble */
 .assistant-message {
   display: flex;
   justify-content: flex-start;
 }
+
 
 .assistant-message .message-content {
   background: #ffffff;
@@ -129,22 +154,27 @@
   user-select: text;
 }
 
+
 /* Typography inside assistant messages */
 .assistant-message .message-content p {
   margin: 0 0 8px 0;
 }
 
+
 .assistant-message .message-content p:last-child {
   margin-bottom: 0;
 }
+
 
 .assistant-message .message-content strong {
   font-weight: 600;
 }
 
+
 .assistant-message .message-content em {
   font-style: italic;
 }
+
 
 /* Lists rendered from Markdown */
 .assistant-message .message-content ul,
@@ -153,15 +183,18 @@
   padding: 0;
 }
 
+
 .assistant-message .message-content li {
   margin-bottom: 4px;
 }
+
 
 /* Preserve line breaks from Markdown */
 .message-content {
   white-space: normal;
   word-break: break-word;
 }
+
 
 /* Typing indicator */
 .typing-indicator {
@@ -174,6 +207,7 @@
   border: none;
 }
 
+
 .typing-indicator span {
   width: 8px;
   height: 8px;
@@ -182,13 +216,16 @@
   animation: typing 1.4s infinite;
 }
 
+
 .typing-indicator span:nth-child(2) {
   animation-delay: 0.2s;
 }
 
+
 .typing-indicator span:nth-child(3) {
   animation-delay: 0.4s;
 }
+
 
 @keyframes typing {
   0%,
@@ -203,6 +240,7 @@
   }
 }
 
+
 /* Input area */
 .ai-chat-input-container {
   padding: 14px 20px;
@@ -212,6 +250,7 @@
   gap: 10px;
   align-items: flex-end;
 }
+
 
 .ai-chat-input {
   flex: 1;
@@ -227,16 +266,19 @@
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+
 .ai-chat-input:focus {
   outline: none;
   border-color: #4c6fff;
   box-shadow: 0 0 0 3px rgba(76, 111, 255, 0.15);
 }
 
+
 .ai-chat-input:disabled {
   background: #f7fafc;
   cursor: not-allowed;
 }
+
 
 /* Send button */
 .ai-send-button {
@@ -253,11 +295,13 @@
   box-shadow: 0 4px 14px rgba(76, 111, 255, 0.35);
 }
 
+
 .ai-send-button:hover:not(:disabled) {
   background: #3b57d8;
   transform: translateY(-1px);
   box-shadow: 0 6px 18px rgba(76, 111, 255, 0.45);
 }
+
 
 .ai-send-button:disabled {
   background: #cbd5e0;
@@ -265,6 +309,7 @@
   box-shadow: none;
   transform: none;
 }
+
 
 /* Footer */
 .ai-chat-footer {
@@ -274,11 +319,13 @@
   border-top: 1px solid #e2e8f0;
 }
 
+
 .help-text {
   margin: 0;
   font-size: 13px;
   color: #4a5568;
 }
+
 
 .help-text a {
   color: #4c6fff;
@@ -286,9 +333,11 @@
   font-weight: 600;
 }
 
+
 .help-text a:hover {
   text-decoration: underline;
 }
+
 
 /* Selection styling */
 .message-content::selection {
@@ -296,10 +345,12 @@
   color: inherit;
 }
 
+
 .message-content::-moz-selection {
   background: rgba(76, 111, 255, 0.16);
   color: inherit;
 }
+
 
 /* Mobile */
 @media (max-width: 768px) {
@@ -308,14 +359,17 @@
     max-height: none;
   }
 
+
   .ai-chat-messages {
     padding: 14px 12px;
   }
+
 
   .user-message .message-content,
   .assistant-message .message-content {
     max-width: 100%;
   }
+
 
   .ai-chat-header h2 {
     font-size: 19px;
