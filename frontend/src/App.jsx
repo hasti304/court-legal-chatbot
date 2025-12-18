@@ -17,10 +17,6 @@ function App() {
   const messagesContainerRef = useRef(null);
 
 
-  // REMOVED: auto-scroll to top functionality per client request
-  // Resources will now stay at the top so users can see them without scrolling
-
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -132,7 +128,7 @@ function App() {
             <div className="icon-circle">
               <FaGavel color="#fff" size={50} />
             </div>
-            <h1>Illinois Legal Triage</h1>
+            <h1>CAL Legal Information and Resources Chatbot</h1>
             <p className="subtitle">Self-Help Resource Navigator</p>
           </div>
         </div>
@@ -140,7 +136,7 @@ function App() {
         <div className="landing-content">
           <h2>Welcome to the Legal Resource Portal</h2>
           <p className="tagline">
-            This confidential chatbot connects Illinois residents with legal information and referrals for:
+            This chatbot connects Illinois residents with legal information and referrals for:
           </p>
           
           <div className="topic-cards">
@@ -165,7 +161,6 @@ function App() {
               <p>Divorce proceedings and legal guidance</p>
             </div>
             <div className="topic-card">
-              {/* Changed to brown-skinned baby emoji per client request */}
               <div className="topic-icon">👶🏾</div>
               <h3>Custody</h3>
               <p>Child custody and parenting time</p>
@@ -184,7 +179,6 @@ function App() {
           </button>
 
 
-          {/* Updated disclaimer per client requirements */}
           <div className="disclaimer-box">
             <p className="disclaimer-title">⚖️ Important Legal Notice</p>
             <p className="disclaimer-text">
@@ -206,7 +200,7 @@ function App() {
         <div className="header-content">
           <FaGavel size={28} color="#fff" />
           <div className="header-text">
-            <h2>Illinois Legal Triage Chatbot</h2>
+            <h2>CAL Legal Information and Resources Chatbot</h2>
             <p>Information & Referrals</p>
           </div>
         </div>
@@ -267,7 +261,6 @@ function App() {
                             )}
                           </div>
                           
-                          {/* CLIENT REQUIREMENT: Special NFP intake button */}
                           {ref.is_nfp && (
                             <button 
                               className="btn btn-nfp-intake"
@@ -288,7 +281,6 @@ function App() {
                         </div>
                       ))}
                       
-                      {/* AI Assistant button after referrals */}
                       {conversationState.step === "complete" && (
                         <div className="ai-assistant-prompt">
                           <button 
@@ -366,7 +358,6 @@ function App() {
 
 
         <div className="chat-footer">
-          {/* Updated footer disclaimer per client requirements */}
           <p className="footer-disclaimer">
             <strong>Legal information and resources only, not legal advice.</strong>
           </p>

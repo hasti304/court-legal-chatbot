@@ -18,7 +18,7 @@ const AIChat = ({ topic, onBack }) => {
 
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
 
@@ -111,7 +111,6 @@ const AIChat = ({ topic, onBack }) => {
             ← Back to Resources
           </button>
           <h2>Illinois Legal Information Assistant</h2>
-          {/* Updated disclaimer per client requirements */}
           <p className="ai-disclaimer">
             ⚖️ Legal information and resources only, not legal advice
           </p>
@@ -172,9 +171,26 @@ const AIChat = ({ topic, onBack }) => {
 
         <div className="ai-chat-footer">
           <p className="help-text">
-            Need immediate help? Call Chicago Advocate Legal at{' '}
-            <a href="tel:+13128015918">(312) 801-5918</a>
+            Need immediate help? Contact:
           </p>
+          <div className="footer-contacts">
+            <div className="footer-contact-item">
+              <strong>Chicago Advocate Legal, NFP:</strong>{' '}
+              <a href="tel:+13128015918">(312) 801-5918</a>
+              {' | '}
+              <a href="https://www.chicagoadvocatelegal.com/contact.html" target="_blank" rel="noopener noreferrer">
+                Schedule Appointment
+              </a>
+            </div>
+            <div className="footer-contact-item">
+              <strong>Justice Entrepreneurs Project (JEP):</strong>{' '}
+              <a href="tel:+13125463282">(312) 546-3282</a>
+              {' | '}
+              <a href="https://jepchicago.org/intake-form/" target="_blank" rel="noopener noreferrer">
+                JEP Intake Form
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </div>

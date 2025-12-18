@@ -375,3 +375,38 @@
     font-size: 19px;
   }
 }
+
+.footer-contacts {
+  margin-top: 12px;
+  background: #f9fafb;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.footer-contact-item {
+  margin-bottom: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.footer-contact-item:last-child {
+  margin-bottom: 0;
+}
+
+.footer-contact-item a {
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.footer-contact-item a:hover {
+  text-decoration: underline;
+  color: #1e40af;
+}
+
+.help-text {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #1f2937;
+}
