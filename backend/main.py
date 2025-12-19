@@ -1,466 +1,82 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
+import json
 import os
+from typing import List, Dict
 from dotenv import load_dotenv
+from groq import Groq
+import uuid
+from datetime import datetime
 
 load_dotenv()
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+
+TRIAGE_QUESTIONS_PATH = os.path.join(DATA_DIR, "triage_questions.json")
+REFERRAL_MAP_PATH = os.path.join(DATA_DIR, "referral_map.json")
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://hasti304.github.io",
+        "https://hasti304.github.io/court-legal-chatbot",
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173"
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
-REFERRALS_DB = {
-    "child_support": {
-        "low_income": {
-            "not_emergency": {
-                "no_court": [
-                    {
-                        "name": "Illinois Legal Aid Online",
-                        "url": "https://www.illinoislegalaid.org",
-                        "description": "Self-help legal information and forms for child support cases in Illinois.",
-                        "phone": "",
-                        "intake_form": "",
-                        "intake_instructions": "",
-                        "is_nfp": False
-                    },
-                    {
-                        "name": "Chicago Advocate Legal (CAL)",
-                        "url": "https://www.chicagoadvocatelegal.com",
-                        "description": "Free legal support for low-income families in Chicago. Schedule an intake appointment with Cindy to discuss your child support case.",
-                        "phone": "",
-                        "intake_form": "",
-                        "intake_instructions": "Click the button below to schedule an intake appointment with Cindy at CAL.",
-                        "is_nfp": True
-                    }
-                ],
-                "has_court": [
-                    {
-                        "name": "Illinois Legal Aid Online",
-                        "url": "https://www.illinoislegalaid.org",
-                        "description": "Self-help legal information and forms for child support cases in Illinois.",
-                        "phone": "",
-                        "intake_form": "",
-                        "intake_instructions": "",
-                        "is_nfp": False
-                    },
-                    {
-                        "name": "Chicago Advocate Legal (CAL)",
-                        "url": "https://www.chicagoadvocatelegal.com",
-                        "description": "Free legal support for low-income families in Chicago with pending court cases.",
-                        "phone": "",
-                        "intake_form": "",
-                        "intake_instructions": "Click the button below to schedule an intake appointment with Cindy at CAL.",
-                        "is_nfp": True
-                    },
-                    {
-                        "name": "Prairie State Legal Services",
-                        "url": "https://www.pslegal.org",
-                        "description": "Free civil legal aid for eligible low-income residents in Illinois.",
-                        "phone": "800-942-4612",
-                        "intake_form": "https://www.pslegal.org/apply-for-help",
-                        "intake_instructions": "Call or complete the online application.",
-                        "is_nfp": False
-                    }
-                ]
-            },
-            "emergency": [
-                {
-                    "name": "Illinois Domestic Violence Hotline",
-                    "url": "https://www.iladvocates.org",
-                    "description": "24/7 crisis support for domestic violence situations.",
-                    "phone": "877-863-6338",
-                    "intake_form": "",
-                    "intake_instructions": "Call immediately for emergency assistance.",
-                    "is_nfp": False
-                },
-                {
-                    "name": "Chicago Advocate Legal (CAL)",
-                    "url": "https://www.chicagoadvocatelegal.com",
-                    "description": "Emergency legal support for families in crisis.",
-                    "phone": "",
-                    "intake_form": "",
-                    "intake_instructions": "Click the button below to schedule an urgent intake appointment with Cindy at CAL.",
-                    "is_nfp": True
-                }
-            ]
-        },
-        "not_low_income": [
-            {
-                "name": "Illinois State Bar Association Lawyer Finder",
-                "url": "https://www.isba.org/public/illinoislawyerfinder",
-                "description": "Find a private attorney specializing in child support law.",
-                "phone": "",
-                "intake_form": "",
-                "intake_instructions": "",
-                "is_nfp": False
-            },
-            {
-                "name": "Chicago Bar Association Lawyer Referral Service",
-                "url": "https://www.chicagobar.org/page/LRS",
-                "description": "Lawyer referral service for Chicago residents.",
-                "phone": "312-554-2001",
-                "intake_form": "",
-                "intake_instructions": "",
-                "is_nfp": False
-            }
-        ]
-    },
-    "education": {
-        "low_income": {
-            "not_emergency": {
-                "no_court": [
-                    {
-                        "name": "Equip for Equality",
-                        "url": "https://www.equipforequality.org",
-                        "description": "Free legal advocacy for students with disabilities and special education issues.",
-                        "phone": "800-537-2632",
-                        "intake_form": "https://www.equipforequality.org/intake/",
-                        "intake_instructions": "",
-                        "is_nfp": False
-                    },
-                    {
-                        "name": "Chicago Advocate Legal (CAL)",
-                        "url": "https://www.chicagoadvocatelegal.com",
-                        "description": "Free legal support for education-related issues including IEPs and school rights.",
-                        "phone": "",
-                        "intake_form": "",
-                        "intake_instructions": "Click the button below to schedule an intake appointment with Cindy at CAL.",
-                        "is_nfp": True
-                    }
-                ],
-                "has_court": [
-                    {
-                        "name": "Equip for Equality",
-                        "url": "https://www.equipforequality.org",
-                        "description": "Free legal advocacy for students with disabilities and special education issues.",
-                        "phone": "800-537-2632",
-                        "intake_form": "https://www.equipforequality.org/intake/",
-                        "intake_instructions": "",
-                        "is_nfp": False
-                    },
-                    {
-                        "name": "Chicago Advocate Legal (CAL)",
-                        "url": "https://www.chicagoadvocatelegal.com",
-                        "description": "Free legal support for education-related court cases.",
-                        "phone": "",
-                        "intake_form": "",
-                        "intake_instructions": "Click the button below to schedule an intake appointment with Cindy at CAL.",
-                        "is_nfp": True
-                    }
-                ]
-            },
-            "emergency": [
-                {
-                    "name": "Equip for Equality - Crisis Line",
-                    "url": "https://www.equipforequality.org",
-                    "description": "Immediate assistance for urgent special education matters.",
-                    "phone": "800-537-2632",
-                    "intake_form": "",
-                    "intake_instructions": "Call immediately for emergency support.",
-                    "is_nfp": False
-                }
-            ]
-        },
-        "not_low_income": [
-            {
-                "name": "Illinois State Bar Association Lawyer Finder",
-                "url": "https://www.isba.org/public/illinoislawyerfinder",
-                "description": "Find a private attorney specializing in education law.",
-                "phone": "",
-                "intake_form": "",
-                "intake_instructions": "",
-                "is_nfp": False
-            }
-        ]
-    },
-    "housing": {
-        "low_income": {
-            "not_emergency": {
-                "no_court": [
-                    {
-                        "name": "Chicago Advocate Legal (CAL)",
-                        "url": "https://www.chicagoadvocatelegal.com",
-                        "description": "Free legal support for housing issues including eviction defense and tenant rights.",
-                        "phone": "",
-                        "intake_form": "",
-                        "intake_instructions": "Click the button below to schedule an intake appointment with Cindy at CAL.",
-                        "is_nfp": True
-                    },
-                    {
-                        "name": "Legal Aid Chicago",
-                        "url": "https://www.legalaidchicago.org",
-                        "description": "Free legal services for housing, eviction defense, and tenant rights.",
-                        "phone": "312-341-1070",
-                        "intake_form": "https://www.legalaidchicago.org/get-help/",
-                        "intake_instructions": "",
-                        "is_nfp": False
-                    }
-                ],
-                "has_court": [
-                    {
-                        "name": "Chicago Advocate Legal (CAL)",
-                        "url": "https://www.chicagoadvocatelegal.com",
-                        "description": "Free legal representation for housing court cases.",
-                        "phone": "",
-                        "intake_form": "",
-                        "intake_instructions": "Click the button below to schedule an intake appointment with Cindy at CAL.",
-                        "is_nfp": True
-                    },
-                    {
-                        "name": "Legal Aid Chicago - Eviction Defense",
-                        "url": "https://www.legalaidchicago.org",
-                        "description": "Free legal representation for eviction cases in Cook County.",
-                        "phone": "312-341-1070",
-                        "intake_form": "https://www.legalaidchicago.org/get-help/",
-                        "intake_instructions": "",
-                        "is_nfp": False
-                    }
-                ]
-            },
-            "emergency": [
-                {
-                    "name": "Chicago Advocate Legal (CAL) - Emergency Housing",
-                    "url": "https://www.chicagoadvocatelegal.com",
-                    "description": "Urgent legal support for immediate housing emergencies.",
-                    "phone": "",
-                    "intake_form": "",
-                    "intake_instructions": "Click the button below to schedule an urgent intake appointment with Cindy at CAL.",
-                    "is_nfp": True
-                },
-                {
-                    "name": "Legal Aid Chicago - Emergency Eviction Defense",
-                    "url": "https://www.legalaidchicago.org",
-                    "description": "Emergency eviction defense services.",
-                    "phone": "312-341-1070",
-                    "intake_form": "",
-                    "intake_instructions": "Call immediately if you have an eviction notice.",
-                    "is_nfp": False
-                }
-            ]
-        },
-        "not_low_income": [
-            {
-                "name": "Illinois State Bar Association Lawyer Finder",
-                "url": "https://www.isba.org/public/illinoislawyerfinder",
-                "description": "Find a private attorney specializing in housing and landlord-tenant law.",
-                "phone": "",
-                "intake_form": "",
-                "intake_instructions": "",
-                "is_nfp": False
-            },
-            {
-                "name": "Chicago Bar Association Lawyer Referral Service",
-                "url": "https://www.chicagobar.org/page/LRS",
-                "description": "Lawyer referral service for housing disputes.",
-                "phone": "312-554-2001",
-                "intake_form": "",
-                "intake_instructions": "",
-                "is_nfp": False
-            }
-        ]
-    },
-    "divorce": {
-        "low_income": {
-            "not_emergency": {
-                "no_court": [
-                    {
-                        "name": "Chicago Advocate Legal (CAL)",
-                        "url": "https://www.chicagoadvocatelegal.com",
-                        "description": "Free legal support for divorce proceedings.",
-                        "phone": "",
-                        "intake_form": "",
-                        "intake_instructions": "Click the button below to schedule an intake appointment with Cindy at CAL.",
-                        "is_nfp": True
-                    },
-                    {
-                        "name": "Illinois Legal Aid Online",
-                        "url": "https://www.illinoislegalaid.org",
-                        "description": "Self-help divorce forms and resources for Illinois residents.",
-                        "phone": "",
-                        "intake_form": "",
-                        "intake_instructions": "",
-                        "is_nfp": False
-                    }
-                ],
-                "has_court": [
-                    {
-                        "name": "Chicago Advocate Legal (CAL)",
-                        "url": "https://www.chicagoadvocatelegal.com",
-                        "description": "Free legal representation for divorce court cases.",
-                        "phone": "",
-                        "intake_form": "",
-                        "intake_instructions": "Click the button below to schedule an intake appointment with Cindy at CAL.",
-                        "is_nfp": True
-                    },
-                    {
-                        "name": "Prairie State Legal Services",
-                        "url": "https://www.pslegal.org",
-                        "description": "Free civil legal aid for divorce cases.",
-                        "phone": "800-942-4612",
-                        "intake_form": "https://www.pslegal.org/apply-for-help",
-                        "intake_instructions": "",
-                        "is_nfp": False
-                    }
-                ]
-            },
-            "emergency": [
-                {
-                    "name": "Illinois Domestic Violence Hotline",
-                    "url": "https://www.iladvocates.org",
-                    "description": "24/7 crisis support for domestic violence situations involving divorce.",
-                    "phone": "877-863-6338",
-                    "intake_form": "",
-                    "intake_instructions": "Call immediately for emergency assistance.",
-                    "is_nfp": False
-                },
-                {
-                    "name": "Chicago Advocate Legal (CAL) - Emergency Divorce",
-                    "url": "https://www.chicagoadvocatelegal.com",
-                    "description": "Urgent legal support for divorce emergencies.",
-                    "phone": "",
-                    "intake_form": "",
-                    "intake_instructions": "Click the button below to schedule an urgent intake appointment with Cindy at CAL.",
-                    "is_nfp": True
-                }
-            ]
-        },
-        "not_low_income": [
-            {
-                "name": "Illinois State Bar Association Lawyer Finder",
-                "url": "https://www.isba.org/public/illinoislawyerfinder",
-                "description": "Find a private attorney specializing in divorce and family law.",
-                "phone": "",
-                "intake_form": "",
-                "intake_instructions": "",
-                "is_nfp": False
-            },
-            {
-                "name": "Chicago Bar Association Lawyer Referral Service",
-                "url": "https://www.chicagobar.org/page/LRS",
-                "description": "Lawyer referral service for divorce cases.",
-                "phone": "312-554-2001",
-                "intake_form": "",
-                "intake_instructions": "",
-                "is_nfp": False
-            }
-        ]
-    },
-    "custody": {
-        "low_income": {
-            "not_emergency": {
-                "no_court": [
-                    {
-                        "name": "Chicago Advocate Legal (CAL)",
-                        "url": "https://www.chicagoadvocatelegal.com",
-                        "description": "Free legal support for child custody matters.",
-                        "phone": "",
-                        "intake_form": "",
-                        "intake_instructions": "Click the button below to schedule an intake appointment with Cindy at CAL.",
-                        "is_nfp": True
-                    },
-                    {
-                        "name": "Illinois Legal Aid Online",
-                        "url": "https://www.illinoislegalaid.org",
-                        "description": "Self-help custody forms and legal information.",
-                        "phone": "",
-                        "intake_form": "",
-                        "intake_instructions": "",
-                        "is_nfp": False
-                    }
-                ],
-                "has_court": [
-                    {
-                        "name": "Chicago Advocate Legal (CAL)",
-                        "url": "https://www.chicagoadvocatelegal.com",
-                        "description": "Free legal representation for custody court cases.",
-                        "phone": "",
-                        "intake_form": "",
-                        "intake_instructions": "Click the button below to schedule an intake appointment with Cindy at CAL.",
-                        "is_nfp": True
-                    },
-                    {
-                        "name": "Prairie State Legal Services",
-                        "url": "https://www.pslegal.org",
-                        "description": "Free civil legal aid for custody cases.",
-                        "phone": "800-942-4612",
-                        "intake_form": "https://www.pslegal.org/apply-for-help",
-                        "intake_instructions": "",
-                        "is_nfp": False
-                    }
-                ]
-            },
-            "emergency": [
-                {
-                    "name": "Illinois Domestic Violence Hotline",
-                    "url": "https://www.iladvocates.org",
-                    "description": "24/7 crisis support for custody emergencies involving safety concerns.",
-                    "phone": "877-863-6338",
-                    "intake_form": "",
-                    "intake_instructions": "Call immediately for emergency assistance.",
-                    "is_nfp": False
-                },
-                {
-                    "name": "Chicago Advocate Legal (CAL) - Emergency Custody",
-                    "url": "https://www.chicagoadvocatelegal.com",
-                    "description": "Urgent legal support for emergency custody situations.",
-                    "phone": "",
-                    "intake_form": "",
-                    "intake_instructions": "Click the button below to schedule an urgent intake appointment with Cindy at CAL.",
-                    "is_nfp": True
-                }
-            ]
-        },
-        "not_low_income": [
-            {
-                "name": "Illinois State Bar Association Lawyer Finder",
-                "url": "https://www.isba.org/public/illinoislawyerfinder",
-                "description": "Find a private attorney specializing in child custody law.",
-                "phone": "",
-                "intake_form": "",
-                "intake_instructions": "",
-                "is_nfp": False
-            },
-            {
-                "name": "Chicago Bar Association Lawyer Referral Service",
-                "url": "https://www.chicagobar.org/page/LRS",
-                "description": "Lawyer referral service for custody cases.",
-                "phone": "312-554-2001",
-                "intake_form": "",
-                "intake_instructions": "",
-                "is_nfp": False
-            }
-        ]
-    }
-}
+try:
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        print("Warning: GROQ_API_KEY not found in environment variables")
+        groq_configured = False
+    else:
+        groq_client = Groq(api_key=api_key)
+        groq_configured = True
+        print("Groq client initialized successfully")
+except Exception as e:
+    print(f"Warning: Groq client initialization failed: {e}")
+    groq_configured = False
 
-CRISIS_KEYWORDS = [
-    "emergency", "urgent", "crisis", "danger", "immediate", "threat",
-    "violence", "abuse", "harm", "safety", "afraid", "scared", "help now"
-]
+def load_json_file(file_path: str):
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Data file not found: {file_path}"
+        )
+    except json.JSONDecodeError:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Invalid JSON in file: {file_path}"
+        )
 
 def detect_crisis_keywords(message: str) -> bool:
+    crisis_keywords = [
+        "abuse", "abused", "abusing",
+        "hurt", "hurting", "hitting", "hit me",
+        "danger", "dangerous", "scared", "afraid",
+        "threatened", "threatening", "threats",
+        "kill", "suicide", "die", "dying",
+        "weapon", "gun", "knife",
+        "emergency", "urgent", "help me",
+        "violence", "violent", "attack"
+    ]
+    
     message_lower = message.lower()
-    return any(keyword in message_lower for keyword in CRISIS_KEYWORDS)
-
-def get_step_progress(step: str) -> dict:
-    """Calculate progress based on current step"""
-    steps_map = {
-        "topic_selection": {"current": 1, "total": 5, "label": "Select Topic"},
-        "emergency_check": {"current": 2, "total": 5, "label": "Emergency Check"},
-        "court_status": {"current": 3, "total": 5, "label": "Court Status"},
-        "income_check": {"current": 4, "total": 5, "label": "Income Level"},
-        "get_zip": {"current": 5, "total": 5, "label": "Your Location"},
-        "complete": {"current": 5, "total": 5, "label": "Resources Ready"}
-    }
-    return steps_map.get(step, {"current": 0, "total": 5, "label": "Starting"})
+    return any(keyword in message_lower for keyword in crisis_keywords)
 
 class ChatRequest(BaseModel):
     message: str
@@ -471,150 +87,450 @@ class ChatResponse(BaseModel):
     options: list = []
     referrals: list = []
     conversation_state: dict = {}
-    progress: dict = {}
+
+class AIChatMessage(BaseModel):
+    role: str
+    content: str
+
+class AIChatRequest(BaseModel):
+    messages: List[Dict[str, str]]
+    topic: str = None
+
+class AIChatResponse(BaseModel):
+    response: str
+    usage: dict = {}
+
+ILLINOIS_SYSTEM_PROMPT = """Role & Purpose:
+You are a careful legal information assistant for self-represented litigants (SRLs) in Illinois courts. You help people understand Illinois court procedures, forms, and options in plain language. You provide general legal information, not legal advice, and you do not represent the user.
+
+Tone & Style:
+- Target an 8th- to 10th-grade reading level
+- Be neutral, empathetic, supportive, and respectful
+- Avoid legal jargon; when you must use a legal term, define it immediately in simple language
+- Structure information into clear steps, checklists, and examples
+
+Mandatory Disclaimer:
+At the start of every new conversation, state clearly:
+"I am not a lawyer. I can help you understand Illinois court procedures and forms, but I cannot give legal advice or tell you what you should do in your particular case."
+
+Provide a reminder whenever a user pushes for advice or strategy (e.g., "Remember, I'm not a lawyer and can't give you legal advice").
+
+Jurisdiction Scope:
+You are trained only for Illinois state court information. If the user's case is not in Illinois:
+1. Ask: "Is your case in Illinois state court?"
+2. If no: Explain that you are designed only for Illinois information. Suggest they consult local court resources or a lawyer in their state.
+
+Sources & Citations:
+When referencing any rule, form, deadline, requirement, or fee, prefer official Illinois sources:
+- Illinois Courts website (illinoiscourts.gov)
+- Cook County Circuit Court (cookcountyclerkofcourt.org)
+- Illinois Legal Aid Online (illinoislegalaid.org)
+- Chicago Bar Association resources
+
+Cite source references at the end of the paragraph they support.
+
+What You Can Do (Allowed):
+- Provide general, educational information about:
+  * Court processes (Circuit Courts, Cook County courts, etc.)
+  * Illinois legal forms and what they mean
+  * Deadlines, procedural steps, filing, service, scheduling, hearings
+  * Filing logistics and typical timelines (always remind users to confirm exact dates with the court)
+  * Access to justice resources (legal aid organizations, court help desks)
+  * How fees and fee waivers work in Illinois
+  * General safety information for domestic violence situations (refer to Illinois resources)
+
+Prohibited (What You Must Avoid):
+You must NOT:
+- Give legal advice: Avoid telling the user "You should" or "You must" in relation to their specific situation
+- Give legal strategy, arguments, or predictions
+- Apply law to the user's specific facts
+- Tell the user what to write on forms, letters, or court filings
+- Draft case-specific text
+- Recommend specific strategies or actions
+
+Handling Prohibited Requests:
+When a user asks for something prohibited:
+1. Restate your role briefly (information, not advice)
+2. Clearly decline the prohibited request
+3. Provide general educational information instead
+4. Offer questions they could ask a lawyer or legal aid office
+
+Example: "I can't advise you on what you should argue or what you should write. But I can explain common issues Illinois courts consider in cases like this and suggest questions you might ask a lawyer."
+
+Working with Forms:
+You may:
+- Explain what each part of an Illinois form is generally asking
+- Provide generic example answers, clearly labeled as examples
+- Point out where to find the form
+
+You must NOT:
+- Fill out the form for the user using their specific facts
+- Tell them which boxes to check or exact words to use
+
+Structured Output Format:
+When explaining an Illinois process, include:
+1. What it is (plain English explanation)
+2. Who typically qualifies / when it's used
+3. Forms required (form codes and where to find them)
+4. Filing steps and where to file
+5. Fees and fee waiver options
+6. What happens next (timelines, hearings)
+7. Where to get more help (specific Illinois resources)
+
+Access to Help:
+When recommending Illinois resources, provide complete contact information:
+- Chicago Advocate Legal, NFP: (312) 801-5918 | Schedule appointment: https://www.chicagoadvocatelegal.com/contact.html
+- Justice Entrepreneurs Project (JEP): (312) 546-3282 | Intake form: https://jepchicago.org/intake-form/
+- Illinois Legal Aid Online: illinoislegalaid.org
+- Cook County Self-Help Center
+- Prairie State Legal Services
+- Land of Lincoln Legal Aid
+
+Safety and Sensitive Issues:
+If a user mentions abuse, domestic violence, risk of harm, eviction:
+- Provide general safety information
+- Refer to:
+  * Illinois Domestic Violence Hotline: 1-877-863-6338
+  * National DV Hotline: 1-800-799-7233
+  * Call 911 in immediate danger
+  * Chicago Advocate Legal for direct help: (312) 801-5918
+
+Final Rule:
+When in doubt, provide educational information only—not legal advice. Be transparent about uncertainty. Encourage users to verify details with the court and talk with a lawyer. Always include complete contact information (phone number AND intake/appointment link) when referring to Chicago Advocate Legal, NFP or Justice Entrepreneurs Project."""
 
 @app.get("/")
 def read_root():
-    return {"message": "Court Legal Chatbot API is running"}
+    return {
+        "message": "Illinois Legal Triage Chatbot API",
+        "status": "active",
+        "endpoints": ["/health", "/chat", "/ai-chat"]
+    }
+
+@app.get("/health")
+def health_check():
+    triage_exists = os.path.exists(TRIAGE_QUESTIONS_PATH)
+    referral_exists = os.path.exists(REFERRAL_MAP_PATH)
+    
+    return {
+        "status": "healthy",
+        "data_files": {
+            "triage_questions": triage_exists,
+            "referral_map": referral_exists
+        },
+        "features": {
+            "triage_chatbot": True,
+            "ai_assistant": groq_configured,
+            "crisis_detection": True
+        },
+        "paths": {
+            "base_dir": BASE_DIR,
+            "data_dir": DATA_DIR
+        }
+    }
 
 @app.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(request: ChatRequest):
+def chat_endpoint(request: ChatRequest):
+    triage_questions = load_json_file(TRIAGE_QUESTIONS_PATH)
+    referral_map = load_json_file(REFERRAL_MAP_PATH)
+    
     message = request.message.lower().strip()
-    state = request.conversation_state or {}
+    state = request.conversation_state
     
-    current_step = state.get("step", "start")
-    
-    if message == "start" or current_step == "start":
+    if detect_crisis_keywords(message) and state.get("step") not in ["topic_selection", None]:
         return ChatResponse(
-            response="Welcome! I'm here to help you find legal resources. What legal topic do you need help with?",
-            options=["Child Support", "Education", "Housing", "Divorce", "Custody"],
-            conversation_state={"step": "topic_selection"},
-            progress=get_step_progress("topic_selection")
+            response="🚨 **CRISIS DETECTED**\n\nIf you are in immediate danger, please:\n\n**Call 911** for emergency help\n\n**Or contact:**\n- National Domestic Violence Hotline: 1-800-799-7233\n- Illinois DV Hotline: 1-877-863-6338\n- National Suicide Prevention: 988\n- Illinois Child Abuse: 1-800-252-2873\n\nClick the red EMERGENCY button for more resources.\n\nI can still help you find legal resources. Would you like to continue?",
+            options=["Continue to Legal Resources", "Restart"],
+            conversation_state=state
         )
     
-    if current_step == "topic_selection":
-        topic_map = {
+    if not state or message in ["start", "restart", "begin", "start over"]:
+        return ChatResponse(
+            response="Hello! I'm here to help connect you with Illinois legal resources. This chatbot provides legal information only and is not legal advice. What legal issue do you need help with?",
+            options=["Child Support", "Education", "Housing", "Divorce", "Custody"],
+            conversation_state={"step": "topic_selection"}
+        )
+    
+    if state.get("step") == "topic_selection":
+        topics = {
             "child support": "child_support",
             "education": "education",
             "housing": "housing",
             "divorce": "divorce",
             "custody": "custody"
         }
+        selected_topic = topics.get(message)
         
-        topic = topic_map.get(message)
-        if topic:
+        if selected_topic:
+            state["topic"] = selected_topic
+            state["step"] = "emergency_check"
             return ChatResponse(
-                response="Is this an emergency situation? (e.g., immediate danger, urgent deadline, safety concern)",
-                options=["Yes - Emergency", "No - Not an emergency"],
-                conversation_state={"step": "emergency_check", "topic": topic},
-                progress=get_step_progress("emergency_check")
+                response=f"You selected {message.title()}. Is this an emergency?",
+                options=["Yes", "No", "I don't know"],
+                conversation_state=state
             )
         else:
             return ChatResponse(
-                response="I didn't understand that topic. Please select one of the options below:",
+                response="Please select a valid legal issue.",
                 options=["Child Support", "Education", "Housing", "Divorce", "Custody"],
-                conversation_state={"step": "topic_selection"},
-                progress=get_step_progress("topic_selection")
+                conversation_state=state
             )
     
-    if current_step == "emergency_check":
-        topic = state.get("topic")
-        is_emergency = "yes" in message or "emergency" in message or detect_crisis_keywords(message)
-        
-        if is_emergency:
+    if state.get("step") == "emergency_check":
+        if message == "yes":
+            state["emergency"] = "yes"
+            state["step"] = "court_status"
             return ChatResponse(
-                response="⚠️ If this is an emergency, call the police at 911. Follow up regarding help for your legal issues after you have contacted the police.\n\nFor non-police emergencies, we can connect you with crisis resources. Are you currently low-income or receiving public benefits?",
+                response="🚨 If this is an emergency, call the police immediately at 911.\n\nAfter you have contacted the police, I can help you find legal resources for your situation.\n\nDo you currently have an open court case related to this issue?",
                 options=["Yes", "No"],
-                conversation_state={"step": "income_check", "topic": topic, "emergency": True},
-                progress=get_step_progress("income_check")
+                conversation_state=state
+            )
+        elif message == "no":
+            state["emergency"] = "no"
+            state["step"] = "court_status"
+        elif message == "i don't know":
+            state["emergency"] = "unknown"
+            state["step"] = "court_status"
+        else:
+            return ChatResponse(
+                response="Please select an option.",
+                options=["Yes", "No", "I don't know"],
+                conversation_state=state
+            )
+        
+        return ChatResponse(
+            response="Do you currently have an open court case related to this issue?",
+            options=["Yes", "No"],
+            conversation_state=state
+        )
+    
+    if state.get("step") == "court_status":
+        if message == "yes":
+            state["in_court"] = True
+            state["step"] = "income_check"
+        elif message == "no":
+            state["in_court"] = False
+            state["step"] = "income_check"
+        else:
+            return ChatResponse(
+                response="Please answer Yes or No.",
+                options=["Yes", "No"],
+                conversation_state=state
+            )
+        
+        return ChatResponse(
+            response="Are you low-income or receiving public benefits (like SNAP, Medicaid, SSI)?",
+            options=["Yes", "No", "Not Sure"],
+            conversation_state=state
+        )
+    
+    if state.get("step") == "income_check":
+        if message in ["yes", "not sure"]:
+            state["income_eligible"] = True
+            state["income"] = "yes"
+        elif message == "no":
+            state["income_eligible"] = False
+            state["income"] = "no"
+        else:
+            return ChatResponse(
+                response="Please select an option.",
+                options=["Yes", "No", "Not Sure"],
+                conversation_state=state
+            )
+        
+        state["step"] = "get_zip"
+        return ChatResponse(
+            response="Please provide your Illinois ZIP code to find resources near you.",
+            options=[],
+            conversation_state=state
+        )
+    
+    if state.get("step") == "get_zip":
+        if message.isdigit() and len(message) == 5:
+            state["zip_code"] = message
+            
+            topic = state.get("topic", "general")
+            emergency = state.get("emergency", "no")
+            in_court = state.get("in_court", False)
+            income_eligible = state.get("income_eligible", False)
+            
+            if emergency == "yes" or in_court:
+                level = 3
+                level_name = "direct legal assistance"
+            elif not in_court and income_eligible:
+                level = 2
+                level_name = "self-help legal information"
+            else:
+                level = 1
+                level_name = "general legal information"
+            
+            state["level"] = level
+            
+            referrals = referral_map.get(topic, {}).get(f"level_{level}", [])
+            
+            if not income_eligible:
+                referrals = [
+                    ref for ref in referrals
+                    if not any(keyword in ref.get("name", "").lower() 
+                              for keyword in ["legal aid", "prairie state", "carpls"])
+                ]
+                
+                for ref in referrals:
+                    if "Chicago Advocate Legal, NFP" in ref.get("name", ""):
+                        ref["is_nfp"] = True
+            
+            cook_county_zips = ["60601", "60602", "60603", "60604", "60605", "60606", "60607", "60608", "60609", "60610", 
+                               "60611", "60612", "60613", "60614", "60615", "60616", "60617", "60618", "60619", "60620",
+                               "60621", "60622", "60623", "60624", "60625", "60626", "60628", "60629", "60630", "60631",
+                               "60632", "60633", "60634", "60636", "60637", "60638", "60639", "60640", "60641", "60642",
+                               "60643", "60644", "60645", "60646", "60647", "60649", "60651", "60652", "60653", "60654",
+                               "60655", "60656", "60657", "60659", "60660", "60661", "60706", "60707", "60803", "60804",
+                               "60805", "60827"]
+            
+            response_text = f"Based on your situation, here are {level_name} resources for {topic.replace('_', ' ').title()} in Illinois:"
+            
+            if level == 3 and message in cook_county_zips:
+                response_text += "\n\nSince you're in Cook County, I'm including Chicago-specific legal aid organizations."
+            
+            return ChatResponse(
+                response=response_text,
+                referrals=referrals,
+                options=["Continue", "Restart", "Connect with a Resource"],
+                conversation_state={"step": "complete", "topic": topic, "level": level, "zip_code": message, "income": state.get("income", "yes")}
             )
         else:
             return ChatResponse(
-                response="Do you currently have a court case filed?",
-                options=["Yes - I have a court case", "No - No court case yet"],
-                conversation_state={"step": "court_status", "topic": topic, "emergency": False},
-                progress=get_step_progress("court_status")
-            )
-    
-    if current_step == "court_status":
-        topic = state.get("topic")
-        has_court = "yes" in message or "have" in message
-        
-        return ChatResponse(
-            response="Are you currently low-income or receiving public benefits?",
-            options=["Yes", "No"],
-            conversation_state={"step": "income_check", "topic": topic, "emergency": False, "has_court": has_court},
-            progress=get_step_progress("income_check")
-        )
-    
-    if current_step == "income_check":
-        topic = state.get("topic")
-        is_emergency = state.get("emergency", False)
-        has_court = state.get("has_court", False)
-        is_low_income = "yes" in message
-        
-        return ChatResponse(
-            response="Please provide your ZIP code so I can find resources in your area:",
-            options=[],
-            conversation_state={
-                "step": "get_zip",
-                "topic": topic,
-                "emergency": is_emergency,
-                "has_court": has_court,
-                "low_income": is_low_income
-            },
-            progress=get_step_progress("get_zip")
-        )
-    
-    if current_step == "get_zip":
-        topic = state.get("topic")
-        is_emergency = state.get("emergency", False)
-        has_court = state.get("has_court", False)
-        is_low_income = state.get("low_income", False)
-        zip_code = message
-        
-        if not zip_code.isdigit() or len(zip_code) != 5:
-            return ChatResponse(
-                response="Please enter a valid 5-digit ZIP code:",
+                response="Please provide a valid 5-digit Illinois ZIP code.",
                 options=[],
-                conversation_state=state,
-                progress=get_step_progress("get_zip")
+                conversation_state=state
             )
-        
-        referrals = []
-        
-        if topic in REFERRALS_DB:
-            topic_data = REFERRALS_DB[topic]
+    
+    if state.get("step") == "complete":
+        if message == "continue":
+            return ChatResponse(
+                response="Would you like help with another legal issue?",
+                options=["Yes", "No"],
+                conversation_state={"step": "continue_check"}
+            )
+        elif message == "connect with a resource":
+            topic = state.get("topic", "general")
+            level = state.get("level", 1)
+            zip_code = state.get("zip_code", "")
+            income = state.get("income", "yes")
             
-            if is_low_income:
-                low_income_data = topic_data.get("low_income", {})
+            referrals = referral_map.get(topic, {}).get(f"level_{level}", [])
+            
+            if income == "no":
+                referrals = [
+                    ref for ref in referrals
+                    if not any(keyword in ref.get("name", "").lower() 
+                              for keyword in ["legal aid", "prairie state", "carpls"])
+                ]
                 
-                if is_emergency:
-                    referrals = low_income_data.get("emergency", [])
-                else:
-                    not_emergency_data = low_income_data.get("not_emergency", {})
-                    if has_court:
-                        referrals = not_emergency_data.get("has_court", [])
-                    else:
-                        referrals = not_emergency_data.get("no_court", [])
+                for ref in referrals:
+                    if "Chicago Advocate Legal, NFP" in ref.get("name", ""):
+                        ref["is_nfp"] = True
+            
+            cook_county_zips = ["60601", "60602", "60603", "60604", "60605", "60606", "60607", "60608", "60609", "60610", 
+                               "60611", "60612", "60613", "60614", "60615", "60616", "60617", "60618", "60619", "60620",
+                               "60621", "60622", "60623", "60624", "60625", "60626", "60628", "60629", "60630", "60631",
+                               "60632", "60633", "60634", "60636", "60637", "60638", "60639", "60640", "60641", "60642",
+                               "60643", "60644", "60645", "60646", "60647", "60649", "60651", "60652", "60653", "60654",
+                               "60655", "60656", "60657", "60659", "60660", "60661", "60706", "60707", "60803", "60804",
+                               "60805", "60827"]
+            
+            top_resource = None
+            if zip_code in cook_county_zips:
+                for ref in referrals:
+                    if "Chicago Advocate Legal, NFP" in ref.get("name", ""):
+                        top_resource = ref
+                        break
+            
+            if not top_resource and referrals:
+                top_resource = referrals[0]
+            
+            if top_resource:
+                return ChatResponse(
+                    response="🎯 Here's your recommended contact for immediate assistance:",
+                    referrals=[top_resource],
+                    options=["Restart"],
+                    conversation_state={"step": "resource_selected", "topic": topic, "level": level, "zip_code": zip_code}
+                )
             else:
-                referrals = topic_data.get("not_low_income", [])
-        
+                return ChatResponse(
+                    response="Please contact one of the organizations listed above for assistance with your legal issue.",
+                    options=["Restart"],
+                    conversation_state={"step": "complete"}
+                )
+        elif message == "restart":
+            return ChatResponse(
+                response="Hello! I'm here to help connect you with Illinois legal resources. This chatbot provides legal information only and is not legal advice. What legal issue do you need help with?",
+                options=["Child Support", "Education", "Housing", "Divorce", "Custody"],
+                conversation_state={"step": "topic_selection"}
+            )
+    
+    if state.get("step") == "continue_check":
+        if message == "yes":
+            return ChatResponse(
+                response="What legal issue would you like help with?",
+                options=["Child Support", "Education", "Housing", "Divorce", "Custody"],
+                conversation_state={"step": "topic_selection"}
+            )
+        elif message == "no":
+            return ChatResponse(
+                response="Thank you for using Illinois Legal Triage. If you need help in the future, feel free to return. Take care!",
+                options=["Restart"],
+                conversation_state={"step": "complete"}
+            )
+    
+    if message == "continue to legal resources":
         return ChatResponse(
-            response=f"Based on your situation (ZIP: {zip_code}), here are the recommended resources for you:",
-            options=[],
-            referrals=referrals,
-            conversation_state={"step": "complete", "topic": topic, "zip_code": zip_code},
-            progress=get_step_progress("complete")
+            response="I understand. Let's continue finding legal resources for your situation. What legal issue do you need help with?",
+            options=["Child Support", "Education", "Housing", "Divorce", "Custody"],
+            conversation_state={"step": "topic_selection"}
         )
     
     return ChatResponse(
-        response="I didn't understand that. Let's start over. What legal topic do you need help with?",
-        options=["Child Support", "Education", "Housing", "Divorce", "Custody"],
-        conversation_state={"step": "topic_selection"},
-        progress=get_step_progress("topic_selection")
+        response="I'm not sure I understood that. Here are some options to help you:\n\n• Click one of the buttons above\n• Use the Restart button to begin again\n• Type your ZIP code if I asked for it\n\nHow can I assist you?",
+        options=["Restart"],
+        conversation_state=state
     )
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+@app.post("/ai-chat", response_model=AIChatResponse)
+async def ai_chat_endpoint(request: AIChatRequest):
+    if not groq_configured:
+        raise HTTPException(
+            status_code=503, 
+            detail="AI assistant is not configured. Please add GROQ_API_KEY to environment variables."
+        )
+    
+    try:
+        messages_for_groq = [
+            {"role": "system", "content": ILLINOIS_SYSTEM_PROMPT}
+        ]
+        
+        for msg in request.messages:
+            messages_for_groq.append({
+                "role": msg["role"],
+                "content": msg["content"]
+            })
+        
+        response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=messages_for_groq,
+            temperature=0.3,
+            max_tokens=1000,
+        )
+        
+        assistant_message = response.choices[0].message.content
+        
+        return AIChatResponse(
+            response=assistant_message,
+            usage={
+                "model": "llama-3.3-70b-versatile",
+                "provider": "groq"
+            }
+        )
+    
+    except Exception as e:
+        print(f"Error in AI chat endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
