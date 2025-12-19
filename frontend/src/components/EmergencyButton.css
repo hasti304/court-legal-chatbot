@@ -1,0 +1,239 @@
+/* Floating Emergency Button */
+.emergency-floating-button {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 15px 25px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(220, 38, 38, 0.4);
+  z-index: 9999;
+  transition: all 0.3s ease;
+  animation: pulse 2s infinite;
+}
+
+.emergency-floating-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 28px rgba(220, 38, 38, 0.6);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 8px 20px rgba(220, 38, 38, 0.4);
+  }
+  50% {
+    box-shadow: 0 8px 30px rgba(220, 38, 38, 0.7);
+  }
+}
+
+/* Modal Overlay */
+.emergency-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modal */
+.emergency-modal {
+  background: white;
+  border-radius: 16px;
+  max-width: 900px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Modal Header */
+.emergency-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  color: white;
+  border-radius: 16px 16px 0 0;
+}
+
+.emergency-modal-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.emergency-close-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background 0.2s ease;
+}
+
+.emergency-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Modal Body */
+.emergency-modal-body {
+  padding: 24px;
+}
+
+.emergency-warning {
+  background: #fef2f2;
+  border: 2px solid #dc2626;
+  color: #991b1b;
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+/* Resources Grid */
+.emergency-resources-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.emergency-resource-card {
+  background: #f9fafb;
+  padding: 20px;
+  border-radius: 12px;
+  border-left: 4px solid #dc2626;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.emergency-resource-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.emergency-resource-card h3 {
+  color: #1f2937;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.emergency-resource-card p {
+  color: #6b7280;
+  font-size: 14px;
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.emergency-call-button {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  background: #dc2626;
+  color: white;
+  text-decoration: none;
+  text-align: center;
+  font-weight: 600;
+  font-size: 16px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.emergency-call-button:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Safety Notice */
+.emergency-safety-notice {
+  background: #fffbeb;
+  border: 2px solid #f59e0b;
+  padding: 16px;
+  border-radius: 8px;
+  color: #78350f;
+  line-height: 1.6;
+}
+
+.emergency-safety-notice strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.quick-exit-button {
+  background: #f59e0b;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: background 0.2s ease;
+}
+
+.quick-exit-button:hover {
+  background: #d97706;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .emergency-floating-button {
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+
+  .emergency-modal {
+    width: 95%;
+    max-height: 95vh;
+  }
+
+  .emergency-resources-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .emergency-modal-header h2 {
+    font-size: 20px;
+  }
+}

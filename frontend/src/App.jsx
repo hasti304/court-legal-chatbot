@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { FaGavel, FaPaperPlane, FaRedo, FaPhone, FaFileAlt, FaInfoCircle, FaRobot } from "react-icons/fa";
 import "./App.css";
+import EmergencyButton from "./components/EmergencyButton";
 
-// Lazy load AIChat component for better performance
 const AIChat = lazy(() => import("./components/AIChat"));
 
 function App() {
@@ -16,11 +16,9 @@ function App() {
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
-
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -28,14 +26,12 @@ function App() {
     }
   }, [messages]);
 
-
   const sendMessage = async (message) => {
     setLoading(true);
     
     const userMessage = { role: "user", content: message };
     setMessages(prev => [...prev, userMessage]);
     setUserInput("");
-
 
     try {
       const response = await fetch("https://court-legal-chatbot.onrender.com/chat", {
@@ -49,15 +45,12 @@ function App() {
         }),
       });
 
-
       if (!response.ok) {
         throw new Error(`Server error: ${response.status}`);
       }
 
-
       const data = await response.json();
       
-      // Track topic for AI assistant
       if (data.conversation_state && data.conversation_state.topic) {
         setCurrentTopic(data.conversation_state.topic.replace('_', ' '));
       }
@@ -82,7 +75,6 @@ function App() {
     setLoading(false);
   };
 
-
   const handleSubmit = (e) => {
     e.preventDefault();
     if (userInput.trim() && !loading) {
@@ -90,13 +82,11 @@ function App() {
     }
   };
 
-
   const handleOptionClick = (option) => {
     if (!loading) {
       sendMessage(option);
     }
   };
-
 
   const handleRestart = () => {
     setMessages([]);
@@ -106,8 +96,6 @@ function App() {
     sendMessage("start");
   };
 
-
-  // Show AI Chat mode with lazy loading
   if (showAIChat) {
     return (
       <Suspense fallback={<div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh'}}>Loading AI Chat...</div>}>
@@ -118,7 +106,6 @@ function App() {
       </Suspense>
     );
   }
-
 
   if (!showChat) {
     return (
@@ -167,7 +154,6 @@ function App() {
             </div>
           </div>
 
-
           <button 
             className="btn btn-primary btn-large btn-start" 
             onClick={() => {
@@ -177,7 +163,6 @@ function App() {
           >
             Begin Case Inquiry
           </button>
-
 
           <div className="disclaimer-box">
             <p className="disclaimer-title">⚖️ Important Legal Notice</p>
@@ -189,10 +174,11 @@ function App() {
             </p>
           </div>
         </div>
+        
+        <EmergencyButton />
       </div>
     );
   }
-
 
   return (
     <div className="chat-page">
@@ -205,7 +191,6 @@ function App() {
           </div>
         </div>
       </div>
-
 
       <div className="chat-container">
         <div className="messages-container" ref={messagesContainerRef}>
@@ -330,7 +315,6 @@ function App() {
           <div ref={messagesEndRef} />
         </div>
 
-
         <div className="input-container">
           <button onClick={handleRestart} className="btn btn-restart" title="Restart">
             <FaRedo size={16} />
@@ -356,7 +340,6 @@ function App() {
           </form>
         </div>
 
-
         <div className="chat-footer">
           <p className="footer-disclaimer">
             <strong>Legal information and resources only, not legal advice.</strong>
@@ -366,9 +349,10 @@ function App() {
           </p>
         </div>
       </div>
+      
+      <EmergencyButton />
     </div>
   );
 }
-
 
 export default App;
