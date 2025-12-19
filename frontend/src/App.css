@@ -564,8 +564,8 @@ body {
 .btn-back {
   background: #6b7280;
   color: white;
-  width: 45px;
-  height: 45px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -589,8 +589,8 @@ body {
 .btn-restart {
   background: #ef4444;
   color: white;
-  width: 45px;
-  height: 45px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -690,8 +690,8 @@ body {
 
   .btn-back,
   .btn-restart {
-    width: 40px;
-    height: 40px;
+    width: 52px;
+    height: 52px;
   }
 
   .input-container {

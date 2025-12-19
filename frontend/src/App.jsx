@@ -349,11 +349,11 @@ function App() {
             title="Go Back" 
             disabled={conversationHistory.length < 2 || loading}
           >
-            <FaArrowLeft size={20} />
+            <FaArrowLeft size={24} />
           </button>
           
           <button onClick={handleRestart} className="btn btn-restart" title="Restart">
-            <FaRedo size={20} />
+            <FaRedo size={24} />
           </button>
           
           <form onSubmit={handleSubmit} className="input-form">
