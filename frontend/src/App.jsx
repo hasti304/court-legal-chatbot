@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
-import { FaGavel, FaPaperPlane, FaRedo, FaPhone, FaFileAlt, FaInfoCircle, FaRobot } from "react-icons/fa";
+import { FaGavel, FaPaperPlane, FaRedo, FaPhone, FaFileAlt, FaInfoCircle, FaRobot, FaArrowLeft } from "react-icons/fa";
 import "./App.css";
 import EmergencyButton from "./components/EmergencyButton";
 
@@ -10,6 +10,7 @@ function App() {
   const [showAIChat, setShowAIChat] = useState(false);
   const [messages, setMessages] = useState([]);
   const [conversationState, setConversationState] = useState({});
+  const [conversationHistory, setConversationHistory] = useState([]);
   const [userInput, setUserInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [currentTopic, setCurrentTopic] = useState("");
@@ -26,7 +27,7 @@ function App() {
     }
   }, [messages]);
 
-  const sendMessage = async (message) => {
+  const sendMessage = async (message, isBackAction = false) => {
     setLoading(true);
     
     const userMessage = { role: "user", content: message };
@@ -55,14 +56,25 @@ function App() {
         setCurrentTopic(data.conversation_state.topic.replace('_', ' '));
       }
       
-      setMessages(prev => [...prev, {
+      const botMessage = {
         role: "bot",
         content: data.response,
         options: data.options || [],
         referrals: data.referrals || []
-      }]);
+      };
       
+      setMessages(prev => [...prev, botMessage]);
       setConversationState(data.conversation_state || {});
+      
+      if (!isBackAction && data.conversation_state) {
+        setConversationHistory(prev => [...prev, {
+          state: data.conversation_state,
+          userMessage: userMessage,
+          botMessage: botMessage,
+          allMessages: [...messages, userMessage, botMessage]
+        }]);
+      }
+      
     } catch (error) {
       console.error("Connection error details:", error);
       setMessages(prev => [...prev, {
@@ -91,9 +103,24 @@ function App() {
   const handleRestart = () => {
     setMessages([]);
     setConversationState({});
+    setConversationHistory([]);
     setUserInput("");
     setCurrentTopic("");
     sendMessage("start");
+  };
+
+  const handleBack = () => {
+    if (conversationHistory.length < 2) {
+      handleRestart();
+      return;
+    }
+    
+    const newHistory = conversationHistory.slice(0, -1);
+    const previousState = newHistory[newHistory.length - 1];
+    
+    setConversationHistory(newHistory);
+    setConversationState(previousState.state);
+    setMessages(previousState.allMessages);
   };
 
   if (showAIChat) {
@@ -316,8 +343,17 @@ function App() {
         </div>
 
         <div className="input-container">
+          <button 
+            onClick={handleBack} 
+            className="btn btn-back" 
+            title="Go Back" 
+            disabled={conversationHistory.length < 2 || loading}
+          >
+            <FaArrowLeft size={20} />
+          </button>
+          
           <button onClick={handleRestart} className="btn btn-restart" title="Restart">
-            <FaRedo size={16} />
+            <FaRedo size={20} />
           </button>
           
           <form onSubmit={handleSubmit} className="input-form">
