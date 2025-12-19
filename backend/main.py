@@ -523,7 +523,7 @@ async def chat_endpoint(request: ChatRequest):
         
         if is_emergency:
             return ChatResponse(
-                response="Are you currently low-income or receiving public benefits?",
+                response="⚠️ If this is an emergency, call the police at 911. Follow up regarding help for your legal issues after you have contacted the police.\n\nFor non-police emergencies, we can connect you with crisis resources. Are you currently low-income or receiving public benefits?",
                 options=["Yes", "No"],
                 conversation_state={"step": "income_check", "topic": topic, "emergency": True},
                 progress=get_step_progress("income_check")
