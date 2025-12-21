@@ -255,45 +255,45 @@
   transform: scale(1);
 }
 
-/* AI Chat Footer - Centered and Highlighted */
+/* AI Chat Footer - More Compact */
 .ai-chat-footer {
-  padding: 20px;
+  padding: 14px 16px;
   text-align: center;
   background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
   border-top: 3px solid #f59e0b;
-  box-shadow: 0 -4px 12px rgba(245, 158, 11, 0.2);
+  box-shadow: 0 -2px 8px rgba(245, 158, 11, 0.15);
 }
 
 .help-text {
   font-weight: 700;
-  font-size: 18px;
-  margin-bottom: 16px;
+  font-size: 15px;
+  margin-bottom: 10px;
   color: #92400e;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .footer-contacts {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
   max-width: 600px;
   margin: 0 auto;
   background: white;
-  padding: 20px;
-  border-radius: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
   border: 2px solid #f59e0b;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .footer-contact-item {
-  font-size: 16px;
-  line-height: 1.8;
+  font-size: 14px;
+  line-height: 1.6;
   color: #1f2937;
-  padding: 12px;
+  padding: 8px 10px;
   background: #fffbeb;
-  border-radius: 8px;
-  border-left: 4px solid #f59e0b;
+  border-radius: 6px;
+  border-left: 3px solid #f59e0b;
 }
 
 .footer-contact-item:last-child {
@@ -302,9 +302,9 @@
 
 .footer-contact-item strong {
   display: block;
-  font-size: 17px;
+  font-size: 15px;
   color: #92400e;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .footer-contact-item a {
@@ -356,16 +356,28 @@
     width: 100%;
   }
 
+  .ai-chat-footer {
+    padding: 10px 12px;
+  }
+
   .help-text {
-    font-size: 16px;
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  .footer-contacts {
+    padding: 10px;
+    gap: 8px;
   }
   
   .footer-contact-item {
-    font-size: 14px;
+    font-size: 13px;
+    padding: 7px 8px;
   }
   
   .footer-contact-item strong {
-    font-size: 15px;
+    font-size: 14px;
+    margin-bottom: 3px;
   }
 }
 
@@ -377,5 +389,13 @@
 
   .message-content {
     font-size: 0.95rem;
+  }
+
+  .help-text {
+    font-size: 12px;
+  }
+
+  .footer-contact-item {
+    font-size: 12px;
   }
 }
