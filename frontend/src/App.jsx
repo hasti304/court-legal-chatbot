@@ -64,11 +64,15 @@ function App() {
       };
       
       setMessages(prev => [...prev, botMessage]);
-      setConversationState(data.conversation_state || {});
+      const newState = {
+      ...(data.conversation_state || {}),
+      progress: data.progress || {}
+      };
+      setConversationState(newState);
       
       if (!isBackAction && data.conversation_state) {
         setConversationHistory(prev => [...prev, {
-          state: data.conversation_state,
+          state: newState,
           userMessage: userMessage,
           botMessage: botMessage,
           allMessages: [...messages, userMessage, botMessage]
@@ -218,6 +222,27 @@ function App() {
           </div>
         </div>
       </div>
+
+      {messages.length > 0 && conversationState.step !== "complete" && (
+  <div className="progress-bar-container">
+    <div className="progress-info">
+      <span className="progress-step">
+        Step {conversationState.progress?.current || 1} of {conversationState.progress?.total || 5}
+      </span>
+      <span className="progress-label">
+        {conversationState.progress?.label || "Getting Started"}
+      </span>
+    </div>
+    <div className="progress-bar-track">
+      <div 
+        className="progress-bar-fill"
+        style={{
+          width: `${((conversationState.progress?.current || 1) / (conversationState.progress?.total || 5)) * 100}%`
+        }}
+      />
+    </div>
+  </div>
+)}
 
       <div className="chat-container">
         <div className="messages-container" ref={messagesContainerRef}>
