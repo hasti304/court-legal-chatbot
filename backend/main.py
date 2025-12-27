@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import json
 import os
-from typing import List, Dict
+from typing import List, Dict, Optional
 from dotenv import load_dotenv
 from groq import Groq
 import uuid
@@ -48,20 +48,16 @@ except Exception as e:
     print(f"Warning: Groq client initialization failed: {e}")
     groq_configured = False
 
+
 def load_json_file(file_path: str):
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Data file not found: {file_path}"
-        )
+        raise HTTPException(status_code=500, detail=f"Data file not found: {file_path}")
     except json.JSONDecodeError:
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Invalid JSON in file: {file_path}"
-        )
+        raise HTTPException(status_code=500, detail=f"Invalid JSON in file: {file_path}")
+
 
 def detect_crisis_keywords(message: str) -> bool:
     crisis_keywords = [
@@ -74,31 +70,64 @@ def detect_crisis_keywords(message: str) -> bool:
         "emergency", "urgent", "help me",
         "violence", "violent", "attack"
     ]
-    
     message_lower = message.lower()
     return any(keyword in message_lower for keyword in crisis_keywords)
+
+
+def normalize_step(step: Optional[str]) -> str:
+    if not step:
+        return "topic_selection"
+    return step
+
+
+def get_step_progress(step: Optional[str]) -> dict:
+    """
+    Backend-provided progress metadata that the frontend progress bar can display.
+    Keep totals stable so UI doesn't jump.
+    """
+    step = normalize_step(step)
+
+    steps_map = {
+        "topic_selection": {"current": 1, "total": 5, "label": "Select Topic"},
+        "emergency_check": {"current": 2, "total": 5, "label": "Emergency Check"},
+        "court_status": {"current": 3, "total": 5, "label": "Court Status"},
+        "income_check": {"current": 4, "total": 5, "label": "Income Level"},
+        "get_zip": {"current": 5, "total": 5, "label": "Your Location"},
+        "complete": {"current": 5, "total": 5, "label": "Resources Ready"},
+        "resource_selected": {"current": 5, "total": 5, "label": "Resources Ready"},
+        "continue_check": {"current": 5, "total": 5, "label": "Resources Ready"},
+    }
+
+    return steps_map.get(step, {"current": 1, "total": 5, "label": "Getting Started"})
+
 
 class ChatRequest(BaseModel):
     message: str
     conversation_state: dict = {}
+
 
 class ChatResponse(BaseModel):
     response: str
     options: list = []
     referrals: list = []
     conversation_state: dict = {}
+    progress: dict = {}
+
 
 class AIChatMessage(BaseModel):
     role: str
     content: str
 
+
 class AIChatRequest(BaseModel):
     messages: List[Dict[str, str]]
     topic: str = None
 
+
 class AIChatResponse(BaseModel):
     response: str
     usage: dict = {}
+
 
 ILLINOIS_SYSTEM_PROMPT = """Role & Purpose:
 You are a careful legal information assistant for self-represented litigants (SRLs) in Illinois courts. You help people understand Illinois court procedures, forms, and options in plain language. You provide general legal information, not legal advice, and you do not represent the user.
@@ -155,8 +184,6 @@ When a user asks for something prohibited:
 3. Provide general educational information instead
 4. Offer questions they could ask a lawyer or legal aid office
 
-Example: "I can't advise you on what you should argue or what you should write. But I can explain common issues Illinois courts consider in cases like this and suggest questions you might ask a lawyer."
-
 Working with Forms:
 You may:
 - Explain what each part of an Illinois form is generally asking
@@ -196,7 +223,9 @@ If a user mentions abuse, domestic violence, risk of harm, eviction:
   * Chicago Advocate Legal for direct help: (312) 801-5918
 
 Final Rule:
-When in doubt, provide educational information only—not legal advice. Be transparent about uncertainty. Encourage users to verify details with the court and talk with a lawyer. Always include complete contact information (phone number AND intake/appointment link) when referring to Chicago Advocate Legal, NFP or Justice Entrepreneurs Project."""
+When in doubt, provide educational information only—not legal advice. Be transparent about uncertainty. Encourage users to verify details with the court and talk with a lawyer. Always include complete contact information (phone number AND intake/appointment link) when referring to Chicago Advocate Legal, NFP or Justice Entrepreneurs Project.
+"""
+
 
 @app.get("/")
 def read_root():
@@ -206,11 +235,12 @@ def read_root():
         "endpoints": ["/health", "/chat", "/ai-chat"]
     }
 
+
 @app.get("/health")
 def health_check():
     triage_exists = os.path.exists(TRIAGE_QUESTIONS_PATH)
     referral_exists = os.path.exists(REFERRAL_MAP_PATH)
-    
+
     return {
         "status": "healthy",
         "data_files": {
@@ -220,7 +250,8 @@ def health_check():
         "features": {
             "triage_chatbot": True,
             "ai_assistant": groq_configured,
-            "crisis_detection": True
+            "crisis_detection": True,
+            "progress_tracking": True
         },
         "paths": {
             "base_dir": BASE_DIR,
@@ -228,28 +259,35 @@ def health_check():
         }
     }
 
+
 @app.post("/chat", response_model=ChatResponse)
 def chat_endpoint(request: ChatRequest):
     triage_questions = load_json_file(TRIAGE_QUESTIONS_PATH)
     referral_map = load_json_file(REFERRAL_MAP_PATH)
-    
+
     message = request.message.lower().strip()
-    state = request.conversation_state
-    
+    state = request.conversation_state or {}
+
+    # Crisis detection (only after topic selection)
     if detect_crisis_keywords(message) and state.get("step") not in ["topic_selection", None]:
         return ChatResponse(
             response="🚨 **CRISIS DETECTED**\n\nIf you are in immediate danger, please:\n\n**Call 911** for emergency help\n\n**Or contact:**\n- National Domestic Violence Hotline: 1-800-799-7233\n- Illinois DV Hotline: 1-877-863-6338\n- National Suicide Prevention: 988\n- Illinois Child Abuse: 1-800-252-2873\n\nClick the red EMERGENCY button for more resources.\n\nI can still help you find legal resources. Would you like to continue?",
             options=["Continue to Legal Resources", "Restart"],
-            conversation_state=state
+            conversation_state=state,
+            progress=get_step_progress(state.get("step"))
         )
-    
+
+    # Start / restart
     if not state or message in ["start", "restart", "begin", "start over"]:
+        new_state = {"step": "topic_selection"}
         return ChatResponse(
             response="Hello! I'm here to help connect you with Illinois legal resources. This chatbot provides legal information only and is not legal advice. What legal issue do you need help with?",
             options=["Child Support", "Education", "Housing", "Divorce", "Custody"],
-            conversation_state={"step": "topic_selection"}
+            conversation_state=new_state,
+            progress=get_step_progress(new_state.get("step"))
         )
-    
+
+    # Topic selection
     if state.get("step") == "topic_selection":
         topics = {
             "child support": "child_support",
@@ -259,22 +297,25 @@ def chat_endpoint(request: ChatRequest):
             "custody": "custody"
         }
         selected_topic = topics.get(message)
-        
+
         if selected_topic:
             state["topic"] = selected_topic
             state["step"] = "emergency_check"
             return ChatResponse(
                 response=f"You selected {message.title()}. Is this an emergency?",
                 options=["Yes", "No", "I don't know"],
-                conversation_state=state
+                conversation_state=state,
+                progress=get_step_progress(state.get("step"))
             )
-        else:
-            return ChatResponse(
-                response="Please select a valid legal issue.",
-                options=["Child Support", "Education", "Housing", "Divorce", "Custody"],
-                conversation_state=state
-            )
-    
+
+        return ChatResponse(
+            response="Please select a valid legal issue.",
+            options=["Child Support", "Education", "Housing", "Divorce", "Custody"],
+            conversation_state=state,
+            progress=get_step_progress(state.get("step"))
+        )
+
+    # Emergency check
     if state.get("step") == "emergency_check":
         if message == "yes":
             state["emergency"] = "yes"
@@ -282,7 +323,8 @@ def chat_endpoint(request: ChatRequest):
             return ChatResponse(
                 response="🚨 If this is an emergency, call the police immediately at 911.\n\nAfter you have contacted the police, I can help you find legal resources for your situation.\n\nDo you currently have an open court case related to this issue?",
                 options=["Yes", "No"],
-                conversation_state=state
+                conversation_state=state,
+                progress=get_step_progress(state.get("step"))
             )
         elif message == "no":
             state["emergency"] = "no"
@@ -294,15 +336,18 @@ def chat_endpoint(request: ChatRequest):
             return ChatResponse(
                 response="Please select an option.",
                 options=["Yes", "No", "I don't know"],
-                conversation_state=state
+                conversation_state=state,
+                progress=get_step_progress(state.get("step"))
             )
-        
+
         return ChatResponse(
             response="Do you currently have an open court case related to this issue?",
             options=["Yes", "No"],
-            conversation_state=state
+            conversation_state=state,
+            progress=get_step_progress(state.get("step"))
         )
-    
+
+    # Court status
     if state.get("step") == "court_status":
         if message == "yes":
             state["in_court"] = True
@@ -314,15 +359,18 @@ def chat_endpoint(request: ChatRequest):
             return ChatResponse(
                 response="Please answer Yes or No.",
                 options=["Yes", "No"],
-                conversation_state=state
+                conversation_state=state,
+                progress=get_step_progress(state.get("step"))
             )
-        
+
         return ChatResponse(
             response="Are you low-income or receiving public benefits (like SNAP, Medicaid, SSI)?",
             options=["Yes", "No", "Not Sure"],
-            conversation_state=state
+            conversation_state=state,
+            progress=get_step_progress(state.get("step"))
         )
-    
+
+    # Income check
     if state.get("step") == "income_check":
         if message in ["yes", "not sure"]:
             state["income_eligible"] = True
@@ -334,25 +382,28 @@ def chat_endpoint(request: ChatRequest):
             return ChatResponse(
                 response="Please select an option.",
                 options=["Yes", "No", "Not Sure"],
-                conversation_state=state
+                conversation_state=state,
+                progress=get_step_progress(state.get("step"))
             )
-        
+
         state["step"] = "get_zip"
         return ChatResponse(
             response="Please provide your Illinois ZIP code to find resources near you.",
             options=[],
-            conversation_state=state
+            conversation_state=state,
+            progress=get_step_progress(state.get("step"))
         )
-    
+
+    # ZIP
     if state.get("step") == "get_zip":
         if message.isdigit() and len(message) == 5:
             state["zip_code"] = message
-            
+
             topic = state.get("topic", "general")
             emergency = state.get("emergency", "no")
             in_court = state.get("in_court", False)
             income_eligible = state.get("income_eligible", False)
-            
+
             if emergency == "yes" or in_court:
                 level = 3
                 level_name = "direct legal assistance"
@@ -362,175 +413,213 @@ def chat_endpoint(request: ChatRequest):
             else:
                 level = 1
                 level_name = "general legal information"
-            
+
             state["level"] = level
-            
+
             referrals = referral_map.get(topic, {}).get(f"level_{level}", [])
-            
+
             if not income_eligible:
                 referrals = [
                     ref for ref in referrals
-                    if not any(keyword in ref.get("name", "").lower() 
-                              for keyword in ["legal aid", "prairie state", "carpls"])
+                    if not any(keyword in ref.get("name", "").lower()
+                               for keyword in ["legal aid", "prairie state", "carpls"])
                 ]
-                
                 for ref in referrals:
                     if "Chicago Advocate Legal, NFP" in ref.get("name", ""):
                         ref["is_nfp"] = True
-            
-            cook_county_zips = ["60601", "60602", "60603", "60604", "60605", "60606", "60607", "60608", "60609", "60610", 
-                               "60611", "60612", "60613", "60614", "60615", "60616", "60617", "60618", "60619", "60620",
-                               "60621", "60622", "60623", "60624", "60625", "60626", "60628", "60629", "60630", "60631",
-                               "60632", "60633", "60634", "60636", "60637", "60638", "60639", "60640", "60641", "60642",
-                               "60643", "60644", "60645", "60646", "60647", "60649", "60651", "60652", "60653", "60654",
-                               "60655", "60656", "60657", "60659", "60660", "60661", "60706", "60707", "60803", "60804",
-                               "60805", "60827"]
-            
+
+            cook_county_zips = [
+                "60601", "60602", "60603", "60604", "60605", "60606", "60607", "60608", "60609", "60610",
+                "60611", "60612", "60613", "60614", "60615", "60616", "60617", "60618", "60619", "60620",
+                "60621", "60622", "60623", "60624", "60625", "60626", "60628", "60629", "60630", "60631",
+                "60632", "60633", "60634", "60636", "60637", "60638", "60639", "60640", "60641", "60642",
+                "60643", "60644", "60645", "60646", "60647", "60649", "60651", "60652", "60653", "60654",
+                "60655", "60656", "60657", "60659", "60660", "60661", "60706", "60707", "60803", "60804",
+                "60805", "60827"
+            ]
+
             response_text = f"Based on your situation, here are {level_name} resources for {topic.replace('_', ' ').title()} in Illinois:"
-            
+
             if level == 3 and message in cook_county_zips:
                 response_text += "\n\nSince you're in Cook County, I'm including Chicago-specific legal aid organizations."
-            
+
+            final_state = {
+                "step": "complete",
+                "topic": topic,
+                "level": level,
+                "zip_code": message,
+                "income": state.get("income", "yes")
+            }
+
             return ChatResponse(
                 response=response_text,
                 referrals=referrals,
                 options=["Continue", "Restart", "Connect with a Resource"],
-                conversation_state={"step": "complete", "topic": topic, "level": level, "zip_code": message, "income": state.get("income", "yes")}
+                conversation_state=final_state,
+                progress=get_step_progress(final_state.get("step"))
             )
-        else:
-            return ChatResponse(
-                response="Please provide a valid 5-digit Illinois ZIP code.",
-                options=[],
-                conversation_state=state
-            )
-    
+
+        return ChatResponse(
+            response="Please provide a valid 5-digit Illinois ZIP code.",
+            options=[],
+            conversation_state=state,
+            progress=get_step_progress(state.get("step"))
+        )
+
+    # Complete
     if state.get("step") == "complete":
         if message == "continue":
+            new_state = {"step": "continue_check"}
             return ChatResponse(
                 response="Would you like help with another legal issue?",
                 options=["Yes", "No"],
-                conversation_state={"step": "continue_check"}
+                conversation_state=new_state,
+                progress=get_step_progress(new_state.get("step"))
             )
-        elif message == "connect with a resource":
+
+        if message == "connect with a resource":
             topic = state.get("topic", "general")
             level = state.get("level", 1)
             zip_code = state.get("zip_code", "")
             income = state.get("income", "yes")
-            
+
             referrals = referral_map.get(topic, {}).get(f"level_{level}", [])
-            
+
             if income == "no":
                 referrals = [
                     ref for ref in referrals
-                    if not any(keyword in ref.get("name", "").lower() 
-                              for keyword in ["legal aid", "prairie state", "carpls"])
+                    if not any(keyword in ref.get("name", "").lower()
+                               for keyword in ["legal aid", "prairie state", "carpls"])
                 ]
-                
                 for ref in referrals:
                     if "Chicago Advocate Legal, NFP" in ref.get("name", ""):
                         ref["is_nfp"] = True
-            
-            cook_county_zips = ["60601", "60602", "60603", "60604", "60605", "60606", "60607", "60608", "60609", "60610", 
-                               "60611", "60612", "60613", "60614", "60615", "60616", "60617", "60618", "60619", "60620",
-                               "60621", "60622", "60623", "60624", "60625", "60626", "60628", "60629", "60630", "60631",
-                               "60632", "60633", "60634", "60636", "60637", "60638", "60639", "60640", "60641", "60642",
-                               "60643", "60644", "60645", "60646", "60647", "60649", "60651", "60652", "60653", "60654",
-                               "60655", "60656", "60657", "60659", "60660", "60661", "60706", "60707", "60803", "60804",
-                               "60805", "60827"]
-            
+
+            cook_county_zips = [
+                "60601", "60602", "60603", "60604", "60605", "60606", "60607", "60608", "60609", "60610",
+                "60611", "60612", "60613", "60614", "60615", "60616", "60617", "60618", "60619", "60620",
+                "60621", "60622", "60623", "60624", "60625", "60626", "60628", "60629", "60630", "60631",
+                "60632", "60633", "60634", "60636", "60637", "60638", "60639", "60640", "60641", "60642",
+                "60643", "60644", "60645", "60646", "60647", "60649", "60651", "60652", "60653", "60654",
+                "60655", "60656", "60657", "60659", "60660", "60661", "60706", "60707", "60803", "60804",
+                "60805", "60827"
+            ]
+
             top_resource = None
             if zip_code in cook_county_zips:
                 for ref in referrals:
                     if "Chicago Advocate Legal, NFP" in ref.get("name", ""):
                         top_resource = ref
                         break
-            
+
             if not top_resource and referrals:
                 top_resource = referrals[0]
-            
+
             if top_resource:
+                selected_state = {"step": "resource_selected", "topic": topic, "level": level, "zip_code": zip_code}
                 return ChatResponse(
                     response="🎯 Here's your recommended contact for immediate assistance:",
                     referrals=[top_resource],
                     options=["Restart"],
-                    conversation_state={"step": "resource_selected", "topic": topic, "level": level, "zip_code": zip_code}
+                    conversation_state=selected_state,
+                    progress=get_step_progress(selected_state.get("step"))
                 )
-            else:
-                return ChatResponse(
-                    response="Please contact one of the organizations listed above for assistance with your legal issue.",
-                    options=["Restart"],
-                    conversation_state={"step": "complete"}
-                )
-        elif message == "restart":
+
+            return ChatResponse(
+                response="Please contact one of the organizations listed above for assistance with your legal issue.",
+                options=["Restart"],
+                conversation_state=state,
+                progress=get_step_progress(state.get("step"))
+            )
+
+        if message == "restart":
+            new_state = {"step": "topic_selection"}
             return ChatResponse(
                 response="Hello! I'm here to help connect you with Illinois legal resources. This chatbot provides legal information only and is not legal advice. What legal issue do you need help with?",
                 options=["Child Support", "Education", "Housing", "Divorce", "Custody"],
-                conversation_state={"step": "topic_selection"}
+                conversation_state=new_state,
+                progress=get_step_progress(new_state.get("step"))
             )
-    
+
+        return ChatResponse(
+            response="Use the buttons to continue, restart, or connect with a resource.",
+            options=["Continue", "Restart", "Connect with a Resource"],
+            conversation_state=state,
+            progress=get_step_progress(state.get("step"))
+        )
+
+    # Continue check
     if state.get("step") == "continue_check":
         if message == "yes":
+            new_state = {"step": "topic_selection"}
             return ChatResponse(
                 response="What legal issue would you like help with?",
                 options=["Child Support", "Education", "Housing", "Divorce", "Custody"],
-                conversation_state={"step": "topic_selection"}
+                conversation_state=new_state,
+                progress=get_step_progress(new_state.get("step"))
             )
-        elif message == "no":
+        if message == "no":
+            end_state = {"step": "complete"}
             return ChatResponse(
                 response="Thank you for using Illinois Legal Triage. If you need help in the future, feel free to return. Take care!",
                 options=["Restart"],
-                conversation_state={"step": "complete"}
+                conversation_state=end_state,
+                progress=get_step_progress(end_state.get("step"))
             )
-    
+
+        return ChatResponse(
+            response="Please select Yes or No.",
+            options=["Yes", "No"],
+            conversation_state=state,
+            progress=get_step_progress(state.get("step"))
+        )
+
     if message == "continue to legal resources":
+        new_state = {"step": "topic_selection"}
         return ChatResponse(
             response="I understand. Let's continue finding legal resources for your situation. What legal issue do you need help with?",
             options=["Child Support", "Education", "Housing", "Divorce", "Custody"],
-            conversation_state={"step": "topic_selection"}
+            conversation_state=new_state,
+            progress=get_step_progress(new_state.get("step"))
         )
-    
+
+    # Fallback
     return ChatResponse(
         response="I'm not sure I understood that. Here are some options to help you:\n\n• Click one of the buttons above\n• Use the Restart button to begin again\n• Type your ZIP code if I asked for it\n\nHow can I assist you?",
         options=["Restart"],
-        conversation_state=state
+        conversation_state=state,
+        progress=get_step_progress(state.get("step"))
     )
+
 
 @app.post("/ai-chat", response_model=AIChatResponse)
 async def ai_chat_endpoint(request: AIChatRequest):
     if not groq_configured:
         raise HTTPException(
-            status_code=503, 
+            status_code=503,
             detail="AI assistant is not configured. Please add GROQ_API_KEY to environment variables."
         )
-    
+
     try:
-        messages_for_groq = [
-            {"role": "system", "content": ILLINOIS_SYSTEM_PROMPT}
-        ]
-        
+        messages_for_groq = [{"role": "system", "content": ILLINOIS_SYSTEM_PROMPT}]
+
         for msg in request.messages:
-            messages_for_groq.append({
-                "role": msg["role"],
-                "content": msg["content"]
-            })
-        
+            messages_for_groq.append({"role": msg["role"], "content": msg["content"]})
+
         response = groq_client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=messages_for_groq,
             temperature=0.3,
             max_tokens=1000,
         )
-        
+
         assistant_message = response.choices[0].message.content
-        
+
         return AIChatResponse(
             response=assistant_message,
-            usage={
-                "model": "llama-3.3-70b-versatile",
-                "provider": "groq"
-            }
+            usage={"model": "llama-3.3-70b-versatile", "provider": "groq"}
         )
-    
+
     except Exception as e:
         print(f"Error in AI chat endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
