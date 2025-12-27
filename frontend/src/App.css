@@ -757,3 +757,34 @@ body {
     height: 6px;
   }
 }
+
+/* ===== Phase A2: mobile safe-area + fit fixes ===== */
+
+/* Prevent accidental horizontal scrolling on mobile */
+html, body, #root {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* Make the page respect iPhone safe areas (home bar/notch) */
+.chat-page {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Give the input bar breathing room above the iOS home bar */
+.input-container {
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Keep the EMERGENCY button from overlapping the privacy banner/input */
+@media (max-width: 768px) {
+  .emergency-button {
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
+    right: 16px !important;
+  }
+
+  /* Slightly reduce footer padding so more chat content is visible */
+  .chat-footer {
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+}
