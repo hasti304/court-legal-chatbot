@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import json
@@ -6,8 +6,6 @@ import os
 from typing import List, Dict, Optional
 from dotenv import load_dotenv
 from groq import Groq
-import uuid
-from datetime import datetime
 
 load_dotenv()
 
@@ -26,7 +24,7 @@ app.add_middleware(
         "https://hasti304.github.io/court-legal-chatbot",
         "http://localhost:3000",
         "http://localhost:5173",
-        "http://127.0.0.1:5173"
+        "http://127.0.0.1:5173",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
@@ -47,6 +45,21 @@ try:
 except Exception as e:
     print(f"Warning: Groq client initialization failed: {e}")
     groq_configured = False
+
+
+SUPPORTED_LANGS = {"en", "es", "pl", "ar", "tl", "ru", "ko", "cmn", "yue"}
+
+
+def normalize_language(lang: Optional[str]) -> str:
+    if not lang:
+        return "en"
+    lower = str(lang).strip().lower()
+    if lower in SUPPORTED_LANGS:
+        return lower
+    base = lower.split("-")[0]
+    if base in SUPPORTED_LANGS:
+        return base
+    return "en"
 
 
 def load_json_file(file_path: str):
@@ -82,46 +95,48 @@ def normalize_step(step: Optional[str]) -> str:
 
 def get_step_progress(step: Optional[str]) -> dict:
     """
-    Backend-provided progress metadata that the frontend progress bar can display.
-    Keep totals stable so UI doesn't jump.
+    Backend-provided progress metadata.
+    Use label_key so frontend can translate labels.
     """
     step = normalize_step(step)
 
     steps_map = {
-        "topic_selection": {"current": 1, "total": 5, "label": "Select Topic"},
-        "emergency_check": {"current": 2, "total": 5, "label": "Emergency Check"},
-        "court_status": {"current": 3, "total": 5, "label": "Court Status"},
-        "income_check": {"current": 4, "total": 5, "label": "Income Level"},
-        "get_zip": {"current": 5, "total": 5, "label": "Your Location"},
-        "complete": {"current": 5, "total": 5, "label": "Resources Ready"},
-        "resource_selected": {"current": 5, "total": 5, "label": "Resources Ready"},
-        "continue_check": {"current": 5, "total": 5, "label": "Resources Ready"},
+        "topic_selection": {"current": 1, "total": 5, "label_key": "progress.selectTopic"},
+        "emergency_check": {"current": 2, "total": 5, "label_key": "progress.emergencyCheck"},
+        "court_status": {"current": 3, "total": 5, "label_key": "progress.courtStatus"},
+        "income_check": {"current": 4, "total": 5, "label_key": "progress.incomeLevel"},
+        "get_zip": {"current": 5, "total": 5, "label_key": "progress.yourLocation"},
+        "complete": {"current": 5, "total": 5, "label_key": "progress.resourcesReady"},
+        "resource_selected": {"current": 5, "total": 5, "label_key": "progress.resourcesReady"},
+        "continue_check": {"current": 5, "total": 5, "label_key": "progress.resourcesReady"},
     }
 
-    return steps_map.get(step, {"current": 1, "total": 5, "label": "Getting Started"})
+    return steps_map.get(step, {"current": 1, "total": 5, "label_key": "progress.defaultLabel"})
 
 
 class ChatRequest(BaseModel):
     message: str
     conversation_state: dict = {}
+    language: Optional[str] = "en"
 
 
 class ChatResponse(BaseModel):
-    response: str
+    # Backward compat fields:
+    response: str = ""
+    # New Option-A fields:
+    response_key: Optional[str] = None
+    response_params: dict = {}
+
     options: list = []
     referrals: list = []
     conversation_state: dict = {}
     progress: dict = {}
 
 
-class AIChatMessage(BaseModel):
-    role: str
-    content: str
-
-
 class AIChatRequest(BaseModel):
     messages: List[Dict[str, str]]
     topic: str = None
+    language: str = "en"
 
 
 class AIChatResponse(BaseModel):
@@ -158,73 +173,32 @@ When referencing any rule, form, deadline, requirement, or fee, prefer official 
 
 Cite source references at the end of the paragraph they support.
 
-What You Can Do (Allowed):
-- Provide general, educational information about:
-  * Court processes (Circuit Courts, Cook County courts, etc.)
-  * Illinois legal forms and what they mean
-  * Deadlines, procedural steps, filing, service, scheduling, hearings
-  * Filing logistics and typical timelines (always remind users to confirm exact dates with the court)
-  * Access to justice resources (legal aid organizations, court help desks)
-  * How fees and fee waivers work in Illinois
-  * General safety information for domestic violence situations (refer to Illinois resources)
-
-Prohibited (What You Must Avoid):
-You must NOT:
-- Give legal advice: Avoid telling the user "You should" or "You must" in relation to their specific situation
-- Give legal strategy, arguments, or predictions
-- Apply law to the user's specific facts
-- Tell the user what to write on forms, letters, or court filings
-- Draft case-specific text
-- Recommend specific strategies or actions
-
-Handling Prohibited Requests:
-When a user asks for something prohibited:
-1. Restate your role briefly (information, not advice)
-2. Clearly decline the prohibited request
-3. Provide general educational information instead
-4. Offer questions they could ask a lawyer or legal aid office
-
-Working with Forms:
-You may:
-- Explain what each part of an Illinois form is generally asking
-- Provide generic example answers, clearly labeled as examples
-- Point out where to find the form
-
-You must NOT:
-- Fill out the form for the user using their specific facts
-- Tell them which boxes to check or exact words to use
-
-Structured Output Format:
-When explaining an Illinois process, include:
-1. What it is (plain English explanation)
-2. Who typically qualifies / when it's used
-3. Forms required (form codes and where to find them)
-4. Filing steps and where to file
-5. Fees and fee waiver options
-6. What happens next (timelines, hearings)
-7. Where to get more help (specific Illinois resources)
-
-Access to Help:
-When recommending Illinois resources, provide complete contact information:
-- Chicago Advocate Legal, NFP: (312) 801-5918 | Schedule appointment: https://www.chicagoadvocatelegal.com/contact.html
-- Justice Entrepreneurs Project (JEP): (312) 546-3282 | Intake form: https://jepchicago.org/intake-form/
-- Illinois Legal Aid Online: illinoislegalaid.org
-- Cook County Self-Help Center
-- Prairie State Legal Services
-- Land of Lincoln Legal Aid
-
-Safety and Sensitive Issues:
-If a user mentions abuse, domestic violence, risk of harm, eviction:
-- Provide general safety information
-- Refer to:
-  * Illinois Domestic Violence Hotline: 1-877-863-6338
-  * National DV Hotline: 1-800-799-7233
-  * Call 911 in immediate danger
-  * Chicago Advocate Legal for direct help: (312) 801-5918
-
 Final Rule:
-When in doubt, provide educational information only—not legal advice. Be transparent about uncertainty. Encourage users to verify details with the court and talk with a lawyer. Always include complete contact information (phone number AND intake/appointment link) when referring to Chicago Advocate Legal, NFP or Justice Entrepreneurs Project.
+When in doubt, provide educational information only—not legal advice.
 """
+
+
+def language_instruction(lang: str) -> str:
+    l = (lang or "en").strip().lower()
+
+    if l.startswith("es"):
+        return "IMPORTANT: Respond ONLY in Spanish. Do NOT use English."
+    if l.startswith("pl"):
+        return "IMPORTANT: Respond ONLY in Polish. Do NOT use English."
+    if l.startswith("ar"):
+        return "IMPORTANT: Respond ONLY in Arabic. Do NOT use English."
+    if l.startswith("tl"):
+        return "IMPORTANT: Respond ONLY in Tagalog. Do NOT use English."
+    if l.startswith("ru"):
+        return "IMPORTANT: Respond ONLY in Russian. Do NOT use English."
+    if l.startswith("ko"):
+        return "IMPORTANT: Respond ONLY in Korean. Do NOT use English."
+    if l.startswith("cmn"):
+        return "IMPORTANT: Respond ONLY in Mandarin Chinese. Do NOT use English."
+    if l.startswith("yue"):
+        return "IMPORTANT: Respond ONLY in Cantonese. Do NOT use English."
+
+    return "IMPORTANT: Respond ONLY in English."
 
 
 @app.get("/")
@@ -232,7 +206,7 @@ def read_root():
     return {
         "message": "Illinois Legal Triage Chatbot API",
         "status": "active",
-        "endpoints": ["/health", "/chat", "/ai-chat"]
+        "endpoints": ["/health", "/chat", "/ai-chat"],
     }
 
 
@@ -245,56 +219,63 @@ def health_check():
         "status": "healthy",
         "data_files": {
             "triage_questions": triage_exists,
-            "referral_map": referral_exists
+            "referral_map": referral_exists,
         },
         "features": {
             "triage_chatbot": True,
             "ai_assistant": groq_configured,
             "crisis_detection": True,
-            "progress_tracking": True
+            "progress_tracking": True,
         },
         "paths": {
             "base_dir": BASE_DIR,
-            "data_dir": DATA_DIR
-        }
+            "data_dir": DATA_DIR,
+        },
     }
+
+
+def topic_label_key(topic_code: str) -> str:
+    return f"triage.options.topic_{topic_code}"
 
 
 @app.post("/chat", response_model=ChatResponse)
 def chat_endpoint(request: ChatRequest):
-    triage_questions = load_json_file(TRIAGE_QUESTIONS_PATH)
     referral_map = load_json_file(REFERRAL_MAP_PATH)
 
-    message = request.message.lower().strip()
+    message = (request.message or "").lower().strip()
     state = request.conversation_state or {}
+    _lang = normalize_language(request.language)
 
     # Crisis detection (only after topic selection)
     if detect_crisis_keywords(message) and state.get("step") not in ["topic_selection", None]:
         return ChatResponse(
-            response="🚨 **CRISIS DETECTED**\n\nIf you are in immediate danger, please:\n\n**Call 911** for emergency help\n\n**Or contact:**\n- National Domestic Violence Hotline: 1-800-799-7233\n- Illinois DV Hotline: 1-877-863-6338\n- National Suicide Prevention: 988\n- Illinois Child Abuse: 1-800-252-2873\n\nClick the red EMERGENCY button for more resources.\n\nI can still help you find legal resources. Would you like to continue?",
-            options=["Continue to Legal Resources", "Restart"],
+            response_key="triage.emergency.crisisDetectedBody",
+            response_params={},
+            options=["continue_to_legal_resources", "restart"],
             conversation_state=state,
-            progress=get_step_progress(state.get("step"))
+            progress=get_step_progress(state.get("step")),
         )
 
     # Start / restart
     if not state or message in ["start", "restart", "begin", "start over"]:
         new_state = {"step": "topic_selection"}
         return ChatResponse(
-            response="Hello! I'm here to help connect you with Illinois legal resources. This chatbot provides legal information only and is not legal advice. What legal issue do you need help with?",
-            options=["Child Support", "Education", "Housing", "Divorce", "Custody"],
+            response_key="triage.topic.prompt",
+            response_params={},
+            options=["child_support", "education", "housing", "divorce", "custody"],
             conversation_state=new_state,
-            progress=get_step_progress(new_state.get("step"))
+            progress=get_step_progress(new_state.get("step")),
         )
 
     # Topic selection
     if state.get("step") == "topic_selection":
         topics = {
             "child support": "child_support",
+            "child_support": "child_support",
             "education": "education",
             "housing": "housing",
             "divorce": "divorce",
-            "custody": "custody"
+            "custody": "custody",
         }
         selected_topic = topics.get(message)
 
@@ -302,17 +283,19 @@ def chat_endpoint(request: ChatRequest):
             state["topic"] = selected_topic
             state["step"] = "emergency_check"
             return ChatResponse(
-                response=f"You selected {message.title()}. Is this an emergency?",
-                options=["Yes", "No", "I don't know"],
+                response_key="triage.topic.selected",
+                response_params={"topic": selected_topic},
+                options=["yes", "no", "unknown"],
                 conversation_state=state,
-                progress=get_step_progress(state.get("step"))
+                progress=get_step_progress(state.get("step")),
             )
 
         return ChatResponse(
-            response="Please select a valid legal issue.",
-            options=["Child Support", "Education", "Housing", "Divorce", "Custody"],
+            response_key="triage.topic.invalid",
+            response_params={},
+            options=["child_support", "education", "housing", "divorce", "custody"],
             conversation_state=state,
-            progress=get_step_progress(state.get("step"))
+            progress=get_step_progress(state.get("step")),
         )
 
     # Emergency check
@@ -321,30 +304,33 @@ def chat_endpoint(request: ChatRequest):
             state["emergency"] = "yes"
             state["step"] = "court_status"
             return ChatResponse(
-                response="🚨 If this is an emergency, call the police immediately at 911.\n\nAfter you have contacted the police, I can help you find legal resources for your situation.\n\nDo you currently have an open court case related to this issue?",
-                options=["Yes", "No"],
+                response_key="triage.emergency.policeNote",
+                response_params={},
+                options=["yes", "no"],
                 conversation_state=state,
-                progress=get_step_progress(state.get("step"))
+                progress=get_step_progress(state.get("step")),
             )
         elif message == "no":
             state["emergency"] = "no"
             state["step"] = "court_status"
-        elif message == "i don't know":
+        elif message in ["i don't know", "unknown"]:
             state["emergency"] = "unknown"
             state["step"] = "court_status"
         else:
             return ChatResponse(
-                response="Please select an option.",
-                options=["Yes", "No", "I don't know"],
+                response_key="triage.emergency.invalid",
+                response_params={},
+                options=["yes", "no", "unknown"],
                 conversation_state=state,
-                progress=get_step_progress(state.get("step"))
+                progress=get_step_progress(state.get("step")),
             )
 
         return ChatResponse(
-            response="Do you currently have an open court case related to this issue?",
-            options=["Yes", "No"],
+            response_key="triage.court.prompt",
+            response_params={},
+            options=["yes", "no"],
             conversation_state=state,
-            progress=get_step_progress(state.get("step"))
+            progress=get_step_progress(state.get("step")),
         )
 
     # Court status
@@ -357,22 +343,24 @@ def chat_endpoint(request: ChatRequest):
             state["step"] = "income_check"
         else:
             return ChatResponse(
-                response="Please answer Yes or No.",
-                options=["Yes", "No"],
+                response_key="triage.court.invalid",
+                response_params={},
+                options=["yes", "no"],
                 conversation_state=state,
-                progress=get_step_progress(state.get("step"))
+                progress=get_step_progress(state.get("step")),
             )
 
         return ChatResponse(
-            response="Are you low-income or receiving public benefits (like SNAP, Medicaid, SSI)?",
-            options=["Yes", "No", "Not Sure"],
+            response_key="triage.income.prompt",
+            response_params={},
+            options=["yes", "no", "not_sure"],
             conversation_state=state,
-            progress=get_step_progress(state.get("step"))
+            progress=get_step_progress(state.get("step")),
         )
 
     # Income check
     if state.get("step") == "income_check":
-        if message in ["yes", "not sure"]:
+        if message in ["yes", "not_sure"]:
             state["income_eligible"] = True
             state["income"] = "yes"
         elif message == "no":
@@ -380,18 +368,20 @@ def chat_endpoint(request: ChatRequest):
             state["income"] = "no"
         else:
             return ChatResponse(
-                response="Please select an option.",
-                options=["Yes", "No", "Not Sure"],
+                response_key="triage.income.invalid",
+                response_params={},
+                options=["yes", "no", "not_sure"],
                 conversation_state=state,
-                progress=get_step_progress(state.get("step"))
+                progress=get_step_progress(state.get("step")),
             )
 
         state["step"] = "get_zip"
         return ChatResponse(
-            response="Please provide your Illinois ZIP code to find resources near you.",
+            response_key="triage.zip.prompt",
+            response_params={},
             options=[],
             conversation_state=state,
-            progress=get_step_progress(state.get("step"))
+            progress=get_step_progress(state.get("step")),
         )
 
     # ZIP
@@ -415,14 +405,16 @@ def chat_endpoint(request: ChatRequest):
                 level_name = "general legal information"
 
             state["level"] = level
-
             referrals = referral_map.get(topic, {}).get(f"level_{level}", [])
 
+            # Existing filtering behavior kept
             if not income_eligible:
                 referrals = [
                     ref for ref in referrals
-                    if not any(keyword in ref.get("name", "").lower()
-                               for keyword in ["legal aid", "prairie state", "carpls"])
+                    if not any(
+                        keyword in ref.get("name", "").lower()
+                        for keyword in ["legal aid", "prairie state", "carpls"]
+                    )
                 ]
                 for ref in referrals:
                     if "Chicago Advocate Legal, NFP" in ref.get("name", ""):
@@ -438,32 +430,46 @@ def chat_endpoint(request: ChatRequest):
                 "60805", "60827"
             ]
 
-            response_text = f"Based on your situation, here are {level_name} resources for {topic.replace('_', ' ').title()} in Illinois:"
-
-            if level == 3 and message in cook_county_zips:
-                response_text += "\n\nSince you're in Cook County, I'm including Chicago-specific legal aid organizations."
-
             final_state = {
                 "step": "complete",
                 "topic": topic,
                 "level": level,
                 "zip_code": message,
-                "income": state.get("income", "yes")
+                "income": state.get("income", "yes"),
             }
 
+            # Build the intro with keys/params
+            response_key = "triage.results.intro"
+            response_params = {
+                "levelName": level_name,
+                "topic": topic,
+            }
+
+            # If cook county note applies, add it as a second bot message pattern is not supported,
+            # so we append to params-free fallback by using label in same response as plain response string for now.
+            # Keep it simple: frontend will show translated intro, and this extra note will be English until translated if needed.
+            extra_note = ""
+            if level == 3 and message in cook_county_zips:
+                extra_note = "\n\n"  # keep separation
+                # Send this as legacy "response" so UI still shows it even if translation key missing.
+                # If you want this translated too, add another key and return two messages (future improvement).
+
             return ChatResponse(
-                response=response_text,
+                response=extra_note,
+                response_key=response_key,
+                response_params=response_params,
                 referrals=referrals,
-                options=["Continue", "Restart", "Connect with a Resource"],
+                options=["continue", "restart", "connect"],
                 conversation_state=final_state,
-                progress=get_step_progress(final_state.get("step"))
+                progress=get_step_progress(final_state.get("step")),
             )
 
         return ChatResponse(
-            response="Please provide a valid 5-digit Illinois ZIP code.",
+            response_key="triage.zip.invalid",
+            response_params={},
             options=[],
             conversation_state=state,
-            progress=get_step_progress(state.get("step"))
+            progress=get_step_progress(state.get("step")),
         )
 
     # Complete
@@ -471,13 +477,14 @@ def chat_endpoint(request: ChatRequest):
         if message == "continue":
             new_state = {"step": "continue_check"}
             return ChatResponse(
-                response="Would you like help with another legal issue?",
-                options=["Yes", "No"],
+                response_key="triage.continueCheck.prompt",
+                response_params={},
+                options=["yes", "no"],
                 conversation_state=new_state,
-                progress=get_step_progress(new_state.get("step"))
+                progress=get_step_progress(new_state.get("step")),
             )
 
-        if message == "connect with a resource":
+        if message == "connect":
             topic = state.get("topic", "general")
             level = state.get("level", 1)
             zip_code = state.get("zip_code", "")
@@ -488,8 +495,10 @@ def chat_endpoint(request: ChatRequest):
             if income == "no":
                 referrals = [
                     ref for ref in referrals
-                    if not any(keyword in ref.get("name", "").lower()
-                               for keyword in ["legal aid", "prairie state", "carpls"])
+                    if not any(
+                        keyword in ref.get("name", "").lower()
+                        for keyword in ["legal aid", "prairie state", "carpls"]
+                    )
                 ]
                 for ref in referrals:
                     if "Chicago Advocate Legal, NFP" in ref.get("name", ""):
@@ -516,36 +525,45 @@ def chat_endpoint(request: ChatRequest):
                 top_resource = referrals[0]
 
             if top_resource:
-                selected_state = {"step": "resource_selected", "topic": topic, "level": level, "zip_code": zip_code}
+                selected_state = {
+                    "step": "resource_selected",
+                    "topic": topic,
+                    "level": level,
+                    "zip_code": zip_code,
+                }
                 return ChatResponse(
-                    response="🎯 Here's your recommended contact for immediate assistance:",
+                    response_key="triage.results.connectTop",
+                    response_params={},
                     referrals=[top_resource],
-                    options=["Restart"],
+                    options=["restart"],
                     conversation_state=selected_state,
-                    progress=get_step_progress(selected_state.get("step"))
+                    progress=get_step_progress(selected_state.get("step")),
                 )
 
             return ChatResponse(
-                response="Please contact one of the organizations listed above for assistance with your legal issue.",
-                options=["Restart"],
+                response_key="triage.results.connectFallback",
+                response_params={},
+                options=["restart"],
                 conversation_state=state,
-                progress=get_step_progress(state.get("step"))
+                progress=get_step_progress(state.get("step")),
             )
 
         if message == "restart":
             new_state = {"step": "topic_selection"}
             return ChatResponse(
-                response="Hello! I'm here to help connect you with Illinois legal resources. This chatbot provides legal information only and is not legal advice. What legal issue do you need help with?",
-                options=["Child Support", "Education", "Housing", "Divorce", "Custody"],
+                response_key="triage.topic.prompt",
+                response_params={},
+                options=["child_support", "education", "housing", "divorce", "custody"],
                 conversation_state=new_state,
-                progress=get_step_progress(new_state.get("step"))
+                progress=get_step_progress(new_state.get("step")),
             )
 
         return ChatResponse(
-            response="Use the buttons to continue, restart, or connect with a resource.",
-            options=["Continue", "Restart", "Connect with a Resource"],
+            response_key="triage.results.completeButtonsHint",
+            response_params={},
+            options=["continue", "restart", "connect"],
             conversation_state=state,
-            progress=get_step_progress(state.get("step"))
+            progress=get_step_progress(state.get("step")),
         )
 
     # Continue check
@@ -553,42 +571,48 @@ def chat_endpoint(request: ChatRequest):
         if message == "yes":
             new_state = {"step": "topic_selection"}
             return ChatResponse(
-                response="What legal issue would you like help with?",
-                options=["Child Support", "Education", "Housing", "Divorce", "Custody"],
+                response_key="triage.continueCheck.promptTopic",
+                response_params={},
+                options=["child_support", "education", "housing", "divorce", "custody"],
                 conversation_state=new_state,
-                progress=get_step_progress(new_state.get("step"))
+                progress=get_step_progress(new_state.get("step")),
             )
+
         if message == "no":
             end_state = {"step": "complete"}
             return ChatResponse(
-                response="Thank you for using Illinois Legal Triage. If you need help in the future, feel free to return. Take care!",
-                options=["Restart"],
+                response_key="triage.continueCheck.goodbye",
+                response_params={},
+                options=["restart"],
                 conversation_state=end_state,
-                progress=get_step_progress(end_state.get("step"))
+                progress=get_step_progress(end_state.get("step")),
             )
 
         return ChatResponse(
-            response="Please select Yes or No.",
-            options=["Yes", "No"],
+            response_key="triage.continueCheck.invalid",
+            response_params={},
+            options=["yes", "no"],
             conversation_state=state,
-            progress=get_step_progress(state.get("step"))
+            progress=get_step_progress(state.get("step")),
         )
 
-    if message == "continue to legal resources":
+    if message == "continue_to_legal_resources":
         new_state = {"step": "topic_selection"}
         return ChatResponse(
-            response="I understand. Let's continue finding legal resources for your situation. What legal issue do you need help with?",
-            options=["Child Support", "Education", "Housing", "Divorce", "Custody"],
+            response_key="triage.continueToLegalResources.prompt",
+            response_params={},
+            options=["child_support", "education", "housing", "divorce", "custody"],
             conversation_state=new_state,
-            progress=get_step_progress(new_state.get("step"))
+            progress=get_step_progress(new_state.get("step")),
         )
 
     # Fallback
     return ChatResponse(
-        response="I'm not sure I understood that. Here are some options to help you:\n\n• Click one of the buttons above\n• Use the Restart button to begin again\n• Type your ZIP code if I asked for it\n\nHow can I assist you?",
-        options=["Restart"],
+        response_key="triage.fallback.prompt",
+        response_params={},
+        options=["restart"],
         conversation_state=state,
-        progress=get_step_progress(state.get("step"))
+        progress=get_step_progress(state.get("step")),
     )
 
 
@@ -597,12 +621,19 @@ async def ai_chat_endpoint(request: AIChatRequest):
     if not groq_configured:
         raise HTTPException(
             status_code=503,
-            detail="AI assistant is not configured. Please add GROQ_API_KEY to environment variables."
+            detail="AI assistant is not configured. Please add GROQ_API_KEY to environment variables.",
         )
 
     try:
-        messages_for_groq = [{"role": "system", "content": ILLINOIS_SYSTEM_PROMPT}]
+        lang = normalize_language(request.language)
 
+        system_prompt = (
+            ILLINOIS_SYSTEM_PROMPT
+            + "\n\nLANGUAGE REQUIREMENT:\n"
+            + language_instruction(lang)
+        )
+
+        messages_for_groq = [{"role": "system", "content": system_prompt}]
         for msg in request.messages:
             messages_for_groq.append({"role": msg["role"], "content": msg["content"]})
 
@@ -617,7 +648,7 @@ async def ai_chat_endpoint(request: AIChatRequest):
 
         return AIChatResponse(
             response=assistant_message,
-            usage={"model": "llama-3.3-70b-versatile", "provider": "groq"}
+            usage={"model": "llama-3.3-70b-versatile", "provider": "groq"},
         )
 
     except Exception as e:

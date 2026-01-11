@@ -1,31 +1,40 @@
-import React, { useState, useEffect, useRef } from 'react';
-import './AIChat.css';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
-
+import React, { useState, useEffect, useRef } from "react";
+import "./AIChat.css";
+import { marked } from "marked";
+import DOMPurify from "dompurify";
+import { useTranslation } from "react-i18next";
+import { getNormalizedLanguage } from "../i18n";
 
 const AIChat = ({ topic, onBack }) => {
+  const { t, i18n } = useTranslation();
+
   const [messages, setMessages] = useState([
     {
-      role: 'assistant',
-      content:
-        "Hello! I'm your Illinois Legal Information Assistant. I can help you understand court procedures, forms, and processes in Illinois. Remember, I provide general legal information, not legal advice. What would you like to know?"
-    }
+      role: "assistant",
+      content: t("ai.placeholder"),
+    },
   ]);
-  const [inputValue, setInputValue] = useState('');
+
+  // If the user changes language, keep the initial assistant line aligned
+  // when the conversation is still just the first message.
+  useEffect(() => {
+    if (messages.length === 1 && messages[0]?.role === "assistant") {
+      setMessages([{ role: "assistant", content: t("ai.placeholder") }]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [i18n.language]);
+
+  const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
-
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
 
   const renderMessageContent = (content) => {
     const rawHtml = marked.parse(content, { breaks: true });
@@ -33,109 +42,81 @@ const AIChat = ({ topic, onBack }) => {
     return { __html: cleanHtml };
   };
 
-
   const sendMessage = async () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || isLoading) return;
 
-
-    const userMessage = { role: 'user', content: inputValue };
+    const userMessage = { role: "user", content: inputValue };
     const updatedMessages = [...messages, userMessage];
+
     setMessages(updatedMessages);
-    setInputValue('');
+    setInputValue("");
     setIsLoading(true);
 
-
     try {
-      const response = await fetch(
-        'https://court-legal-chatbot.onrender.com/ai-chat',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            messages: updatedMessages.map((msg) => ({
-              role: msg.role,
-              content: msg.content
-            })),
-            topic: topic || 'general'
-          })
-        }
-      );
-
+      const response = await fetch("https://court-legal-chatbot.onrender.com/ai-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })),
+          topic: topic || "general",
+          language: getNormalizedLanguage(),
+        }),
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Server error:', errorText);
+        console.error("AI server error:", errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-
       const data = await response.json();
 
-
-      const assistantMessage = {
-        role: 'assistant',
-        content: data.response
-      };
-
-
-      setMessages((prev) => [...prev, assistantMessage]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: data.response || t("ai.error") },
+      ]);
     } catch (error) {
-      console.error('Error:', error);
-      const errorMessage = {
-        role: 'assistant',
-        content:
-          'I apologize, but I encountered an error. Please try asking your question again, or contact Chicago Advocate Legal at (312) 801-5918 for direct assistance.'
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      console.error("AI request failed:", error);
+      setMessages((prev) => [...prev, { role: "assistant", content: t("ai.error") }]);
     } finally {
       setIsLoading(false);
     }
   };
 
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
   };
-
 
   return (
     <div className="ai-chat-page">
       <div className="ai-chat-container">
         <div className="ai-chat-header">
           <button onClick={onBack} className="back-button">
-            ← Back to Resources
+            {t("ai.back")}
           </button>
-          <h2>Illinois Legal Information Assistant</h2>
-          <p className="ai-disclaimer">
-            ⚖️ Legal information and resources only, not legal advice
-          </p>
-          <p className="ai-privacy-notice">
-            ⚠️ This chatbot is not private. Information provided could be disclosed.
-          </p>
-        </div>
 
+          <h2>{t("ai.title")}</h2>
+
+          <p className="ai-disclaimer">{t("ai.disclaimer")}</p>
+          <p className="ai-privacy-notice">{t("ai.privacy")}</p>
+        </div>
 
         <div className="ai-chat-messages">
           {messages.map((message, index) => (
             <div
               key={index}
-              className={`ai-message ${
-                message.role === 'user' ? 'user-message' : 'assistant-message'
-              }`}
+              className={`ai-message ${message.role === "user" ? "user-message" : "assistant-message"}`}
             >
               <div
                 className="message-content"
-                dangerouslySetInnerHTML={renderMessageContent(
-                  message.content
-                )}
+                dangerouslySetInnerHTML={renderMessageContent(message.content)}
               />
             </div>
           ))}
+
           {isLoading && (
             <div className="ai-message assistant-message">
               <div className="message-content typing-indicator">
@@ -145,16 +126,16 @@ const AIChat = ({ topic, onBack }) => {
               </div>
             </div>
           )}
+
           <div ref={messagesEndRef} />
         </div>
-
 
         <div className="ai-chat-input-container">
           <textarea
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Ask about Illinois court procedures, forms, or legal processes..."
+            onKeyDown={handleKeyDown}
+            placeholder={t("ai.placeholder")}
             className="ai-chat-input"
             rows={3}
             disabled={isLoading}
@@ -164,28 +145,29 @@ const AIChat = ({ topic, onBack }) => {
             disabled={isLoading || !inputValue.trim()}
             className="ai-send-button"
           >
-            {isLoading ? 'Sending...' : 'Send'}
+            {isLoading ? t("ai.sending") : t("ai.send")}
           </button>
         </div>
 
-
         <div className="ai-chat-footer">
-          <p className="help-text">
-            Need immediate help? Contact:
-          </p>
+          <p className="help-text">{t("ai.needHelp")}</p>
           <div className="footer-contacts">
             <div className="footer-contact-item">
-              <strong>Chicago Advocate Legal, NFP:</strong>{' '}
+              <strong>Chicago Advocate Legal, NFP:</strong>{" "}
               <a href="tel:+13128015918">(312) 801-5918</a>
-              {' | '}
-              <a href="https://www.chicagoadvocatelegal.com/contact.html" target="_blank" rel="noopener noreferrer">
+              {" | "}
+              <a
+                href="https://www.chicagoadvocatelegal.com/contact.html"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 Schedule Appointment
               </a>
             </div>
             <div className="footer-contact-item">
-              <strong>Justice Entrepreneurs Project (JEP):</strong>{' '}
+              <strong>Justice Entrepreneurs Project (JEP):</strong>{" "}
               <a href="tel:+13125463282">(312) 546-3282</a>
-              {' | '}
+              {" | "}
               <a href="https://jepchicago.org/intake-form/" target="_blank" rel="noopener noreferrer">
                 JEP Intake Form
               </a>
@@ -196,6 +178,5 @@ const AIChat = ({ topic, onBack }) => {
     </div>
   );
 };
-
 
 export default AIChat;
