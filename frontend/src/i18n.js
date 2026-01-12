@@ -2,8 +2,6 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
 const LANG_STORAGE_KEY = "cal_lang_v1";
-
-// Only support English + Spanish.
 const SUPPORTED = ["en", "es"];
 
 const resources = {
@@ -82,16 +80,6 @@ const resources = {
         error:
           "I apologize, but I encountered an error. Please try asking your question again, or contact Chicago Advocate Legal at (312) 801-5918 for direct assistance.",
       },
-      emergency: {
-        button: "EMERGENCY",
-        title: "🚨 Emergency Resources",
-        warning: "If you are in immediate danger, call 911 now.",
-        safetyNoteTitle: "Safety Note:",
-        safetyNoteText:
-          "If someone is monitoring your internet activity, consider calling instead of using online resources.",
-        quickExit: "Quick Exit →",
-      },
-
       triage: {
         options: {
           yes: "Yes",
@@ -240,16 +228,6 @@ const resources = {
         error:
           "Lo siento, ocurrió un error. Intente preguntar de nuevo o contacte a Chicago Advocate Legal al (312) 801-5918 para obtener ayuda directa.",
       },
-      emergency: {
-        button: "EMERGENCIA",
-        title: "🚨 Recursos de emergencia",
-        warning: "Si está en peligro inmediato, llame al 911 ahora.",
-        safetyNoteTitle: "Nota de seguridad:",
-        safetyNoteText:
-          "Si alguien está monitoreando su actividad en internet, considere llamar por teléfono en lugar de usar recursos en línea.",
-        quickExit: "Salida rápida →",
-      },
-
       triage: {
         options: {
           yes: "Sí",
@@ -328,11 +306,7 @@ const resources = {
 function normalizeToSupported(lng) {
   if (!lng) return "en";
   const lower = String(lng).toLowerCase();
-
-  for (const code of SUPPORTED) {
-    if (lower === code || lower.startsWith(code + "-")) return code;
-  }
-
+  if (lower === "es" || lower.startsWith("es-")) return "es";
   return "en";
 }
 

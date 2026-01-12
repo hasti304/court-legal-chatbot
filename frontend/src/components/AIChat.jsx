@@ -9,12 +9,11 @@ const AIChat = ({ topic, onBack }) => {
   const { t, i18n } = useTranslation();
 
   const [messages, setMessages] = useState([
-    {
-      role: "assistant",
-      content: t("ai.placeholder"),
-    },
+    { role: "assistant", content: t("ai.placeholder") },
   ]);
 
+  // If the user changes language, keep the initial assistant line aligned
+  // when the conversation is still just the first message.
   useEffect(() => {
     if (messages.length === 1 && messages[0]?.role === "assistant") {
       setMessages([{ role: "assistant", content: t("ai.placeholder") }]);
@@ -35,7 +34,7 @@ const AIChat = ({ topic, onBack }) => {
   }, [messages]);
 
   const renderMessageContent = (content) => {
-    const rawHtml = marked.parse(content, { breaks: true });
+    const rawHtml = marked.parse(content || "", { breaks: true });
     const cleanHtml = DOMPurify.sanitize(rawHtml);
     return { __html: cleanHtml };
   };
@@ -106,7 +105,9 @@ const AIChat = ({ topic, onBack }) => {
           {messages.map((message, index) => (
             <div
               key={index}
-              className={`ai-message ${message.role === "user" ? "user-message" : "assistant-message"}`}
+              className={`ai-message ${
+                message.role === "user" ? "user-message" : "assistant-message"
+              }`}
             >
               <div
                 className="message-content"
@@ -166,7 +167,11 @@ const AIChat = ({ topic, onBack }) => {
               <strong>Justice Entrepreneurs Project (JEP):</strong>{" "}
               <a href="tel:+13125463282">(312) 546-3282</a>
               {" | "}
-              <a href="https://jepchicago.org/intake-form/" target="_blank" rel="noopener noreferrer">
+              <a
+                href="https://jepchicago.org/intake-form/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 JEP Intake Form
               </a>
             </div>

@@ -41,7 +41,28 @@ function App() {
 
   const normalizedLang = getNormalizedLanguage();
 
-  // EN/ES are both LTR; still set <html lang="..."> globally.
+  // QR-safe mode: ?fresh=1 always starts from cover and clears saved chat state.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const fresh = params.get("fresh") === "1";
+
+    if (fresh) {
+      localStorage.removeItem(FIRST_VISIT_KEY);
+      localStorage.removeItem(STORAGE_KEY);
+
+      setShowAIChat(false);
+      setShowChat(false);
+      setMessages([]);
+      setConversationState({});
+      setConversationHistory([]);
+      setUserInput("");
+      setCurrentTopic("");
+    }
+    // run once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // EN/ES are both LTR; set <html lang="...">.
   useEffect(() => {
     document.documentElement.setAttribute("dir", "ltr");
     document.documentElement.setAttribute("lang", normalizedLang);
@@ -95,6 +116,7 @@ function App() {
   }, [showChat, messages, conversationState, conversationHistory]);
 
   const startChatFromCover = () => {
+    if (loading) return;
     localStorage.setItem(FIRST_VISIT_KEY, "1");
     setShowChat(true);
     sendMessage("start");
@@ -128,15 +150,13 @@ function App() {
   const renderBotText = (msg) => {
     if (!msg) return "";
 
-    // Backward compatibility (if backend still sends response strings)
     if (typeof msg.content === "string" && msg.content.trim().length > 0) return msg.content;
 
-    // New Option-A keys
     if (msg.response_key) {
       const params =
         msg.response_params && typeof msg.response_params === "object" ? msg.response_params : {};
-
       const hydrated = { ...params };
+
       if (hydrated.topic && !hydrated.topicLabel) {
         hydrated.topicLabel = t(`triage.options.topic_${hydrated.topic}`);
       }
@@ -356,7 +376,11 @@ function App() {
             </div>
           </div>
 
-          <button className="btn btn-primary btn-large btn-start" onClick={startChatFromCover}>
+          <button
+            className="btn btn-primary btn-large btn-start"
+            onClick={startChatFromCover}
+            disabled={loading}
+          >
             {t("landing.begin")}
           </button>
 
@@ -545,7 +569,7 @@ function App() {
             <FaArrowLeft size={24} />
           </button>
 
-          <button onClick={handleRestart} className="btn btn-restart" title={t("chat.restartTitle")}>
+          <button onClick={handleRestart} className="btn btn-restart" title={t("chat.restartTitle")} disabled={loading}>
             <FaRedo size={24} />
           </button>
 

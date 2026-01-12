@@ -17,6 +17,7 @@ REFERRAL_MAP_PATH = os.path.join(DATA_DIR, "referral_map.json")
 
 app = FastAPI()
 
+# CORS must explicitly allow your GitHub Pages origin for browser requests. [web:166]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -83,7 +84,7 @@ def detect_crisis_keywords(message: str) -> bool:
         "emergency", "urgent", "help me",
         "violence", "violent", "attack"
     ]
-    message_lower = message.lower()
+    message_lower = (message or "").lower()
     return any(keyword in message_lower for keyword in crisis_keywords)
 
 
@@ -106,7 +107,6 @@ def get_step_progress(step: Optional[str]) -> dict:
         "resource_selected": {"current": 5, "total": 5, "label_key": "progress.resourcesReady"},
         "continue_check": {"current": 5, "total": 5, "label_key": "progress.resourcesReady"},
     }
-
     return steps_map.get(step, {"current": 1, "total": 5, "label_key": "progress.defaultLabel"})
 
 
@@ -120,7 +120,6 @@ class ChatResponse(BaseModel):
     response: str = ""
     response_key: Optional[str] = None
     response_params: dict = {}
-
     options: list = []
     referrals: list = []
     conversation_state: dict = {}
@@ -170,13 +169,9 @@ def read_root():
 def health_check():
     triage_exists = os.path.exists(TRIAGE_QUESTIONS_PATH)
     referral_exists = os.path.exists(REFERRAL_MAP_PATH)
-
     return {
         "status": "healthy",
-        "data_files": {
-            "triage_questions": triage_exists,
-            "referral_map": referral_exists,
-        },
+        "data_files": {"triage_questions": triage_exists, "referral_map": referral_exists},
         "features": {
             "triage_chatbot": True,
             "ai_assistant": groq_configured,
@@ -254,7 +249,7 @@ def chat_endpoint(request: ChatRequest):
                 conversation_state=state,
                 progress=get_step_progress(state.get("step")),
             )
-        elif message == "no":
+        if message == "no":
             state["emergency"] = "no"
             state["step"] = "court_status"
         elif message in ["i don't know", "unknown"]:
@@ -338,7 +333,7 @@ def chat_endpoint(request: ChatRequest):
             if emergency == "yes" or in_court:
                 level = 3
                 level_name = "direct legal assistance"
-            elif not in_court and income_eligible:
+            elif (not in_court) and income_eligible:
                 level = 2
                 level_name = "self-help legal information"
             else:
@@ -370,10 +365,7 @@ def chat_endpoint(request: ChatRequest):
 
             return ChatResponse(
                 response_key="triage.results.intro",
-                response_params={
-                    "levelName": level_name,
-                    "topic": topic,
-                },
+                response_params={"levelName": level_name, "topic": topic},
                 referrals=referrals,
                 options=["continue", "restart", "connect"],
                 conversation_state=final_state,
@@ -539,7 +531,6 @@ async def ai_chat_endpoint(request: AIChatRequest):
         )
 
         assistant_message = response.choices[0].message.content
-
         return AIChatResponse(
             response=assistant_message,
             usage={"model": "llama-3.3-70b-versatile", "provider": "groq"},
