@@ -80,6 +80,31 @@ const resources = {
         error:
           "I apologize, but I encountered an error. Please try asking your question again, or contact Chicago Advocate Legal at (312) 801-5918 for direct assistance.",
       },
+
+      emergency: {
+        button: "Emergency",
+        title: "Emergency Contacts",
+        warning: "If you are in immediate danger, call 911 now.",
+        safetyNoteTitle: "Safety note:",
+        safetyNoteText:
+          "If someone is monitoring your internet activity, consider calling instead of using online resources.",
+        quickExit: "Exit",
+        resources: {
+          emsName: "Emergency services (Police / Fire / Ambulance)",
+          emsDesc: "Call 911 for immediate, life-threatening emergencies.",
+          ndvName: "National Domestic Violence Hotline",
+          ndvDesc: "24/7 confidential support for domestic violence survivors.",
+          idvName: "Illinois Domestic Violence Hotline",
+          idvDesc: "Illinois-specific domestic violence resources and support.",
+          lifelineName: "988 Suicide & Crisis Lifeline",
+          lifelineDesc: "24/7 support for mental health or suicide crisis.",
+          dcfsName: "Illinois Child Abuse Hotline (DCFS)",
+          dcfsDesc: "Report suspected child abuse or neglect.",
+          rainnName: "RAINN National Sexual Assault Hotline",
+          rainnDesc: "Confidential support for sexual assault survivors.",
+        },
+      },
+
       triage: {
         options: {
           yes: "Yes",
@@ -90,7 +115,6 @@ const resources = {
           restart: "Restart",
           connect: "Connect with a Resource",
           continueToLegalResources: "Continue to Legal Resources",
-
           topic_child_support: "Child Support",
           topic_education: "Education",
           topic_housing: "Housing",
@@ -105,7 +129,7 @@ const resources = {
         },
         emergency: {
           crisisDetectedBody:
-            "🚨 CRISIS DETECTED\n\nIf you are in immediate danger, please call 911 now.\n\nYou can also contact:\n- National Domestic Violence Hotline: 1-800-799-7233\n- Illinois DV Hotline: 1-877-863-6338\n- 988 Suicide & Crisis Lifeline: 988\n- Illinois Child Abuse Hotline (DCFS): 1-800-252-2873\n\nClick the red EMERGENCY button for more resources.\n\nWould you like to continue?",
+            "🚨 CRISIS DETECTED\n\nIf you are in immediate danger, please call 911 now.\n\nYou can also contact:\n- National Domestic Violence Hotline: 1-800-799-7233\n- Illinois DV Hotline: 1-877-863-6338\n- 988 Suicide & Crisis Lifeline: 988\n- Illinois Child Abuse Hotline (DCFS): 1-800-252-2873\n\nClick the Emergency button for more resources.\n\nWould you like to continue?",
           invalid: "Please select an option.",
           policeNote:
             "🚨 If this is an emergency, call the police immediately at 911.\n\nAfter you have contacted the police, I can help you find legal resources for your situation.\n\nDo you currently have an open court case related to this issue?",
@@ -228,6 +252,31 @@ const resources = {
         error:
           "Lo siento, ocurrió un error. Intente preguntar de nuevo o contacte a Chicago Advocate Legal al (312) 801-5918 para obtener ayuda directa.",
       },
+
+      emergency: {
+        button: "Emergencia",
+        title: "Contactos de emergencia",
+        warning: "Si está en peligro inmediato, llame al 911 ahora.",
+        safetyNoteTitle: "Nota de seguridad:",
+        safetyNoteText:
+          "Si alguien está monitoreando su actividad en internet, considere llamar por teléfono en lugar de usar recursos en línea.",
+        quickExit: "Salir",
+        resources: {
+          emsName: "Servicios de emergencia (Policía / Bomberos / Ambulancia)",
+          emsDesc: "Llame al 911 para emergencias inmediatas y peligrosas.",
+          ndvName: "Línea Nacional contra la Violencia Doméstica",
+          ndvDesc: "Apoyo confidencial 24/7 para sobrevivientes de violencia doméstica.",
+          idvName: "Línea de Violencia Doméstica de Illinois",
+          idvDesc: "Recursos y apoyo específicos de Illinois.",
+          lifelineName: "Línea 988 de Crisis y Prevención del Suicidio",
+          lifelineDesc: "Apoyo 24/7 para crisis de salud mental o suicidio.",
+          dcfsName: "Línea de Abuso Infantil de Illinois (DCFS)",
+          dcfsDesc: "Reporte sospecha de abuso o negligencia infantil.",
+          rainnName: "Línea Nacional de Agresión Sexual (RAINN)",
+          rainnDesc: "Apoyo confidencial para sobrevivientes de agresión sexual.",
+        },
+      },
+
       triage: {
         options: {
           yes: "Sí",
@@ -238,7 +287,6 @@ const resources = {
           restart: "Reiniciar",
           connect: "Conectarme con un recurso",
           continueToLegalResources: "Continuar a recursos legales",
-
           topic_child_support: "Manutención infantil",
           topic_education: "Educación",
           topic_housing: "Vivienda",
@@ -253,7 +301,7 @@ const resources = {
         },
         emergency: {
           crisisDetectedBody:
-            "🚨 SE DETECTÓ UNA CRISIS\n\nSi está en peligro inmediato, llame al 911 ahora.\n\nTambién puede comunicarse con:\n- Línea nacional contra la violencia doméstica: 1-800-799-7233\n- Línea de violencia doméstica de Illinois: 1-877-863-6338\n- Línea 988 de crisis y prevención del suicidio: 988\n- Línea de abuso infantil de Illinois (DCFS): 1-800-252-2873\n\nHaga clic en el botón rojo de EMERGENCIA para más recursos.\n\n¿Desea continuar?",
+            "🚨 SE DETECTÓ UNA CRISIS\n\nSi está en peligro inmediato, llame al 911 ahora.\n\nTambién puede comunicarse con:\n- Línea nacional contra la violencia doméstica: 1-800-799-7233\n- Línea de violencia doméstica de Illinois: 1-877-863-6338\n- Línea 988 de crisis y prevención del suicidio: 988\n- Línea de abuso infantil de Illinois (DCFS): 1-800-252-2873\n\nHaga clic en el botón de Emergencia para más recursos.\n\n¿Desea continuar?",
           invalid: "Por favor seleccione una opción.",
           policeNote:
             "🚨 Si es una emergencia, llame a la policía inmediatamente al 911.\n\nDespués de llamar, puedo ayudarle a encontrar recursos legales.\n\n¿Actualmente tiene un caso abierto en la corte relacionado con este asunto?",
