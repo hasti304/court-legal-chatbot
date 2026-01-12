@@ -3,8 +3,8 @@ import { initReactI18next } from "react-i18next";
 
 const LANG_STORAGE_KEY = "cal_lang_v1";
 
-// Supported (BCP 47 primary language tags).
-const SUPPORTED = ["en", "es", "pl", "ar", "tl", "ru", "ko", "cmn", "yue"];
+// Only support English + Spanish.
+const SUPPORTED = ["en", "es"];
 
 const resources = {
   en: {
@@ -13,13 +13,6 @@ const resources = {
         label: "Language / Idioma",
         english: "English",
         spanish: "Spanish (Español)",
-        polish: "Polish (Polski)",
-        arabic: "Arabic (العربية)",
-        tagalog: "Tagalog (Tagalog)",
-        russian: "Russian (Русский)",
-        korean: "Korean (한국어)",
-        mandarin: "Mandarin (普通话)",
-        cantonese: "Cantonese (粵語)",
       },
       app: {
         title: "CAL Legal Information and Resources Chatbot",
@@ -97,23 +90,8 @@ const resources = {
         safetyNoteText:
           "If someone is monitoring your internet activity, consider calling instead of using online resources.",
         quickExit: "Quick Exit →",
-        resources: {
-          emsName: "Emergency Services (Police/Fire/Ambulance)",
-          emsDesc: "Immediate life-threatening emergency",
-          ndvName: "National Domestic Violence Hotline",
-          ndvDesc: "24/7 support for domestic violence survivors",
-          idvName: "Illinois Domestic Violence Hotline",
-          idvDesc: "Illinois-specific domestic violence resources",
-          lifelineName: "National Suicide Prevention Lifeline",
-          lifelineDesc: "24/7 mental health crisis support",
-          dcfsName: "Illinois Child Abuse Hotline (DCFS)",
-          dcfsDesc: "Report child abuse or neglect",
-          rainnName: "National Sexual Assault Hotline (RAINN)",
-          rainnDesc: "Confidential support for sexual assault survivors",
-        },
       },
 
-      // Option-A triage keys (English baseline)
       triage: {
         options: {
           yes: "Yes",
@@ -138,14 +116,11 @@ const resources = {
           selected: "You selected {{topicLabel}}. Is this an emergency?",
         },
         emergency: {
-          crisisDetectedTitle: "🚨 **CRISIS DETECTED**",
           crisisDetectedBody:
-            "If you are in immediate danger, please call 911 now. You can also contact the National Domestic Violence Hotline (1-800-799-7233) or the Illinois DV Hotline (1-877-863-6338). Click the red EMERGENCY button for more resources. Would you like to continue?",
-          prompt:
-            "Do you currently have an open court case related to this issue?",
+            "🚨 CRISIS DETECTED\n\nIf you are in immediate danger, please call 911 now.\n\nYou can also contact:\n- National Domestic Violence Hotline: 1-800-799-7233\n- Illinois DV Hotline: 1-877-863-6338\n- 988 Suicide & Crisis Lifeline: 988\n- Illinois Child Abuse Hotline (DCFS): 1-800-252-2873\n\nClick the red EMERGENCY button for more resources.\n\nWould you like to continue?",
           invalid: "Please select an option.",
           policeNote:
-            "🚨 If this is an emergency, call the police immediately at 911. After you have contacted the police, I can help you find legal resources for your situation.",
+            "🚨 If this is an emergency, call the police immediately at 911.\n\nAfter you have contacted the police, I can help you find legal resources for your situation.\n\nDo you currently have an open court case related to this issue?",
         },
         court: {
           prompt: "Do you currently have an open court case related to this issue?",
@@ -164,10 +139,7 @@ const resources = {
         results: {
           intro:
             "Based on your situation, here are {{levelName}} resources for {{topicLabel}} in Illinois:",
-          cookCountyNote:
-            "Since you're in Cook County, I'm including Chicago-specific legal aid organizations.",
-          connectTop:
-            "🎯 Here's your recommended contact for immediate assistance:",
+          connectTop: "🎯 Here's your recommended contact for immediate assistance:",
           connectFallback:
             "Please contact one of the organizations listed above for assistance with your legal issue.",
           completeButtonsHint:
@@ -198,13 +170,6 @@ const resources = {
         label: "Language / Idioma",
         english: "English",
         spanish: "Español",
-        polish: "Polski",
-        arabic: "العربية",
-        tagalog: "Tagalog",
-        russian: "Русский",
-        korean: "한국어",
-        mandarin: "Mandarin (普通话)",
-        cantonese: "Cantonese (粵語)",
       },
       app: {
         title: "Chatbot de Información y Recursos Legales de CAL",
@@ -283,23 +248,8 @@ const resources = {
         safetyNoteText:
           "Si alguien está monitoreando su actividad en internet, considere llamar por teléfono en lugar de usar recursos en línea.",
         quickExit: "Salida rápida →",
-        resources: {
-          emsName: "Servicios de emergencia (policía/bomberos/ambulancia)",
-          emsDesc: "Emergencia inmediata con riesgo de vida",
-          ndvName: "Línea nacional contra la violencia doméstica",
-          ndvDesc: "Apoyo 24/7 para sobrevivientes de violencia doméstica",
-          idvName: "Línea de violencia doméstica de Illinois",
-          idvDesc: "Recursos específicos de Illinois",
-          lifelineName: "Línea 988 de crisis y prevención del suicidio",
-          lifelineDesc: "Apoyo 24/7 para crisis de salud mental",
-          dcfsName: "Línea de abuso infantil de Illinois (DCFS)",
-          dcfsDesc: "Reportar abuso o negligencia infantil",
-          rainnName: "Línea nacional de agresión sexual (RAINN)",
-          rainnDesc: "Apoyo confidencial para sobrevivientes de agresión sexual",
-        },
       },
 
-      // Spanish triage (fill what you have; missing keys fall back to English)
       triage: {
         options: {
           yes: "Sí",
@@ -324,11 +274,11 @@ const resources = {
           selected: "Seleccionó {{topicLabel}}. ¿Es una emergencia?",
         },
         emergency: {
-          prompt:
-            "¿Actualmente tiene un caso abierto en la corte relacionado con este asunto?",
+          crisisDetectedBody:
+            "🚨 SE DETECTÓ UNA CRISIS\n\nSi está en peligro inmediato, llame al 911 ahora.\n\nTambién puede comunicarse con:\n- Línea nacional contra la violencia doméstica: 1-800-799-7233\n- Línea de violencia doméstica de Illinois: 1-877-863-6338\n- Línea 988 de crisis y prevención del suicidio: 988\n- Línea de abuso infantil de Illinois (DCFS): 1-800-252-2873\n\nHaga clic en el botón rojo de EMERGENCIA para más recursos.\n\n¿Desea continuar?",
           invalid: "Por favor seleccione una opción.",
           policeNote:
-            "🚨 Si es una emergencia, llame a la policía inmediatamente al 911. Después de llamar, puedo ayudarle a encontrar recursos legales.",
+            "🚨 Si es una emergencia, llame a la policía inmediatamente al 911.\n\nDespués de llamar, puedo ayudarle a encontrar recursos legales.\n\n¿Actualmente tiene un caso abierto en la corte relacionado con este asunto?",
         },
         court: {
           prompt:
@@ -345,6 +295,16 @@ const resources = {
             "Por favor indique su código postal (ZIP) de Illinois para encontrar recursos cerca de usted.",
           invalid: "Por favor indique un ZIP válido de 5 dígitos.",
         },
+        results: {
+          intro:
+            "Según su situación, aquí hay recursos de {{levelName}} para {{topicLabel}} en Illinois:",
+          connectTop:
+            "🎯 Aquí está su contacto recomendado para asistencia inmediata:",
+          connectFallback:
+            "Por favor contacte a una de las organizaciones mencionadas arriba para obtener ayuda.",
+          completeButtonsHint:
+            "Use los botones para continuar, reiniciar o conectarse con un recurso.",
+        },
         continueCheck: {
           prompt: "¿Quiere ayuda con otro asunto legal?",
           promptTopic: "¿Con qué asunto legal le gustaría ayuda?",
@@ -352,205 +312,17 @@ const resources = {
             "Gracias por usar Illinois Legal Triage. Si necesita ayuda en el futuro, regrese cuando quiera. ¡Cuídese!",
           invalid: "Por favor seleccione Sí o No.",
         },
-      },
-    },
-  },
-
-  // Mandarin (written)
-  cmn: {
-    translation: {
-      lang: {
-        label: "Language / Idioma",
-        english: "English",
-        spanish: "Español",
-        polish: "Polski",
-        arabic: "العربية",
-        tagalog: "Tagalog",
-        russian: "Русский",
-        korean: "한국어",
-        mandarin: "Mandarin (普通话)",
-        cantonese: "Cantonese (粵語)",
-      },
-      app: {
-        title: "CAL 法律信息与资源聊天机器人",
-        subtitle: "自助资源导航",
-        infoReferrals: "信息与转介",
-      },
-      landing: {
-        welcomeTitle: "欢迎来到法律资源门户",
-        tagline: "本聊天机器人为伊利诺伊州居民提供以下方面的法律信息与转介：",
-        begin: "开始咨询",
-        importantNoticeTitle: "⚖️ 重要法律声明",
-        infoOnly: "仅提供法律信息与资源，不构成法律建议。",
-        privacyTitle: "⚠️ 隐私提示：",
-        privacyText:
-          "本聊天机器人不具备隐私性。您提供的信息可能会被披露。请勿分享敏感个人信息。",
-        topics: {
-          childSupportTitle: "子女抚养费",
-          childSupportDesc: "关于监护与抚养的资源",
-          educationTitle: "教育",
-          educationDesc: "学校权利与特殊教育帮助",
-          housingTitle: "住房",
-          housingDesc: "租客权利与驱逐援助",
-          divorceTitle: "离婚",
-          divorceDesc: "离婚程序与相关指导",
-          custodyTitle: "监护权",
-          custodyDesc: "子女监护与探视时间",
+        continueToLegalResources: {
+          prompt:
+            "Entiendo. Continuemos buscando recursos legales para su situación. ¿Con qué asunto legal necesita ayuda?",
         },
-      },
-      chat: {
-        starting: "正在开始对话...",
-        placeholder: "在此输入消息...",
-        backTitle: "返回",
-        restartTitle: "重新开始",
-        sendTitle: "发送",
-        footerInfoOnly: "仅提供法律信息与资源，不构成法律建议。",
-        footerPrivacyTitle: "⚠️ 隐私提示：",
-        footerPrivacyText: "本聊天机器人不具备隐私性。您提供的信息可能会被披露。",
-        referralsTitle: "📋 推荐资源：",
-        aiButton: "有问题？询问 AI 法律助手",
-        aiHint: "关于表格、流程、期限和法院程序的说明",
-        serverDown: "⚠️ 无法连接服务器。请等待 60 秒后点击“重新开始”再试。",
-      },
-      progress: {
-        stepOf: "第 {{current}} 步（共 {{total}} 步）",
-        defaultLabel: "开始",
-      },
-      ai: {
-        back: "← 返回资源列表",
-        title: "伊利诺伊州法律信息助手",
-        disclaimer: "⚖️ 仅提供法律信息与资源，不构成法律建议",
-        privacy: "⚠️ 本聊天机器人不具备隐私性。您提供的信息可能会被披露。",
-        placeholder: "询问伊利诺伊州法院程序、表格或法律流程...",
-        send: "发送",
-        sending: "发送中...",
-        needHelp: "需要立即帮助？请联系：",
-        error: "抱歉，发生错误。请重试，或致电 Chicago Advocate Legal：(312) 801-5918。",
-      },
-      emergency: {
-        button: "紧急",
-        title: "🚨 紧急资源",
-        warning: "如有迫在眉睫的危险，请立即拨打 911。",
-        safetyNoteTitle: "安全提示：",
-        safetyNoteText: "如果有人在监控您的上网行为，请考虑改用电话联系。",
-        quickExit: "快速退出 →",
-        resources: {
-          emsName: "紧急服务（警察/消防/救护）",
-          emsDesc: "危及生命的紧急情况",
-          ndvName: "全国家庭暴力热线",
-          ndvDesc: "24/7 支持服务",
-          idvName: "伊利诺伊州家庭暴力热线",
-          idvDesc: "伊利诺伊州本地资源",
-          lifelineName: "988 自杀与危机热线",
-          lifelineDesc: "24/7 心理危机支持",
-          dcfsName: "伊利诺伊州儿童虐待热线（DCFS）",
-          dcfsDesc: "报告儿童虐待或忽视",
-          rainnName: "全国性侵热线（RAINN）",
-          rainnDesc: "保密支持服务",
+        fallback: {
+          prompt:
+            "No estoy seguro/a de haber entendido. Haga clic en uno de los botones, use Reiniciar para comenzar de nuevo, o escriba su ZIP si se lo pedí. ¿Cómo puedo ayudarle?",
         },
       },
     },
   },
-
-  // Cantonese (written)
-  yue: {
-    translation: {
-      lang: {
-        label: "Language / Idioma",
-        english: "English",
-        spanish: "Español",
-        polish: "Polski",
-        arabic: "العربية",
-        tagalog: "Tagalog",
-        russian: "Русский",
-        korean: "한국어",
-        mandarin: "Mandarin (普通话)",
-        cantonese: "Cantonese (粵語)",
-      },
-      app: {
-        title: "CAL 法律資訊與資源聊天機械人",
-        subtitle: "自助資源導航",
-        infoReferrals: "資訊與轉介",
-      },
-      landing: {
-        welcomeTitle: "歡迎使用法律資源入口",
-        tagline: "本聊天機械人為伊利諾伊州居民提供以下範疇嘅法律資訊與轉介：",
-        begin: "開始查詢",
-        importantNoticeTitle: "⚖️ 重要法律聲明",
-        infoOnly: "只提供法律資訊與資源，唔構成法律意見。",
-        privacyTitle: "⚠️ 私隱提示：",
-        privacyText:
-          "本聊天機械人並非私密。你提供嘅資料有機會被披露。請勿分享敏感個人資料。",
-        topics: {
-          childSupportTitle: "子女撫養費",
-          childSupportDesc: "關於監護與撫養嘅資源",
-          educationTitle: "教育",
-          educationDesc: "學校權利同特殊教育支援",
-          housingTitle: "住房",
-          housingDesc: "租客權利同驅逐援助",
-          divorceTitle: "離婚",
-          divorceDesc: "離婚程序同相關指引",
-          custodyTitle: "監護權",
-          custodyDesc: "子女監護同探視時間",
-        },
-      },
-      chat: {
-        starting: "正在開始對話...",
-        placeholder: "喺度輸入訊息...",
-        backTitle: "返回",
-        restartTitle: "重新開始",
-        sendTitle: "送出",
-        footerInfoOnly: "只提供法律資訊與資源，唔構成法律意見。",
-        footerPrivacyTitle: "⚠️ 私隱提示：",
-        footerPrivacyText:
-          "本聊天機械人並非私密。你提供嘅資料有機會被披露。",
-        referralsTitle: "📋 推薦資源：",
-        aiButton: "有問題？問 AI 法律助手",
-        aiHint: "講解表格、程序、期限同法院流程",
-        serverDown: "⚠️ 連唔到伺服器。請等 60 秒後按「重新開始」再試。",
-      },
-      progress: {
-        stepOf: "第 {{current}} 步（共 {{total}} 步）",
-        defaultLabel: "開始",
-      },
-      ai: {
-        back: "← 返回資源",
-        title: "伊利諾伊州法律資訊助手",
-        disclaimer: "⚖️ 只提供法律資訊與資源，唔構成法律意見",
-        privacy: "⚠️ 本聊天機械人並非私密。你提供嘅資料有機會被披露。",
-        placeholder: "查詢伊利諾伊州法院程序、表格或法律流程...",
-        send: "送出",
-        sending: "送出中...",
-        needHelp: "需要即時協助？請聯絡：",
-        error:
-          "對唔住，發生錯誤。請再試，或致電 Chicago Advocate Legal：(312) 801-5918。",
-      },
-      emergency: {
-        button: "緊急",
-        title: "🚨 緊急資源",
-        warning: "如有即時危險，請即刻打 911。",
-        safetyNoteTitle: "安全提示：",
-        safetyNoteText: "如果有人監控你嘅上網活動，建議改用電話聯絡。",
-        quickExit: "快速離開 →",
-        resources: {
-          emsName: "緊急服務（警察/消防/救護）",
-          emsDesc: "危及生命嘅緊急情況",
-          ndvName: "全國家庭暴力熱線",
-          ndvDesc: "24/7 支援服務",
-          idvName: "伊利諾伊州家庭暴力熱線",
-          idvDesc: "伊利諾伊州本地資源",
-          lifelineName: "988 自殺與危機熱線",
-          lifelineDesc: "24/7 心理危機支援",
-          dcfsName: "伊利諾伊州兒童虐待熱線（DCFS）",
-          dcfsDesc: "舉報兒童虐待或疏忽",
-          rainnName: "全國性侵熱線（RAINN）",
-          rainnDesc: "保密支援服務",
-        },
-      },
-    },
-  },
-
-  // NOTE: Other languages not provided -> fallback to English automatically.
 };
 
 function normalizeToSupported(lng) {
@@ -560,9 +332,6 @@ function normalizeToSupported(lng) {
   for (const code of SUPPORTED) {
     if (lower === code || lower.startsWith(code + "-")) return code;
   }
-
-  const base = lower.split("-")[0];
-  if (SUPPORTED.includes(base)) return base;
 
   return "en";
 }

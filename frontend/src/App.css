@@ -788,3 +788,4 @@ html, body, #root {
     padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   }
 }
+

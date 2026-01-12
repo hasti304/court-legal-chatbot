@@ -15,8 +15,6 @@ const AIChat = ({ topic, onBack }) => {
     },
   ]);
 
-  // If the user changes language, keep the initial assistant line aligned
-  // when the conversation is still just the first message.
   useEffect(() => {
     if (messages.length === 1 && messages[0]?.role === "assistant") {
       setMessages([{ role: "assistant", content: t("ai.placeholder") }]);

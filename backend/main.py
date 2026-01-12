@@ -47,7 +47,7 @@ except Exception as e:
     groq_configured = False
 
 
-SUPPORTED_LANGS = {"en", "es", "pl", "ar", "tl", "ru", "ko", "cmn", "yue"}
+SUPPORTED_LANGS = {"en", "es"}
 
 
 def normalize_language(lang: Optional[str]) -> str:
@@ -94,10 +94,6 @@ def normalize_step(step: Optional[str]) -> str:
 
 
 def get_step_progress(step: Optional[str]) -> dict:
-    """
-    Backend-provided progress metadata.
-    Use label_key so frontend can translate labels.
-    """
     step = normalize_step(step)
 
     steps_map = {
@@ -121,9 +117,7 @@ class ChatRequest(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    # Backward compat fields:
     response: str = ""
-    # New Option-A fields:
     response_key: Optional[str] = None
     response_params: dict = {}
 
@@ -147,31 +141,9 @@ class AIChatResponse(BaseModel):
 ILLINOIS_SYSTEM_PROMPT = """Role & Purpose:
 You are a careful legal information assistant for self-represented litigants (SRLs) in Illinois courts. You help people understand Illinois court procedures, forms, and options in plain language. You provide general legal information, not legal advice, and you do not represent the user.
 
-Tone & Style:
-- Target an 8th- to 10th-grade reading level
-- Be neutral, empathetic, supportive, and respectful
-- Avoid legal jargon; when you must use a legal term, define it immediately in simple language
-- Structure information into clear steps, checklists, and examples
-
 Mandatory Disclaimer:
 At the start of every new conversation, state clearly:
 "I am not a lawyer. I can help you understand Illinois court procedures and forms, but I cannot give legal advice or tell you what you should do in your particular case."
-
-Provide a reminder whenever a user pushes for advice or strategy (e.g., "Remember, I'm not a lawyer and can't give you legal advice").
-
-Jurisdiction Scope:
-You are trained only for Illinois state court information. If the user's case is not in Illinois:
-1. Ask: "Is your case in Illinois state court?"
-2. If no: Explain that you are designed only for Illinois information. Suggest they consult local court resources or a lawyer in their state.
-
-Sources & Citations:
-When referencing any rule, form, deadline, requirement, or fee, prefer official Illinois sources:
-- Illinois Courts website (illinoiscourts.gov)
-- Cook County Circuit Court (cookcountyclerkofcourt.org)
-- Illinois Legal Aid Online (illinoislegalaid.org)
-- Chicago Bar Association resources
-
-Cite source references at the end of the paragraph they support.
 
 Final Rule:
 When in doubt, provide educational information only—not legal advice.
@@ -180,24 +152,8 @@ When in doubt, provide educational information only—not legal advice.
 
 def language_instruction(lang: str) -> str:
     l = (lang or "en").strip().lower()
-
     if l.startswith("es"):
         return "IMPORTANT: Respond ONLY in Spanish. Do NOT use English."
-    if l.startswith("pl"):
-        return "IMPORTANT: Respond ONLY in Polish. Do NOT use English."
-    if l.startswith("ar"):
-        return "IMPORTANT: Respond ONLY in Arabic. Do NOT use English."
-    if l.startswith("tl"):
-        return "IMPORTANT: Respond ONLY in Tagalog. Do NOT use English."
-    if l.startswith("ru"):
-        return "IMPORTANT: Respond ONLY in Russian. Do NOT use English."
-    if l.startswith("ko"):
-        return "IMPORTANT: Respond ONLY in Korean. Do NOT use English."
-    if l.startswith("cmn"):
-        return "IMPORTANT: Respond ONLY in Mandarin Chinese. Do NOT use English."
-    if l.startswith("yue"):
-        return "IMPORTANT: Respond ONLY in Cantonese. Do NOT use English."
-
     return "IMPORTANT: Respond ONLY in English."
 
 
@@ -227,15 +183,7 @@ def health_check():
             "crisis_detection": True,
             "progress_tracking": True,
         },
-        "paths": {
-            "base_dir": BASE_DIR,
-            "data_dir": DATA_DIR,
-        },
     }
-
-
-def topic_label_key(topic_code: str) -> str:
-    return f"triage.options.topic_{topic_code}"
 
 
 @app.post("/chat", response_model=ChatResponse)
@@ -246,7 +194,6 @@ def chat_endpoint(request: ChatRequest):
     state = request.conversation_state or {}
     _lang = normalize_language(request.language)
 
-    # Crisis detection (only after topic selection)
     if detect_crisis_keywords(message) and state.get("step") not in ["topic_selection", None]:
         return ChatResponse(
             response_key="triage.emergency.crisisDetectedBody",
@@ -256,7 +203,6 @@ def chat_endpoint(request: ChatRequest):
             progress=get_step_progress(state.get("step")),
         )
 
-    # Start / restart
     if not state or message in ["start", "restart", "begin", "start over"]:
         new_state = {"step": "topic_selection"}
         return ChatResponse(
@@ -267,7 +213,6 @@ def chat_endpoint(request: ChatRequest):
             progress=get_step_progress(new_state.get("step")),
         )
 
-    # Topic selection
     if state.get("step") == "topic_selection":
         topics = {
             "child support": "child_support",
@@ -298,7 +243,6 @@ def chat_endpoint(request: ChatRequest):
             progress=get_step_progress(state.get("step")),
         )
 
-    # Emergency check
     if state.get("step") == "emergency_check":
         if message == "yes":
             state["emergency"] = "yes"
@@ -333,7 +277,6 @@ def chat_endpoint(request: ChatRequest):
             progress=get_step_progress(state.get("step")),
         )
 
-    # Court status
     if state.get("step") == "court_status":
         if message == "yes":
             state["in_court"] = True
@@ -358,7 +301,6 @@ def chat_endpoint(request: ChatRequest):
             progress=get_step_progress(state.get("step")),
         )
 
-    # Income check
     if state.get("step") == "income_check":
         if message in ["yes", "not_sure"]:
             state["income_eligible"] = True
@@ -384,7 +326,6 @@ def chat_endpoint(request: ChatRequest):
             progress=get_step_progress(state.get("step")),
         )
 
-    # ZIP
     if state.get("step") == "get_zip":
         if message.isdigit() and len(message) == 5:
             state["zip_code"] = message
@@ -407,7 +348,6 @@ def chat_endpoint(request: ChatRequest):
             state["level"] = level
             referrals = referral_map.get(topic, {}).get(f"level_{level}", [])
 
-            # Existing filtering behavior kept
             if not income_eligible:
                 referrals = [
                     ref for ref in referrals
@@ -420,16 +360,6 @@ def chat_endpoint(request: ChatRequest):
                     if "Chicago Advocate Legal, NFP" in ref.get("name", ""):
                         ref["is_nfp"] = True
 
-            cook_county_zips = [
-                "60601", "60602", "60603", "60604", "60605", "60606", "60607", "60608", "60609", "60610",
-                "60611", "60612", "60613", "60614", "60615", "60616", "60617", "60618", "60619", "60620",
-                "60621", "60622", "60623", "60624", "60625", "60626", "60628", "60629", "60630", "60631",
-                "60632", "60633", "60634", "60636", "60637", "60638", "60639", "60640", "60641", "60642",
-                "60643", "60644", "60645", "60646", "60647", "60649", "60651", "60652", "60653", "60654",
-                "60655", "60656", "60657", "60659", "60660", "60661", "60706", "60707", "60803", "60804",
-                "60805", "60827"
-            ]
-
             final_state = {
                 "step": "complete",
                 "topic": topic,
@@ -438,26 +368,12 @@ def chat_endpoint(request: ChatRequest):
                 "income": state.get("income", "yes"),
             }
 
-            # Build the intro with keys/params
-            response_key = "triage.results.intro"
-            response_params = {
-                "levelName": level_name,
-                "topic": topic,
-            }
-
-            # If cook county note applies, add it as a second bot message pattern is not supported,
-            # so we append to params-free fallback by using label in same response as plain response string for now.
-            # Keep it simple: frontend will show translated intro, and this extra note will be English until translated if needed.
-            extra_note = ""
-            if level == 3 and message in cook_county_zips:
-                extra_note = "\n\n"  # keep separation
-                # Send this as legacy "response" so UI still shows it even if translation key missing.
-                # If you want this translated too, add another key and return two messages (future improvement).
-
             return ChatResponse(
-                response=extra_note,
-                response_key=response_key,
-                response_params=response_params,
+                response_key="triage.results.intro",
+                response_params={
+                    "levelName": level_name,
+                    "topic": topic,
+                },
                 referrals=referrals,
                 options=["continue", "restart", "connect"],
                 conversation_state=final_state,
@@ -472,7 +388,6 @@ def chat_endpoint(request: ChatRequest):
             progress=get_step_progress(state.get("step")),
         )
 
-    # Complete
     if state.get("step") == "complete":
         if message == "continue":
             new_state = {"step": "continue_check"}
@@ -504,26 +419,7 @@ def chat_endpoint(request: ChatRequest):
                     if "Chicago Advocate Legal, NFP" in ref.get("name", ""):
                         ref["is_nfp"] = True
 
-            cook_county_zips = [
-                "60601", "60602", "60603", "60604", "60605", "60606", "60607", "60608", "60609", "60610",
-                "60611", "60612", "60613", "60614", "60615", "60616", "60617", "60618", "60619", "60620",
-                "60621", "60622", "60623", "60624", "60625", "60626", "60628", "60629", "60630", "60631",
-                "60632", "60633", "60634", "60636", "60637", "60638", "60639", "60640", "60641", "60642",
-                "60643", "60644", "60645", "60646", "60647", "60649", "60651", "60652", "60653", "60654",
-                "60655", "60656", "60657", "60659", "60660", "60661", "60706", "60707", "60803", "60804",
-                "60805", "60827"
-            ]
-
-            top_resource = None
-            if zip_code in cook_county_zips:
-                for ref in referrals:
-                    if "Chicago Advocate Legal, NFP" in ref.get("name", ""):
-                        top_resource = ref
-                        break
-
-            if not top_resource and referrals:
-                top_resource = referrals[0]
-
+            top_resource = referrals[0] if referrals else None
             if top_resource:
                 selected_state = {
                     "step": "resource_selected",
@@ -566,7 +462,6 @@ def chat_endpoint(request: ChatRequest):
             progress=get_step_progress(state.get("step")),
         )
 
-    # Continue check
     if state.get("step") == "continue_check":
         if message == "yes":
             new_state = {"step": "topic_selection"}
@@ -606,7 +501,6 @@ def chat_endpoint(request: ChatRequest):
             progress=get_step_progress(new_state.get("step")),
         )
 
-    # Fallback
     return ChatResponse(
         response_key="triage.fallback.prompt",
         response_params={},

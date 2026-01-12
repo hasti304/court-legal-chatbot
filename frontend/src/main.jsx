@@ -1,28 +1,33 @@
-import { StrictMode, Suspense, lazy } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
+import { StrictMode, Suspense, lazy } from "react";
+import { createRoot } from "react-dom/client";
+import "./index.css";
+import "./i18n";
 
-// Lazy load App component to reduce initial bundle size
-const App = lazy(() => import('./App.jsx'))
+const App = lazy(() => import("./App.jsx"));
 
 const LoadingFallback = () => (
-  <div style={{
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: '100vh',
-    fontSize: '18px',
-    color: '#fff',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-  }}>
-    Loading...
+  <div
+    style={{
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      height: "100vh",
+      fontSize: "14px",
+      color: "#334155",
+      background: "#f6f8fb",
+    }}
+  >
+    Loading…
   </div>
-)
+);
 
-createRoot(document.getElementById('root')).render(
+const container = document.getElementById("root");
+const root = createRoot(container);
+
+root.render(
   <StrictMode>
     <Suspense fallback={<LoadingFallback />}>
       <App />
     </Suspense>
-  </StrictMode>,
-)
+  </StrictMode>
+);

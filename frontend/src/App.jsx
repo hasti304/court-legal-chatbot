@@ -39,15 +39,13 @@ function App() {
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
-  // Apply lang + dir globally at the <html> element.
-  useEffect(() => {
-    const lng = getNormalizedLanguage();
-    const isArabic = lng === "ar";
-    document.documentElement.setAttribute("dir", isArabic ? "rtl" : "ltr");
-    document.documentElement.setAttribute("lang", lng);
-  }, [i18n.language, i18n.resolvedLanguage]);
-
   const normalizedLang = getNormalizedLanguage();
+
+  // EN/ES are both LTR; still set <html lang="..."> globally.
+  useEffect(() => {
+    document.documentElement.setAttribute("dir", "ltr");
+    document.documentElement.setAttribute("lang", normalizedLang);
+  }, [i18n.language, i18n.resolvedLanguage, normalizedLang]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -108,12 +106,10 @@ function App() {
   };
 
   const optionLabel = (optionCode) => {
-    // Topic codes
     if (["child_support", "education", "housing", "divorce", "custody"].includes(optionCode)) {
       return t(`triage.options.topic_${optionCode}`);
     }
 
-    // Standard triage options
     const map = {
       yes: "triage.options.yes",
       no: "triage.options.no",
@@ -131,18 +127,20 @@ function App() {
 
   const renderBotText = (msg) => {
     if (!msg) return "";
+
+    // Backward compatibility (if backend still sends response strings)
     if (typeof msg.content === "string" && msg.content.trim().length > 0) return msg.content;
 
+    // New Option-A keys
     if (msg.response_key) {
-      const params = msg.response_params && typeof msg.response_params === "object" ? msg.response_params : {};
-      // Ensure we can translate topicLabel interpolation if backend provides topic code
+      const params =
+        msg.response_params && typeof msg.response_params === "object" ? msg.response_params : {};
+
       const hydrated = { ...params };
       if (hydrated.topic && !hydrated.topicLabel) {
         hydrated.topicLabel = t(`triage.options.topic_${hydrated.topic}`);
       }
-      if (hydrated.topicLabelKey && !hydrated.topicLabel) {
-        hydrated.topicLabel = t(hydrated.topicLabelKey);
-      }
+
       return t(msg.response_key, hydrated);
     }
 
@@ -177,7 +175,7 @@ function App() {
 
       const botMessage = {
         role: "bot",
-        content: data.response || "", // kept for backward compatibility (if backend still sends response)
+        content: data.response || "",
         response_key: data.response_key,
         response_params: data.response_params,
         options: data.options || [],
@@ -285,13 +283,6 @@ function App() {
         >
           <option value="en">{t("lang.english")}</option>
           <option value="es">{t("lang.spanish")}</option>
-          <option value="pl">{t("lang.polish")}</option>
-          <option value="ar">{t("lang.arabic")}</option>
-          <option value="tl">{t("lang.tagalog")}</option>
-          <option value="ru">{t("lang.russian")}</option>
-          <option value="ko">{t("lang.korean")}</option>
-          <option value="cmn">{t("lang.mandarin")}</option>
-          <option value="yue">{t("lang.cantonese")}</option>
         </select>
       </div>
     );
