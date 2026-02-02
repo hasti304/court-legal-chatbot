@@ -21,3 +21,8 @@ Thumbs.db
 logs/
 *.log
 
+
+# local exports
+backend/intakes.csv
+*.csv
+

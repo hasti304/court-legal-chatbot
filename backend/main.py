@@ -1,11 +1,19 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import json
 import os
+import io
+import csv
+import re
 from typing import List, Dict, Optional
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 from groq import Groq
+
+from sqlalchemy import create_engine, text
+from sqlalchemy.exc import SQLAlchemyError
 
 load_dotenv()
 
@@ -17,7 +25,7 @@ REFERRAL_MAP_PATH = os.path.join(DATA_DIR, "referral_map.json")
 
 app = FastAPI()
 
-# CORS must explicitly allow your GitHub Pages origin for browser requests. [web:166]
+# CORS must explicitly allow your GitHub Pages origin for browser requests.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -34,6 +42,7 @@ app.add_middleware(
     max_age=3600,
 )
 
+# --- Groq client ---
 try:
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
@@ -47,9 +56,7 @@ except Exception as e:
     print(f"Warning: Groq client initialization failed: {e}")
     groq_configured = False
 
-
 SUPPORTED_LANGS = {"en", "es"}
-
 
 def normalize_language(lang: Optional[str]) -> str:
     if not lang:
@@ -62,7 +69,6 @@ def normalize_language(lang: Optional[str]) -> str:
         return base
     return "en"
 
-
 def load_json_file(file_path: str):
     try:
         with open(file_path, "r", encoding="utf-8") as f:
@@ -71,7 +77,6 @@ def load_json_file(file_path: str):
         raise HTTPException(status_code=500, detail=f"Data file not found: {file_path}")
     except json.JSONDecodeError:
         raise HTTPException(status_code=500, detail=f"Invalid JSON in file: {file_path}")
-
 
 def detect_crisis_keywords(message: str) -> bool:
     crisis_keywords = [
@@ -87,16 +92,13 @@ def detect_crisis_keywords(message: str) -> bool:
     message_lower = (message or "").lower()
     return any(keyword in message_lower for keyword in crisis_keywords)
 
-
 def normalize_step(step: Optional[str]) -> str:
     if not step:
         return "topic_selection"
     return step
 
-
 def get_step_progress(step: Optional[str]) -> dict:
     step = normalize_step(step)
-
     steps_map = {
         "topic_selection": {"current": 1, "total": 5, "label_key": "progress.selectTopic"},
         "emergency_check": {"current": 2, "total": 5, "label_key": "progress.emergencyCheck"},
@@ -110,11 +112,75 @@ def get_step_progress(step: Optional[str]) -> dict:
     return steps_map.get(step, {"current": 1, "total": 5, "label_key": "progress.defaultLabel"})
 
 
+# -------------------------
+# Postgres (Render) storage
+# -------------------------
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+ADMIN_EXPORT_KEY = os.getenv("ADMIN_EXPORT_KEY", "").strip()
+
+engine = None
+if DATABASE_URL:
+    try:
+        engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+    except Exception as e:
+        print(f"Warning: failed to create DB engine: {e}")
+        engine = None
+
+def utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+def ensure_tables():
+    if not engine:
+        return
+    create_intakes = """
+    CREATE TABLE IF NOT EXISTS intakes (
+      id TEXT PRIMARY KEY,
+      first_name TEXT NOT NULL,
+      last_name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      zip TEXT NOT NULL,
+      language TEXT NOT NULL DEFAULT 'en',
+      consent BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TEXT NOT NULL
+    );
+    """
+    create_events = """
+    CREATE TABLE IF NOT EXISTS intake_events (
+      id TEXT PRIMARY KEY,
+      intake_id TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      event_value TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (intake_id) REFERENCES intakes(id)
+    );
+    """
+    try:
+        with engine.begin() as conn:
+            conn.execute(text(create_intakes))
+            conn.execute(text(create_events))
+    except SQLAlchemyError as e:
+        print(f"Warning: ensure_tables failed: {e}")
+
+ensure_tables()
+
+def normalize_us_phone(phone: str) -> str:
+    digits = re.sub(r"[^0-9]", "", phone or "")
+    if len(digits) == 11 and digits.startswith("1"):
+        digits = digits[1:]
+    if len(digits) != 10:
+        raise HTTPException(status_code=400, detail="Invalid phone number. Use a 10-digit US phone number.")
+    return digits
+
+
+# -------------
+# API Schemas
+# -------------
 class ChatRequest(BaseModel):
     message: str
     conversation_state: dict = {}
     language: Optional[str] = "en"
-
+    intake_id: Optional[str] = None
 
 class ChatResponse(BaseModel):
     response: str = ""
@@ -125,12 +191,27 @@ class ChatResponse(BaseModel):
     conversation_state: dict = {}
     progress: dict = {}
 
+class IntakeStartRequest(BaseModel):
+    first_name: str
+    last_name: str
+    email: str
+    phone: str
+    zip: str
+    language: Optional[str] = "en"
+    consent: bool
+
+class IntakeStartResponse(BaseModel):
+    intake_id: str
+
+class IntakeEventRequest(BaseModel):
+    intake_id: str
+    event_type: str
+    event_value: Optional[str] = None
 
 class AIChatRequest(BaseModel):
     messages: List[Dict[str, str]]
     topic: str = None
     language: str = "en"
-
 
 class AIChatResponse(BaseModel):
     response: str
@@ -148,7 +229,6 @@ Final Rule:
 When in doubt, provide educational information only—not legal advice.
 """
 
-
 def language_instruction(lang: str) -> str:
     l = (lang or "en").strip().lower()
     if l.startswith("es"):
@@ -161,9 +241,8 @@ def read_root():
     return {
         "message": "Illinois Legal Triage Chatbot API",
         "status": "active",
-        "endpoints": ["/health", "/chat", "/ai-chat"],
+        "endpoints": ["/health", "/chat", "/ai-chat", "/intake/start", "/intake/event", "/admin/intakes.csv"],
     }
-
 
 @app.get("/health")
 def health_check():
@@ -177,10 +256,159 @@ def health_check():
             "ai_assistant": groq_configured,
             "crisis_detection": True,
             "progress_tracking": True,
+            "intake_storage": bool(engine),
         },
     }
 
 
+# -----------------
+# Intake endpoints
+# -----------------
+@app.post("/intake/start", response_model=IntakeStartResponse)
+def intake_start(req: IntakeStartRequest):
+    if not engine:
+        raise HTTPException(status_code=503, detail="Database not configured")
+
+    if not req.consent:
+        raise HTTPException(status_code=400, detail="Consent is required")
+
+    if not (req.first_name or "").strip():
+        raise HTTPException(status_code=400, detail="First name is required")
+    if not (req.last_name or "").strip():
+        raise HTTPException(status_code=400, detail="Last name is required")
+    if not (req.email or "").strip() or "@" not in req.email:
+        raise HTTPException(status_code=400, detail="Valid email is required")
+    if not (req.zip or "").strip() or not req.zip.strip().isdigit() or len(req.zip.strip()) != 5:
+        raise HTTPException(status_code=400, detail="Valid 5-digit ZIP is required")
+
+    phone_digits = normalize_us_phone(req.phone)
+
+    intake_id = os.urandom(16).hex()
+    lang = normalize_language(req.language)
+
+    try:
+        ensure_tables()
+        with engine.begin() as conn:
+            conn.execute(
+                text("""
+                INSERT INTO intakes (id, first_name, last_name, email, phone, zip, language, consent, created_at)
+                VALUES (:id, :first_name, :last_name, :email, :phone, :zip, :language, :consent, :created_at)
+                """),
+                {
+                    "id": intake_id,
+                    "first_name": req.first_name.strip(),
+                    "last_name": req.last_name.strip(),
+                    "email": req.email.strip().lower(),
+                    "phone": phone_digits,
+                    "zip": req.zip.strip(),
+                    "language": lang,
+                    "consent": True,
+                    "created_at": utc_now_iso(),
+                },
+            )
+        return IntakeStartResponse(intake_id=intake_id)
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@app.post("/intake/event")
+def intake_event(req: IntakeEventRequest):
+    if not engine:
+        raise HTTPException(status_code=503, detail="Database not configured")
+
+    if not req.intake_id or not req.event_type:
+        raise HTTPException(status_code=400, detail="Missing intake_id or event_type")
+
+    event_id = os.urandom(16).hex()
+
+    try:
+        ensure_tables()
+        with engine.begin() as conn:
+            conn.execute(
+                text("""
+                INSERT INTO intake_events (id, intake_id, event_type, event_value, created_at)
+                VALUES (:id, :intake_id, :event_type, :event_value, :created_at)
+                """),
+                {
+                    "id": event_id,
+                    "intake_id": req.intake_id,
+                    "event_type": req.event_type.strip(),
+                    "event_value": (req.event_value or "").strip(),
+                    "created_at": utc_now_iso(),
+                },
+            )
+        return {"status": "ok"}
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+# -----------------
+# Admin CSV export
+# -----------------
+@app.get("/admin/intakes.csv")
+def export_intakes_csv(request: Request):
+    if not engine:
+        raise HTTPException(status_code=503, detail="Database not configured")
+    if not ADMIN_EXPORT_KEY:
+        raise HTTPException(status_code=500, detail="ADMIN_EXPORT_KEY not configured")
+
+    provided = request.headers.get("X-Admin-Key", "")
+    if provided != ADMIN_EXPORT_KEY:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    try:
+        ensure_tables()
+        with engine.begin() as conn:
+            rows = conn.execute(text("""
+                SELECT
+                  i.id,
+                  i.first_name,
+                  i.last_name,
+                  i.email,
+                  i.phone,
+                  i.zip,
+                  i.language,
+                  i.consent,
+                  i.created_at,
+                  COALESCE((
+                    SELECT string_agg(e.event_value, '; ' ORDER BY e.created_at)
+                    FROM intake_events e
+                    WHERE e.intake_id = i.id AND e.event_type = 'topic_selected'
+                  ), '') AS topics_selected
+                FROM intakes i
+                ORDER BY i.created_at DESC
+            """)).fetchall()
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow([
+            "intake_id",
+            "first_name",
+            "last_name",
+            "email",
+            "phone_digits",
+            "zip",
+            "language",
+            "consent",
+            "created_at",
+            "topics_selected",
+        ])
+
+        for r in rows:
+            writer.writerow(list(r))
+
+        output.seek(0)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=intakes.csv"},
+        )
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+# -----------------
+# Chat endpoint (existing + topic logging)
+# -----------------
 @app.post("/chat", response_model=ChatResponse)
 def chat_endpoint(request: ChatRequest):
     referral_map = load_json_file(REFERRAL_MAP_PATH)
@@ -188,6 +416,28 @@ def chat_endpoint(request: ChatRequest):
     message = (request.message or "").lower().strip()
     state = request.conversation_state or {}
     _lang = normalize_language(request.language)
+
+    def log_topic(topic_code: str):
+        if not engine or not request.intake_id:
+            return
+        try:
+            ensure_tables()
+            with engine.begin() as conn:
+                conn.execute(
+                    text("""
+                    INSERT INTO intake_events (id, intake_id, event_type, event_value, created_at)
+                    VALUES (:id, :intake_id, :event_type, :event_value, :created_at)
+                    """),
+                    {
+                        "id": os.urandom(16).hex(),
+                        "intake_id": request.intake_id,
+                        "event_type": "topic_selected",
+                        "event_value": topic_code,
+                        "created_at": utc_now_iso(),
+                    },
+                )
+        except Exception:
+            pass
 
     if detect_crisis_keywords(message) and state.get("step") not in ["topic_selection", None]:
         return ChatResponse(
@@ -220,6 +470,7 @@ def chat_endpoint(request: ChatRequest):
         selected_topic = topics.get(message)
 
         if selected_topic:
+            log_topic(selected_topic)
             state["topic"] = selected_topic
             state["step"] = "emergency_check"
             return ChatResponse(
@@ -512,12 +763,7 @@ async def ai_chat_endpoint(request: AIChatRequest):
 
     try:
         lang = normalize_language(request.language)
-
-        system_prompt = (
-            ILLINOIS_SYSTEM_PROMPT
-            + "\n\nLANGUAGE REQUIREMENT:\n"
-            + language_instruction(lang)
-        )
+        system_prompt = ILLINOIS_SYSTEM_PROMPT + "\n\nLANGUAGE REQUIREMENT:\n" + language_instruction(lang)
 
         messages_for_groq = [{"role": "system", "content": system_prompt}]
         for msg in request.messages:
@@ -531,11 +777,7 @@ async def ai_chat_endpoint(request: AIChatRequest):
         )
 
         assistant_message = response.choices[0].message.content
-        return AIChatResponse(
-            response=assistant_message,
-            usage={"model": "llama-3.3-70b-versatile", "provider": "groq"},
-        )
-
+        return AIChatResponse(response=assistant_message, usage={"model": "llama-3.3-70b-versatile", "provider": "groq"})
     except Exception as e:
         print(f"Error in AI chat endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
