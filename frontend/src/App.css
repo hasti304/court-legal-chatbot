@@ -789,3 +789,11 @@ html, body, #root {
   }
 }
 
+/* Intake form tweaks */
+.landing-content form .chat-input {
+  width: 100%;
+}
+
+.landing-content form label input[type="checkbox"] {
+  transform: scale(1.15);
+}
