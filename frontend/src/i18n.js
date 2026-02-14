@@ -12,6 +12,37 @@ const resources = {
         english: "English",
         spanish: "Spanish (Español)",
       },
+      intake: {
+        title: "Before we begin",
+        subtitle:
+          "Please enter your information so we can connect you with the right resources.",
+        samePersonTitle: "Welcome back",
+        samePersonBody: "Is this the same person as last time on this device?",
+        samePerson: "I'm the same person",
+        newInquiry: "Login",
+        firstName: "First name",
+        lastName: "Last name",
+        email: "Email",
+        phone: "Phone number",
+        zip: "ZIP code",
+        consentText:
+          "We do not share your information with third parties except as required by law or to provide requested services.",
+        consentRequired: "You must agree to continue.",
+        submit: "Continue",
+        privacyLink: "Privacy Notice",
+        invalidEmail: "Please enter a valid email address.",
+        invalidZip: "Please enter a valid 5-digit ZIP code.",
+        invalidPhone: "Please enter a valid 10-digit US phone number.",
+        submitting: "Submitting…",
+        serverError:
+          "Sorry – we could not save your information. Please try again.",
+      },
+      privacy: {
+        title: "Privacy Notice",
+        body:
+          "We collect your name, email, phone number, ZIP code, and the issue area you select to help route you to appropriate resources. We do not share your information with third parties except as required by law or to provide requested services. You may request deletion of your data by contacting the organization listed in the app.",
+        back: "Back",
+      },
       app: {
         title: "CAL Legal Information and Resources Chatbot",
         subtitle: "Self-Help Resource Navigator",
@@ -52,7 +83,8 @@ const resources = {
           "This chatbot is not private. Any information you provide could be disclosed.",
         referralsTitle: "📋 Recommended Resources:",
         aiButton: "Have Questions? Ask the AI Legal Assistant",
-        aiHint: "Get answers about forms, procedures, deadlines, and court processes",
+        aiHint:
+          "Get answers about forms, procedures, deadlines, and court processes",
         serverDown:
           "⚠️ Unable to connect to the server. Please wait 60 seconds for the backend to wake up, then click 'Restart' to try again.",
       },
@@ -78,7 +110,7 @@ const resources = {
         sending: "Sending...",
         needHelp: "Need immediate help? Contact:",
         error:
-          "I apologize, but I encountered an error. Please try asking your question again, or contact Chicago Advocate Legal at (312) 801-5918 for direct assistance.",
+          "I apologize, but I encountered an error. Please try asking your question again, or contact Chicago Advocate Legal, NFP at (312) 801-5918 for direct assistance.",
       },
 
       emergency: {
@@ -110,10 +142,10 @@ const resources = {
           yes: "Yes",
           no: "No",
           unknown: "I don't know",
-          notSure: "Not sure",
+          notSure: "I don't know",
           continue: "Continue",
           restart: "Restart",
-          connect: "Connect with a Resource",
+          connect: "Connect with Chicago Advocate Legal, NFP",
           continueToLegalResources: "Continue to Legal Resources",
           topic_child_support: "Child Support",
           topic_education: "Education",
@@ -129,13 +161,14 @@ const resources = {
         },
         emergency: {
           crisisDetectedBody:
-            "🚨 CRISIS DETECTED\n\nIf you are in immediate danger, please call 911 now.\n\nYou can also contact:\n- National Domestic Violence Hotline: 1-800-799-7233\n- Illinois DV Hotline: 1-877-863-6338\n- 988 Suicide & Crisis Lifeline: 988\n- Illinois Child Abuse Hotline (DCFS): 1-800-252-2873\n\nClick the Emergency button for more resources.\n\nWould you like to continue?",
+            "🚨 CRISIS DETECTED\\n\\nIf you are in immediate danger, please call 911 now.\\n\\nYou can also contact:\\n- National Domestic Violence Hotline: 1-800-799-7233\\n- Illinois DV Hotline: 1-877-863-6338\\n- 988 Suicide & Crisis Lifeline: 988\\n- Illinois Child Abuse Hotline (DCFS): 1-800-252-2873\\n\\nClick the Emergency button for more resources.\\n\\nWould you like to continue?",
           invalid: "Please select an option.",
           policeNote:
-            "🚨 If this is an emergency, call the police immediately at 911.\n\nAfter you have contacted the police, I can help you find legal resources for your situation.\n\nDo you currently have an open court case related to this issue?",
+            "🚨 If this is an emergency, call the police immediately at 911.\\n\\nAfter you have contacted the police, I can help you find legal resources for your situation.\\n\\nDo you currently have an open court case related to this issue?",
         },
         court: {
-          prompt: "Do you currently have an open court case related to this issue?",
+          prompt:
+            "Do you currently have an open court case related to this issue?",
           invalid: "Please answer Yes or No.",
         },
         income: {
@@ -151,7 +184,8 @@ const resources = {
         results: {
           intro:
             "Based on your situation, here are {{levelName}} resources for {{topicLabel}} in Illinois:",
-          connectTop: "🎯 Here's your recommended contact for immediate assistance:",
+          connectTop:
+            "🎯 Here's your recommended contact for immediate assistance:",
           connectFallback:
             "Please contact one of the organizations listed above for assistance with your legal issue.",
           completeButtonsHint:
@@ -182,6 +216,37 @@ const resources = {
         label: "Language / Idioma",
         english: "English",
         spanish: "Español",
+      },
+      intake: {
+        title: "Antes de comenzar",
+        subtitle:
+          "Por favor ingrese su información para conectarle con los recursos adecuados.",
+        samePersonTitle: "Bienvenido/a de nuevo",
+        samePersonBody: "¿Es la misma persona que la última vez en este dispositivo?",
+        samePerson: "Soy la misma persona",
+        newInquiry: "Iniciar sesión",
+        firstName: "Nombre",
+        lastName: "Apellido",
+        email: "Correo electrónico",
+        phone: "Número de teléfono",
+        zip: "Código postal (ZIP)",
+        consentText:
+          "No compartimos su información con terceros excepto cuando la ley lo requiera o para brindar los servicios solicitados.",
+        consentRequired: "Debe aceptar para continuar.",
+        submit: "Continuar",
+        privacyLink: "Aviso de privacidad",
+        invalidEmail: "Por favor ingrese un correo electrónico válido.",
+        invalidZip: "Por favor ingrese un ZIP válido de 5 dígitos.",
+        invalidPhone: "Por favor ingrese un número de teléfono válido de 10 dígitos (EE. UU.).",
+        submitting: "Enviando…",
+        serverError:
+          "Lo siento – no pudimos guardar su información. Inténtelo de nuevo.",
+      },
+      privacy: {
+        title: "Aviso de privacidad",
+        body:
+          "Recopilamos su nombre, correo electrónico, número de teléfono, código postal (ZIP) y el tema legal seleccionado para ayudar a dirigirle a recursos adecuados. No compartimos su información con terceros excepto cuando la ley lo requiera o para brindar los servicios solicitados. Puede solicitar la eliminación de sus datos contactando a la organización indicada en la app.",
+        back: "Volver",
       },
       app: {
         title: "Chatbot de Información y Recursos Legales de CAL",
@@ -250,7 +315,7 @@ const resources = {
         sending: "Enviando...",
         needHelp: "¿Necesita ayuda inmediata? Contacte a:",
         error:
-          "Lo siento, ocurrió un error. Intente preguntar de nuevo o contacte a Chicago Advocate Legal al (312) 801-5918 para obtener ayuda directa.",
+          "Lo siento, ocurrió un error. Intente preguntar de nuevo o contacte a Chicago Advocate Legal, NFP al (312) 801-5918 para obtener ayuda directa.",
       },
 
       emergency: {
@@ -281,11 +346,11 @@ const resources = {
         options: {
           yes: "Sí",
           no: "No",
-          unknown: "No estoy seguro/a",
-          notSure: "No estoy seguro/a",
+          unknown: "No sé",
+          notSure: "No sé",
           continue: "Continuar",
           restart: "Reiniciar",
-          connect: "Conectarme con un recurso",
+          connect: "Conectarme con Chicago Advocate Legal, NFP",
           continueToLegalResources: "Continuar a recursos legales",
           topic_child_support: "Manutención infantil",
           topic_education: "Educación",
@@ -301,10 +366,10 @@ const resources = {
         },
         emergency: {
           crisisDetectedBody:
-            "🚨 SE DETECTÓ UNA CRISIS\n\nSi está en peligro inmediato, llame al 911 ahora.\n\nTambién puede comunicarse con:\n- Línea nacional contra la violencia doméstica: 1-800-799-7233\n- Línea de violencia doméstica de Illinois: 1-877-863-6338\n- Línea 988 de crisis y prevención del suicidio: 988\n- Línea de abuso infantil de Illinois (DCFS): 1-800-252-2873\n\nHaga clic en el botón de Emergencia para más recursos.\n\n¿Desea continuar?",
+            "🚨 SE DETECTÓ UNA CRISIS\\n\\nSi está en peligro inmediato, llame al 911 ahora.\\n\\nTambién puede comunicarse con:\\n- Línea nacional contra la violencia doméstica: 1-800-799-7233\\n- Línea de violencia doméstica de Illinois: 1-877-863-6338\\n- Línea 988 de crisis y prevención del suicidio: 988\\n- Línea de abuso infantil de Illinois (DCFS): 1-800-252-2873\\n\\nHaga clic en el botón de Emergencia para más recursos.\\n\\n¿Desea continuar?",
           invalid: "Por favor seleccione una opción.",
           policeNote:
-            "🚨 Si es una emergencia, llame a la policía inmediatamente al 911.\n\nDespués de llamar, puedo ayudarle a encontrar recursos legales.\n\n¿Actualmente tiene un caso abierto en la corte relacionado con este asunto?",
+            "🚨 Si es una emergencia, llame a la policía inmediatamente al 911.\\n\\nDespués de llamar, puedo ayudarle a encontrar recursos legales.\\n\\n¿Actualmente tiene un caso abierto en la corte relacionado con este asunto?",
         },
         court: {
           prompt:
