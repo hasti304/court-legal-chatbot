@@ -1,409 +1,372 @@
 {
   "child_support": {
-    "level_1": [
-      {
-        "name": "Illinois Courts - Child Support",
-        "url": "https://www.illinoiscourts.gov/resources/b1060ca9-8cd4-4e27-b8e5-1e0c6f5e4e4d",
-        "description": "General information about child support in Illinois",
-        "phone": "",
-        "intake_form": "",
-        "intake_instructions": ""
-      }
-    ],
-    "level_2": [
-      {
-        "name": "Illinois Legal Aid Online - Family Safety",
-        "url": "https://www.illinoislegalaid.org/legal-information/family-safety",
-        "description": "Self-help resources and forms for child support and family matters",
-        "phone": "",
-        "intake_form": "",
-        "intake_instructions": ""
-      }
-    ],
-    "level_3": [
+    "free": [
       {
         "name": "Chicago Advocate Legal, NFP",
-        "url": "https://www.chicagoadvocatelegal.com/",
-        "description": "Provides legal assistance for child support matters in Cook County. Office located at 211 W. Wacker Dr., Ste. 200B, Chicago, IL 60606.",
+        "description": "Provides free legal services to low-income Cook County residents in family law, housing, and other civil matters.",
+        "url": "https://www.chicagoadvocatelegal.com",
         "phone": "(312) 801-5918",
-        "intake_form": "https://www.chicagoadvocatelegal.com/contact.html",
-        "intake_instructions": "Visit their website and click on 'Intake Form' or 'Contact Us'. If the form doesn't load, please call their intake phone number."
+        "intake_form": "https://www.chicagoadvocatelegal.com/intake.html",
+        "is_nfp": true
       },
       {
-        "name": "Prairie State Legal Services",
-        "url": "https://www.pslegal.org/",
-        "description": "Free legal services for eligible low-income Illinois residents",
-        "phone": "",
+        "name": "Illinois Legal Aid Online",
+        "description": "Provides legal information, forms, and referrals for family law matters including child support.",
+        "url": "https://www.illinoislegalaid.org/legal-information/family-safety",
+        "phone": "(866) 452-5291",
         "intake_form": "",
-        "intake_instructions": "Visit their website to find intake information or call for assistance."
+        "is_nfp": false
       },
       {
         "name": "Legal Aid Chicago",
-        "url": "https://www.legalaidchicago.org/",
-        "description": "Free legal help for low-income Cook County residents",
-        "phone": "",
+        "description": "Free legal services for low-income Cook County residents in family law, housing, and consumer issues.",
+        "url": "https://www.legalaidchicago.org",
+        "phone": "(312) 341-1070",
         "intake_form": "",
-        "intake_instructions": "Visit their website to apply online or find contact information for intake."
+        "is_nfp": false
+      },
+      {
+        "name": "Greater Chicago Legal Clinic",
+        "description": "Provides free legal services in immigration, housing, and family law for low-income individuals.",
+        "url": "https://www.gclclaw.org",
+        "phone": "(312) 726-2938",
+        "intake_form": "",
+        "is_nfp": false
       },
       {
         "name": "CARPLS (Coordinated Advice & Referral Program for Legal Services)",
-        "url": "https://www.carpls.org/",
-        "description": "Provides advice and referrals to legal services in Cook County. Office located at 17 N. State St., Ste. 1850, Chicago, IL 60602.",
+        "description": "Free legal advice hotline providing legal information, strategy, referrals, and document help for family law, housing, and other civil legal issues.",
+        "url": "https://carpls.org",
         "phone": "(312) 738-9200",
         "intake_form": "",
-        "intake_instructions": "Call their hotline for legal issue intake. The website contact form is for general inquiries only, not legal intake."
-      },
+        "is_nfp": false
+      }
+    ],
+    "paid": [
       {
         "name": "Justice Entrepreneurs Project",
-        "url": "https://jepchicago.org/",
-        "description": "Connects clients with affordable legal services from solo practitioners and small firms. Office located at 211 W. Wacker Dr., Ste. 200B, Chicago, IL 60606.",
+        "description": "Network of independent attorneys offering accessible, affordable legal services with predictable pricing across family law, housing, immigration, and more.",
+        "url": "https://jepchicago.org",
         "phone": "(312) 546-3282",
-        "intake_form": "https://jepchicago.org/intake-form/",
-        "intake_instructions": "Complete their online intake form to connect with a lawyer for review of your case."
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "Illinois State Bar Association Lawyer Finder",
+        "description": "Search tool to find private attorneys in Illinois by practice area and location.",
+        "url": "https://www.isba.org/public/lawyerfinder",
+        "phone": "(217) 525-1760",
+        "intake_form": "",
+        "is_nfp": false
       }
     ]
   },
+
   "education": {
-    "level_1": [
+    "free": [
       {
-        "name": "Illinois State Board of Education",
-        "url": "https://www.isbe.net/",
-        "description": "General education information and resources",
-        "phone": "",
-        "intake_form": "",
-        "intake_instructions": ""
+        "name": "Chicago Advocate Legal, NFP",
+        "description": "Provides free legal services to low-income Cook County residents in family law, housing, and other civil matters.",
+        "url": "https://www.chicagoadvocatelegal.com",
+        "phone": "(312) 801-5918",
+        "intake_form": "https://www.chicagoadvocatelegal.com/intake.html",
+        "is_nfp": true
       },
-      {
-        "name": "Illinois Legal Aid Online - School and Education",
-        "url": "https://www.illinoislegalaid.org/legal-information/school-education",
-        "description": "Online resources, presentations, and self-help information for school and education issues",
-        "phone": "",
-        "intake_form": "",
-        "intake_instructions": ""
-      },
-      {
-        "name": "Legal Advocacy Resources PDF",
-        "url": "/Legal-Advocacy-Resources.pdf",
-        "description": "Download comprehensive education law help guide with contact information for all Illinois education legal resources",
-        "phone": "",
-        "intake_form": "",
-        "intake_instructions": ""
-      }
-    ],
-    "level_2": [
-      {
-        "name": "Illinois Legal Aid Online - School and Education",
-        "url": "https://www.illinoislegalaid.org/legal-information/school-education",
-        "description": "Online resources, presentations, and self-help information for school and education issues",
-        "phone": "",
-        "intake_form": "",
-        "intake_instructions": ""
-      },
-      {
-        "name": "Legal Advocacy Resources PDF",
-        "url": "/Legal-Advocacy-Resources.pdf",
-        "description": "Download comprehensive education law help guide with contact information for all Illinois education legal resources",
-        "phone": "",
-        "intake_form": "",
-        "intake_instructions": ""
-      }
-    ],
-    "level_3": [
       {
         "name": "Equip for Equality",
-        "url": "https://www.equipforequality.org/",
-        "description": "Legal aid for special education, restraint and seclusion, discrimination/ADA rights. Multiple office locations across Illinois.",
-        "phone": "(312) 341-0022 or (800) 537-2632 | Special Education Helpline: 1-866-KIDS-046",
-        "intake_form": "https://www.equipforequality.org/issues/special-education/",
-        "intake_instructions": "Call their Special Education Helpline at 1-866-KIDS-046 (1-866-543-7046) or main office. Also serves Central Illinois (217) 544-0464 and Southern Illinois (618) 457-7930."
+        "description": "Illinois Protection & Advocacy for people with disabilities. Specializes in special education, restraint and seclusion, and ADA/discrimination rights.",
+        "url": "https://www.equipforequality.org",
+        "phone": "(312) 341-0022",
+        "intake_form": "",
+        "special_education_helpline": "(866) 543-7046",
+        "is_nfp": false
+      },
+      {
+        "name": "Legal Aid Chicago",
+        "description": "Free legal services for low-income Cook County residents including school discipline and special education matters.",
+        "url": "https://www.legalaidchicago.org",
+        "phone": "(312) 341-1070",
+        "intake_form": "",
+        "is_nfp": false
       },
       {
         "name": "Chicago Lawyers' Committee for Civil Rights",
-        "url": "https://www.clccrul.org/",
-        "description": "Provides legal assistance for education equity issues including school discipline and civil rights matters.",
+        "description": "Provides free legal representation for education equity issues including discipline and discrimination.",
+        "url": "https://www.clccrul.org/education-equity",
         "phone": "(312) 630-9744",
-        "intake_form": "https://www.clccrul.org/education-equity",
-        "intake_instructions": "Visit their Education Equity page or call for assistance with discipline and education civil rights issues."
-      },
-      {
-        "name": "Legal Aid Chicago",
-        "url": "https://www.legalaidchicago.org/",
-        "description": "Free legal help for discipline, special education, and other education issues for Cook County residents.",
-        "phone": "(312) 341-1070",
         "intake_form": "",
-        "intake_instructions": "Call their office for intake or visit their website to apply for services."
-      },
-      {
-        "name": "Stand Up For Each Other (SUFEO)",
-        "url": "https://www.luc.edu/law/studentlife/organizations/sufeostandupforeachother/",
-        "description": "Provides assistance with discipline, special education, bullying, and other student rights issues.",
-        "phone": "(773) 800-0338",
-        "intake_form": "",
-        "intake_instructions": "Contact by phone or visit their Facebook page at https://www.facebook.com/SUFEOChicago/"
+        "is_nfp": false
       },
       {
         "name": "Land of Lincoln Legal Aid",
-        "url": "https://lincolnlegal.org/",
-        "description": "Provides legal help for discipline, special education, and disabilities-related education issues across Illinois.",
-        "phone": "(618) 394-7300 or (877) 342-7891",
-        "intake_form": "https://lincolnlegal.org/education-law/",
-        "intake_instructions": "Call their Education Law Legal Advice and Referral Center or visit their Education Law page."
+        "description": "Free legal services for discipline, special education, disabilities, and other education law matters across Illinois.",
+        "url": "https://lincolnlegal.org/education-law",
+        "phone": "(877) 342-7891",
+        "intake_form": "",
+        "is_nfp": false
       },
       {
-        "name": "Moran Center for Youth Advocacy",
-        "url": "https://moran-center.org/",
-        "description": "Education Advocacy Program for students in Evanston/Skokie or Rogers Park neighborhood schools. Handles discipline, special education, and bullying cases.",
-        "phone": "(847) 492-1410",
-        "intake_form": "https://moran-center.org/education-advocacy-program/",
-        "intake_instructions": "Note: Education Advocacy Program serves students who attend schools in Evanston/Skokie or Rogers Park neighborhood of Chicago."
+        "name": "Stand Up For Each Other (SUFEO)",
+        "description": "Free legal help for students facing discipline, special education issues, and bullying in Chicago-area schools.",
+        "url": "https://www.luc.edu/law/studentlife/organizations/sufeostandupforeachother",
+        "phone": "(773) 800-0338",
+        "intake_form": "",
+        "is_nfp": false
       },
       {
         "name": "Illinois Guardianship and Advocacy Commission (IGAC)",
-        "url": "https://gac.illinois.gov/",
-        "description": "Legal advocacy for disabilities and special education issues through their Legal Advocacy Service and Special Education Initiative.",
-        "phone": "1 (866) 274-8023 | TTY: 1 (866) 333-3362 | Afterhours: 1 (866) 503-9078",
-        "intake_form": "https://gac.illinois.gov/sped.html",
-        "intake_instructions": "Contact their statewide general information line or visit their Special Education Initiative page."
+        "description": "Legal advocacy for individuals with disabilities including special education representation.",
+        "url": "https://gac.illinois.gov/sped.html",
+        "phone": "(866) 274-8023",
+        "intake_form": "",
+        "is_nfp": false
       },
       {
         "name": "Legal Council for Health Justice",
-        "url": "https://legalcouncil.org/",
-        "description": "Provides assistance with special education and early intervention matters.",
+        "description": "Provides legal services for special education and early intervention assistance related to health needs.",
+        "url": "https://legalcouncil.org",
         "phone": "(312) 427-8990",
         "intake_form": "",
-        "intake_instructions": "Call their office for intake information."
+        "is_nfp": false
       },
       {
-        "name": "Chicago Coalition to End Homelessness",
-        "url": "https://www.chicagohomeless.org/",
-        "description": "Provides legal representation for youth experiencing homelessness and educational rights issues. Law Project available.",
-        "phone": "(312) 641-4140 | Law Project: (800) 940-1119",
-        "intake_form": "https://chicagohomeless.org/our-work/educational-rights/",
-        "intake_instructions": "Call the Law Project at (800) 940-1119 for legal assistance or visit their Educational Rights page."
-      },
-      {
-        "name": "Cabrini Green Legal Aid",
-        "url": "https://www.cgla.net/",
-        "description": "Provides legal assistance for criminal issues related to students.",
-        "phone": "(312) 738-2452",
+        "name": "Moran Center for Youth Advocacy",
+        "description": "Education advocacy for students in Evanston/Skokie and Rogers Park (Chicago) schools. Handles discipline, special education, and bullying.",
+        "url": "https://moran-center.org/education-advocacy-program",
+        "phone": "(847) 492-1410",
         "intake_form": "",
-        "intake_instructions": "Call their office for intake."
+        "is_nfp": false
       },
       {
-        "name": "Chicago Advocate Legal, NFP",
-        "url": "https://www.chicagoadvocatelegal.com/",
-        "description": "Legal assistance for education matters in Cook County. Office located at 211 W. Wacker Dr., Ste. 200B, Chicago, IL 60606.",
-        "phone": "(312) 801-5918",
-        "intake_form": "https://www.chicagoadvocatelegal.com/contact.html",
-        "intake_instructions": "Visit their website and click on 'Intake Form' or 'Contact Us'. If the form doesn't load, please call their intake phone number."
-      },
-      {
-        "name": "Greater Chicago Legal Clinic",
-        "url": "https://www.gclclaw.org/",
-        "description": "Provides legal services including education law assistance. Office located at 17 N. State St., Ste. 1710, Chicago, IL 60602. 24-hour intake voicemail available.",
-        "phone": "(312) 726-2938",
-        "intake_form": "https://www.gclclaw.org/how-can-i-get-help",
-        "intake_instructions": "Visit 'How Can I Get Help' page on their website to apply online via Illinois Legal Aid Online for eligible case types, or call their 24-hour intake line."
-      },
-      {
-        "name": "Legal Advocacy Resources PDF",
-        "url": "/Legal-Advocacy-Resources.pdf",
-        "description": "Download comprehensive guide with complete contact information for all Illinois education legal resources",
-        "phone": "",
+        "name": "Illinois Legal Aid Online - School and Education",
+        "description": "Online resources, presentations, and legal information for education rights in Illinois.",
+        "url": "https://www.illinoislegalaid.org/legal-information/school-education",
+        "phone": "(866) 452-5291",
         "intake_form": "",
-        "intake_instructions": ""
-      }
-    ]
-  },
-  "housing": {
-    "level_1": [
-      {
-        "name": "Illinois Housing Development Authority",
-        "url": "https://www.ihda.org/",
-        "description": "General housing information and resources",
-        "phone": "",
-        "intake_form": "",
-        "intake_instructions": ""
+        "is_nfp": false
       }
     ],
-    "level_2": [
-      {
-        "name": "Illinois Legal Aid Online - Housing",
-        "url": "https://www.illinoislegalaid.org/legal-information/housing",
-        "description": "Self-help resources for housing issues",
-        "phone": "",
-        "intake_form": "",
-        "intake_instructions": ""
-      }
-    ],
-    "level_3": [
-      {
-        "name": "Chicago Advocate Legal, NFP",
-        "url": "https://www.chicagoadvocatelegal.com/",
-        "description": "Legal assistance for housing matters in Cook County. Office located at 211 W. Wacker Dr., Ste. 200B, Chicago, IL 60606.",
-        "phone": "(312) 801-5918",
-        "intake_form": "https://www.chicagoadvocatelegal.com/contact.html",
-        "intake_instructions": "Visit their website and click on 'Intake Form' or 'Contact Us'. If the form doesn't load, please call their intake phone number."
-      },
-      {
-        "name": "Greater Chicago Legal Clinic",
-        "url": "https://www.gclclaw.org/",
-        "description": "Provides legal services for housing issues including eviction defense. Office located at 17 N. State St., Ste. 1710, Chicago, IL 60602. 24-hour intake voicemail available.",
-        "phone": "(312) 726-2938",
-        "intake_form": "https://www.gclclaw.org/how-can-i-get-help",
-        "intake_instructions": "Visit 'How Can I Get Help' page on their website to apply online via Illinois Legal Aid Online for eligible case types, or call their 24-hour intake line."
-      },
-      {
-        "name": "Prairie State Legal Services",
-        "url": "https://www.pslegal.org/",
-        "description": "Free legal services for housing issues",
-        "phone": "",
-        "intake_form": "",
-        "intake_instructions": "Visit their website to find intake information or call for assistance."
-      },
-      {
-        "name": "Legal Aid Chicago",
-        "url": "https://www.legalaidchicago.org/",
-        "description": "Free legal help for housing problems in Cook County",
-        "phone": "",
-        "intake_form": "",
-        "intake_instructions": "Visit their website to apply online or find contact information for intake."
-      },
-      {
-        "name": "CARPLS (Coordinated Advice & Referral Program for Legal Services)",
-        "url": "https://www.carpls.org/",
-        "description": "Provides advice and referrals for housing legal services in Cook County. Office located at 17 N. State St., Ste. 1850, Chicago, IL 60602.",
-        "phone": "(312) 738-9200",
-        "intake_form": "",
-        "intake_instructions": "Call their hotline for legal issue intake. The website contact form is for general inquiries only, not legal intake."
-      }
-    ]
-  },
-  "divorce": {
-    "level_1": [
-      {
-        "name": "Illinois Courts - Divorce Information",
-        "url": "https://www.illinoiscourts.gov/",
-        "description": "General information about divorce proceedings in Illinois",
-        "phone": "",
-        "intake_form": "",
-        "intake_instructions": ""
-      }
-    ],
-    "level_2": [
-      {
-        "name": "Illinois Legal Aid Online - Divorce",
-        "url": "https://www.illinoislegalaid.org/legal-information/divorce",
-        "description": "Self-help resources and forms for divorce",
-        "phone": "",
-        "intake_form": "",
-        "intake_instructions": ""
-      }
-    ],
-    "level_3": [
-      {
-        "name": "Chicago Advocate Legal, NFP",
-        "url": "https://www.chicagoadvocatelegal.com/",
-        "description": "Legal assistance for divorce matters in Cook County. Office located at 211 W. Wacker Dr., Ste. 200B, Chicago, IL 60606.",
-        "phone": "(312) 801-5918",
-        "intake_form": "https://www.chicagoadvocatelegal.com/contact.html",
-        "intake_instructions": "Visit their website and click on 'Intake Form' or 'Contact Us'. If the form doesn't load, please call their intake phone number."
-      },
-      {
-        "name": "Greater Chicago Legal Clinic",
-        "url": "https://www.gclclaw.org/",
-        "description": "Provides legal services for divorce and family law matters. Office located at 17 N. State St., Ste. 1710, Chicago, IL 60602. 24-hour intake voicemail available.",
-        "phone": "(312) 726-2938",
-        "intake_form": "https://www.gclclaw.org/how-can-i-get-help",
-        "intake_instructions": "Visit 'How Can I Get Help' page on their website to apply online via Illinois Legal Aid Online for eligible case types, or call their 24-hour intake line."
-      },
-      {
-        "name": "Prairie State Legal Services",
-        "url": "https://www.pslegal.org/",
-        "description": "Free legal services for divorce matters",
-        "phone": "",
-        "intake_form": "",
-        "intake_instructions": "Visit their website to find intake information or call for assistance."
-      },
-      {
-        "name": "Legal Aid Chicago",
-        "url": "https://www.legalaidchicago.org/",
-        "description": "Free legal help for divorce in Cook County",
-        "phone": "",
-        "intake_form": "",
-        "intake_instructions": "Visit their website to apply online or find contact information for intake."
-      },
+    "paid": [
       {
         "name": "Justice Entrepreneurs Project",
-        "url": "https://jepchicago.org/",
-        "description": "Connects clients with affordable divorce attorneys. Office located at 211 W. Wacker Dr., Ste. 200B, Chicago, IL 60606.",
+        "description": "Network of independent attorneys offering accessible, affordable legal services with predictable pricing in education law and other areas.",
+        "url": "https://jepchicago.org",
         "phone": "(312) 546-3282",
-        "intake_form": "https://jepchicago.org/intake-form/",
-        "intake_instructions": "Complete their online intake form to connect with a lawyer for review of your case."
+        "intake_form": "",
+        "is_nfp": false
       }
     ]
   },
-  "custody": {
-    "level_1": [
-      {
-        "name": "Illinois Courts - Child Custody Information",
-        "url": "https://www.illinoiscourts.gov/",
-        "description": "General information about child custody in Illinois",
-        "phone": "",
-        "intake_form": "",
-        "intake_instructions": ""
-      }
-    ],
-    "level_2": [
-      {
-        "name": "Illinois Legal Aid Online - Custody",
-        "url": "https://www.illinoislegalaid.org/legal-information/child-custody",
-        "description": "Self-help resources and forms for custody matters",
-        "phone": "",
-        "intake_form": "",
-        "intake_instructions": ""
-      }
-    ],
-    "level_3": [
+
+  "housing": {
+    "free": [
       {
         "name": "Chicago Advocate Legal, NFP",
-        "url": "https://www.chicagoadvocatelegal.com/",
-        "description": "Legal assistance for custody matters in Cook County. Office located at 211 W. Wacker Dr., Ste. 200B, Chicago, IL 60606.",
+        "description": "Provides free legal services to low-income Cook County residents in housing, family law, and other civil matters.",
+        "url": "https://www.chicagoadvocatelegal.com",
         "phone": "(312) 801-5918",
-        "intake_form": "https://www.chicagoadvocatelegal.com/contact.html",
-        "intake_instructions": "Visit their website and click on 'Intake Form' or 'Contact Us'. If the form doesn't load, please call their intake phone number."
+        "intake_form": "https://www.chicagoadvocatelegal.com/intake.html",
+        "is_nfp": true
+      },
+      {
+        "name": "LAW Center for Better Housing",
+        "description": "Free legal services for renters facing eviction, unsafe housing, discrimination, utility shutoffs, and security deposit disputes. Also operates Rentervention tenant support platform.",
+        "url": "https://lcbh.org/get-legal-help",
+        "phone": "(312) 347-7600",
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "Cook County Legal Aid for Housing and Debt (CCLAHD)",
+        "description": "Free legal aid hotline for eviction defense, foreclosure, small debt disputes, and rental assistance referrals.",
+        "url": "https://www.cookcountyil.gov/service/cook-county-legal-aid-housing-and-debt-cclahd",
+        "phone": "(855) 956-5763",
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "Metropolitan Tenants Organization",
+        "description": "Tenant advocacy and support with rights education, organizing, hotline referrals, and tools for housing disputes.",
+        "url": "https://www.44thward.org/services/housing-resources",
+        "phone": "(773) 292-4988",
+        "intake_form": "",
+        "is_nfp": false
       },
       {
         "name": "Greater Chicago Legal Clinic",
-        "url": "https://www.gclclaw.org/",
-        "description": "Provides legal services for child custody cases. Office located at 17 N. State St., Ste. 1710, Chicago, IL 60602. 24-hour intake voicemail available.",
+        "description": "Provides free legal services in immigration, housing, and family law for low-income individuals.",
+        "url": "https://www.gclclaw.org",
         "phone": "(312) 726-2938",
-        "intake_form": "https://www.gclclaw.org/how-can-i-get-help",
-        "intake_instructions": "Visit 'How Can I Get Help' page on their website to apply online via Illinois Legal Aid Online for eligible case types, or call their 24-hour intake line."
-      },
-      {
-        "name": "Prairie State Legal Services",
-        "url": "https://www.pslegal.org/",
-        "description": "Free legal services for custody matters",
-        "phone": "",
         "intake_form": "",
-        "intake_instructions": "Visit their website to find intake information or call for assistance."
+        "is_nfp": false
       },
       {
         "name": "Legal Aid Chicago",
-        "url": "https://www.legalaidchicago.org/",
-        "description": "Free legal help for custody issues in Cook County",
-        "phone": "",
+        "description": "Free legal services for low-income Cook County residents in housing, family law, and consumer issues.",
+        "url": "https://www.legalaidchicago.org",
+        "phone": "(312) 341-1070",
         "intake_form": "",
-        "intake_instructions": "Visit their website to apply online or find contact information for intake."
+        "is_nfp": false
       },
       {
         "name": "CARPLS (Coordinated Advice & Referral Program for Legal Services)",
-        "url": "https://www.carpls.org/",
-        "description": "Provides advice and referrals for custody legal services. Office located at 17 N. State St., Ste. 1850, Chicago, IL 60602.",
+        "description": "Free legal advice hotline providing legal information, strategy, referrals, and document help for housing and other civil legal issues.",
+        "url": "https://carpls.org",
         "phone": "(312) 738-9200",
         "intake_form": "",
-        "intake_instructions": "Call their hotline for legal issue intake. The website contact form is for general inquiries only, not legal intake."
+        "is_nfp": false
+      },
+      {
+        "name": "Court-Based Rental Assistance Programs (CBRAP)",
+        "description": "Emergency rental assistance (past-due rent, future rent, and court costs) for tenants in eviction court in Illinois.",
+        "url": "https://www.illinoishousinghelp.org/cbrap",
+        "phone": "(866) 454-3571",
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "Illinois Legal Aid Online - Housing",
+        "description": "Legal information, renters rights education, forms, eviction guides, and referrals to legal aid.",
+        "url": "https://www.illinoislegalaid.org/legal-information/housing",
+        "phone": "(866) 452-5291",
+        "intake_form": "",
+        "is_nfp": false
+      }
+    ],
+    "paid": [
+      {
+        "name": "Justice Entrepreneurs Project",
+        "description": "Network of independent attorneys offering accessible, affordable legal services with predictable pricing in housing law and other areas.",
+        "url": "https://jepchicago.org",
+        "phone": "(312) 546-3282",
+        "intake_form": "",
+        "is_nfp": false
+      }
+    ]
+  },
+
+  "divorce": {
+    "free": [
+      {
+        "name": "Chicago Advocate Legal, NFP",
+        "description": "Provides free legal services to low-income Cook County residents in family law including divorce proceedings.",
+        "url": "https://www.chicagoadvocatelegal.com",
+        "phone": "(312) 801-5918",
+        "intake_form": "https://www.chicagoadvocatelegal.com/intake.html",
+        "is_nfp": true
+      },
+      {
+        "name": "Legal Aid Chicago",
+        "description": "Free legal services for low-income Cook County residents in family law including divorce matters.",
+        "url": "https://www.legalaidchicago.org",
+        "phone": "(312) 341-1070",
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "Greater Chicago Legal Clinic",
+        "description": "Provides free legal services in immigration, housing, and family law including divorce.",
+        "url": "https://www.gclclaw.org",
+        "phone": "(312) 726-2938",
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "CARPLS (Coordinated Advice & Referral Program for Legal Services)",
+        "description": "Free legal advice hotline providing legal information, strategy, referrals, and document help for divorce and family law matters.",
+        "url": "https://carpls.org",
+        "phone": "(312) 738-9200",
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "Illinois Legal Aid Online - Family Law",
+        "description": "Provides legal information, forms, and referrals for divorce and family law matters.",
+        "url": "https://www.illinoislegalaid.org/legal-information/family-safety",
+        "phone": "(866) 452-5291",
+        "intake_form": "",
+        "is_nfp": false
+      }
+    ],
+    "paid": [
+      {
+        "name": "Justice Entrepreneurs Project",
+        "description": "Network of independent attorneys offering accessible, affordable legal services with predictable pricing in divorce and family law.",
+        "url": "https://jepchicago.org",
+        "phone": "(312) 546-3282",
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "Illinois State Bar Association Lawyer Finder",
+        "description": "Search tool to find private attorneys in Illinois by practice area and location.",
+        "url": "https://www.isba.org/public/lawyerfinder",
+        "phone": "(217) 525-1760",
+        "intake_form": "",
+        "is_nfp": false
+      }
+    ]
+  },
+
+  "custody": {
+    "free": [
+      {
+        "name": "Chicago Advocate Legal, NFP",
+        "description": "Provides free legal services to low-income Cook County residents in family law including child custody matters.",
+        "url": "https://www.chicagoadvocatelegal.com",
+        "phone": "(312) 801-5918",
+        "intake_form": "https://www.chicagoadvocatelegal.com/intake.html",
+        "is_nfp": true
+      },
+      {
+        "name": "Legal Aid Chicago",
+        "description": "Free legal services for low-income Cook County residents in family law including custody disputes.",
+        "url": "https://www.legalaidchicago.org",
+        "phone": "(312) 341-1070",
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "Greater Chicago Legal Clinic",
+        "description": "Provides free legal services in immigration, housing, and family law including child custody.",
+        "url": "https://www.gclclaw.org",
+        "phone": "(312) 726-2938",
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "CARPLS (Coordinated Advice & Referral Program for Legal Services)",
+        "description": "Free legal advice hotline providing legal information, strategy, referrals, and document help for custody and family law matters.",
+        "url": "https://carpls.org",
+        "phone": "(312) 738-9200",
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "Illinois Legal Aid Online - Family Law",
+        "description": "Provides legal information, forms, and referrals for child custody and family law matters.",
+        "url": "https://www.illinoislegalaid.org/legal-information/family-safety",
+        "phone": "(866) 452-5291",
+        "intake_form": "",
+        "is_nfp": false
+      }
+    ],
+    "paid": [
+      {
+        "name": "Justice Entrepreneurs Project",
+        "description": "Network of independent attorneys offering accessible, affordable legal services with predictable pricing in custody and family law.",
+        "url": "https://jepchicago.org",
+        "phone": "(312) 546-3282",
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "Illinois State Bar Association Lawyer Finder",
+        "description": "Search tool to find private attorneys in Illinois by practice area and location.",
+        "url": "https://www.isba.org/public/lawyerfinder",
+        "phone": "(217) 525-1760",
+        "intake_form": "",
+        "is_nfp": false
       }
     ]
   }
