@@ -12,6 +12,7 @@ const resources = {
         english: "English",
         spanish: "Spanish (Español)",
       },
+
       intake: {
         title: "Before we begin",
         subtitle:
@@ -19,7 +20,7 @@ const resources = {
         samePersonTitle: "Welcome back",
         samePersonBody: "Is this the same person as last time on this device?",
         samePerson: "I'm the same person",
-        newInquiry: "Login",
+        newInquiry: "Create Login",
         firstName: "First name",
         lastName: "Last name",
         email: "Email",
@@ -37,22 +38,25 @@ const resources = {
         serverError:
           "Sorry – we could not save your information. Please try again.",
       },
+
       privacy: {
         title: "Privacy Notice",
         body:
           "We collect your name, email, phone number, ZIP code, and the issue area you select to help route you to appropriate resources. We do not share your information with third parties except as required by law or to provide requested services. You may request deletion of your data by contacting the organization listed in the app.",
         back: "Back",
       },
+
       app: {
         title: "CAL Legal Information and Resources Chatbot",
         subtitle: "Self-Help Resource Navigator",
         infoReferrals: "Information & Referrals",
       },
+
       landing: {
         welcomeTitle: "Welcome to the Legal Resource Portal",
         tagline:
           "This chatbot connects Illinois residents with legal information and referrals for:",
-        begin: "Begin Case Inquiry",
+        begin: "Begin",
         importantNoticeTitle: "⚖️ Important Legal Notice",
         infoOnly: "Legal information and resources only, not legal advice.",
         privacyTitle: "⚠️ Privacy Notice:",
@@ -71,6 +75,7 @@ const resources = {
           custodyDesc: "Child custody and parenting time",
         },
       },
+
       chat: {
         starting: "Starting conversation...",
         placeholder: "Type your message here...",
@@ -86,8 +91,9 @@ const resources = {
         aiHint:
           "Get answers about forms, procedures, deadlines, and court processes",
         serverDown:
-          "⚠️ Unable to connect to the server. Please wait 60 seconds for the backend to wake up, then click 'Restart' to try again.",
+          "⚠️ Unable to connect to the server. Please wait a moment for the backend to wake up, then click 'Restart' to try again.",
       },
+
       progress: {
         stepOf: "Step {{current}} of {{total}}",
         defaultLabel: "Getting Started",
@@ -98,6 +104,7 @@ const resources = {
         yourLocation: "Your Location",
         resourcesReady: "Resources Ready",
       },
+
       ai: {
         back: "← Back to Resources",
         title: "Illinois Legal Information Assistant",
@@ -153,12 +160,14 @@ const resources = {
           topic_divorce: "Divorce",
           topic_custody: "Custody",
         },
+
         topic: {
           prompt:
             "Hello! I'm here to help connect you with Illinois legal resources. This chatbot provides legal information only and is not legal advice. What legal issue do you need help with?",
           invalid: "Please select a valid legal issue.",
           selected: "You selected {{topicLabel}}. Is this an emergency?",
         },
+
         emergency: {
           crisisDetectedBody:
             "🚨 CRISIS DETECTED\\n\\nIf you are in immediate danger, please call 911 now.\\n\\nYou can also contact:\\n- National Domestic Violence Hotline: 1-800-799-7233\\n- Illinois DV Hotline: 1-877-863-6338\\n- 988 Suicide & Crisis Lifeline: 988\\n- Illinois Child Abuse Hotline (DCFS): 1-800-252-2873\\n\\nClick the Emergency button for more resources.\\n\\nWould you like to continue?",
@@ -166,21 +175,25 @@ const resources = {
           policeNote:
             "🚨 If this is an emergency, call the police immediately at 911.\\n\\nAfter you have contacted the police, I can help you find legal resources for your situation.\\n\\nDo you currently have an open court case related to this issue?",
         },
+
         court: {
           prompt:
             "Do you currently have an open court case related to this issue?",
           invalid: "Please answer Yes or No.",
         },
+
         income: {
           prompt:
             "Are you low-income or receiving public benefits (like SNAP, Medicaid, SSI)?",
           invalid: "Please select an option.",
         },
+
         zip: {
           prompt:
             "Please provide your Illinois ZIP code to find resources near you.",
           invalid: "Please provide a valid 5-digit Illinois ZIP code.",
         },
+
         results: {
           intro:
             "Based on your situation, here are {{levelName}} resources for {{topicLabel}} in Illinois:",
@@ -191,6 +204,7 @@ const resources = {
           completeButtonsHint:
             "Use the buttons to continue, restart, or connect with a resource.",
         },
+
         continueCheck: {
           prompt: "Would you like help with another legal issue?",
           promptTopic: "What legal issue would you like help with?",
@@ -198,10 +212,12 @@ const resources = {
             "Thank you for using Illinois Legal Triage. If you need help in the future, feel free to return. Take care!",
           invalid: "Please select Yes or No.",
         },
+
         continueToLegalResources: {
           prompt:
             "I understand. Let's continue finding legal resources for your situation. What legal issue do you need help with?",
         },
+
         fallback: {
           prompt:
             "I'm not sure I understood that. Click one of the buttons above, use Restart to begin again, or type your ZIP code if requested. How can I assist you?",
@@ -217,6 +233,7 @@ const resources = {
         english: "English",
         spanish: "Español",
       },
+
       intake: {
         title: "Antes de comenzar",
         subtitle:
@@ -224,7 +241,7 @@ const resources = {
         samePersonTitle: "Bienvenido/a de nuevo",
         samePersonBody: "¿Es la misma persona que la última vez en este dispositivo?",
         samePerson: "Soy la misma persona",
-        newInquiry: "Iniciar sesión",
+        newInquiry: "Crear inicio de sesión",
         firstName: "Nombre",
         lastName: "Apellido",
         email: "Correo electrónico",
@@ -242,22 +259,25 @@ const resources = {
         serverError:
           "Lo siento – no pudimos guardar su información. Inténtelo de nuevo.",
       },
+
       privacy: {
         title: "Aviso de privacidad",
         body:
           "Recopilamos su nombre, correo electrónico, número de teléfono, código postal (ZIP) y el tema legal seleccionado para ayudar a dirigirle a recursos adecuados. No compartimos su información con terceros excepto cuando la ley lo requiera o para brindar los servicios solicitados. Puede solicitar la eliminación de sus datos contactando a la organización indicada en la app.",
         back: "Volver",
       },
+
       app: {
         title: "Chatbot de Información y Recursos Legales de CAL",
         subtitle: "Navegador de recursos de autoayuda",
         infoReferrals: "Información y referencias",
       },
+
       landing: {
         welcomeTitle: "Bienvenido/a al Portal de Recursos Legales",
         tagline:
           "Este chatbot conecta a residentes de Illinois con información legal y referencias para:",
-        begin: "Comenzar consulta",
+        begin: "Comenzar",
         importantNoticeTitle: "⚖️ Aviso legal importante",
         infoOnly: "Solo información y recursos legales, no asesoría legal.",
         privacyTitle: "⚠️ Aviso de privacidad:",
@@ -276,6 +296,7 @@ const resources = {
           custodyDesc: "Custodia infantil y tiempo de crianza",
         },
       },
+
       chat: {
         starting: "Iniciando conversación...",
         placeholder: "Escriba su mensaje aquí...",
@@ -291,8 +312,9 @@ const resources = {
         aiHint:
           "Respuestas sobre formularios, procedimientos, plazos y procesos judiciales",
         serverDown:
-          "⚠️ No se pudo conectar al servidor. Espere 60 segundos para que el backend se active y luego haga clic en 'Reiniciar' para intentarlo de nuevo.",
+          "⚠️ No se pudo conectar al servidor. Espere un momento para que el backend se active y luego haga clic en 'Reiniciar' para intentarlo de nuevo.",
       },
+
       progress: {
         stepOf: "Paso {{current}} de {{total}}",
         defaultLabel: "Comenzando",
@@ -303,6 +325,7 @@ const resources = {
         yourLocation: "Ubicación",
         resourcesReady: "Recursos listos",
       },
+
       ai: {
         back: "← Volver a recursos",
         title: "Asistente de información legal de Illinois",
@@ -358,12 +381,14 @@ const resources = {
           topic_divorce: "Divorcio",
           topic_custody: "Custodia",
         },
+
         topic: {
           prompt:
             "¡Hola! Estoy aquí para ayudarle a conectarse con recursos legales de Illinois. Este chatbot solo proporciona información legal y no es asesoría legal. ¿Con qué asunto legal necesita ayuda?",
           invalid: "Por favor seleccione un asunto legal válido.",
           selected: "Seleccionó {{topicLabel}}. ¿Es una emergencia?",
         },
+
         emergency: {
           crisisDetectedBody:
             "🚨 SE DETECTÓ UNA CRISIS\\n\\nSi está en peligro inmediato, llame al 911 ahora.\\n\\nTambién puede comunicarse con:\\n- Línea nacional contra la violencia doméstica: 1-800-799-7233\\n- Línea de violencia doméstica de Illinois: 1-877-863-6338\\n- Línea 988 de crisis y prevención del suicidio: 988\\n- Línea de abuso infantil de Illinois (DCFS): 1-800-252-2873\\n\\nHaga clic en el botón de Emergencia para más recursos.\\n\\n¿Desea continuar?",
@@ -371,21 +396,25 @@ const resources = {
           policeNote:
             "🚨 Si es una emergencia, llame a la policía inmediatamente al 911.\\n\\nDespués de llamar, puedo ayudarle a encontrar recursos legales.\\n\\n¿Actualmente tiene un caso abierto en la corte relacionado con este asunto?",
         },
+
         court: {
           prompt:
             "¿Actualmente tiene un caso abierto en la corte relacionado con este asunto?",
           invalid: "Por favor responda Sí o No.",
         },
+
         income: {
           prompt:
             "¿Tiene bajos ingresos o recibe beneficios públicos (como SNAP, Medicaid, SSI)?",
           invalid: "Por favor seleccione una opción.",
         },
+
         zip: {
           prompt:
             "Por favor indique su código postal (ZIP) de Illinois para encontrar recursos cerca de usted.",
           invalid: "Por favor indique un ZIP válido de 5 dígitos.",
         },
+
         results: {
           intro:
             "Según su situación, aquí hay recursos de {{levelName}} para {{topicLabel}} en Illinois:",
@@ -396,6 +425,7 @@ const resources = {
           completeButtonsHint:
             "Use los botones para continuar, reiniciar o conectarse con un recurso.",
         },
+
         continueCheck: {
           prompt: "¿Quiere ayuda con otro asunto legal?",
           promptTopic: "¿Con qué asunto legal le gustaría ayuda?",
@@ -403,10 +433,12 @@ const resources = {
             "Gracias por usar Illinois Legal Triage. Si necesita ayuda en el futuro, regrese cuando quiera. ¡Cuídese!",
           invalid: "Por favor seleccione Sí o No.",
         },
+
         continueToLegalResources: {
           prompt:
             "Entiendo. Continuemos buscando recursos legales para su situación. ¿Con qué asunto legal necesita ayuda?",
         },
+
         fallback: {
           prompt:
             "No estoy seguro/a de haber entendido. Haga clic en uno de los botones, use Reiniciar para comenzar de nuevo, o escriba su ZIP si se lo pedí. ¿Cómo puedo ayudarle?",

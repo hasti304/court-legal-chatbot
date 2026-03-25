@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
 import {
-  FaGavel,
   FaPaperPlane,
   FaRedo,
   FaPhone,
@@ -8,6 +7,10 @@ import {
   FaInfoCircle,
   FaRobot,
   FaArrowLeft,
+  FaVolumeUp,
+  FaStop,
+  FaSignOutAlt,
+  FaTrashAlt,
 } from "react-icons/fa";
 import "./App.css";
 import EmergencyButton from "./components/EmergencyButton";
@@ -19,13 +22,14 @@ const AIChat = lazy(() => import("./components/AIChat"));
 
 const STORAGE_KEY = "cal_chatbot_state_v1";
 const FIRST_VISIT_KEY = "cal_first_visit_done_v1";
-
 const INTAKE_ID_KEY = "cal_intake_id_v1";
 const INTAKE_SAVED_KEY = "cal_intake_saved_v1";
 
 const API_BASE = String(
   import.meta.env.VITE_API_BASE_URL ?? "https://court-legal-chatbot.onrender.com"
 ).replace(/\/+$/, "");
+
+const LOGO_SRC = "/logo.png";
 
 function isValidEmail(email) {
   const v = String(email || "").trim();
@@ -51,7 +55,6 @@ function App() {
   const { t, i18n } = useTranslation();
   const normalizedLang = getNormalizedLanguage();
 
-  // Always start at chooser
   const [view, setView] = useState("intakeChoice"); // intakeChoice | intake | privacy | cover | chat
   const [loading, setLoading] = useState(false);
 
@@ -70,7 +73,6 @@ function App() {
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
-  // Intake form state
   const [intakeId, setIntakeId] = useState(
     () => localStorage.getItem(INTAKE_ID_KEY) || ""
   );
@@ -87,9 +89,49 @@ function App() {
 
   const [intakeError, setIntakeError] = useState("");
 
+  // Accessibility / speech
+  const [speechEnabled, setSpeechEnabled] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+
   const apiUrl = (path) => `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`;
 
-  // QR-safe mode: ?fresh=1 always starts fresh (cover + chat reset)
+  const speechSupported =
+    typeof window !== "undefined" &&
+    "speechSynthesis" in window &&
+    typeof window.SpeechSynthesisUtterance !== "undefined";
+
+  const stopSpeaking = () => {
+    if (!speechSupported) return;
+    window.speechSynthesis.cancel();
+    setSpeaking(false);
+  };
+
+  const speakText = (text) => {
+    if (!speechSupported || !text) return;
+
+    window.speechSynthesis.cancel();
+
+    const utterance = new window.SpeechSynthesisUtterance(String(text));
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+
+    utterance.onstart = () => setSpeaking(true);
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (speechSupported) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [speechSupported]);
+
+  // QR-safe mode: ?fresh=1 always starts fresh
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const fresh = params.get("fresh") === "1";
@@ -106,16 +148,13 @@ function App() {
       setUserInput("");
       setCurrentTopic("");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Set html attributes (LTR)
   useEffect(() => {
     document.documentElement.setAttribute("dir", "ltr");
     document.documentElement.setAttribute("lang", normalizedLang);
   }, [i18n.language, i18n.resolvedLanguage, normalizedLang]);
 
-  // Ensure we always start on chooser view
   useEffect(() => {
     setView("intakeChoice");
   }, []);
@@ -128,7 +167,6 @@ function App() {
     if (messages.length > 0) scrollToBottom();
   }, [messages]);
 
-  // Restore chat session
   useEffect(() => {
     if (!showChat) return;
 
@@ -145,14 +183,15 @@ function App() {
           setCurrentTopic(String(saved.conversationState.topic).replace("_", " "));
         }
       }
-      if (Array.isArray(saved?.conversationHistory)) setConversationHistory(saved.conversationHistory);
+      if (Array.isArray(saved?.conversationHistory)) {
+        setConversationHistory(saved.conversationHistory);
+      }
     } catch (e) {
       console.error("Failed to restore session:", e);
       localStorage.removeItem(STORAGE_KEY);
     }
   }, [showChat]);
 
-  // Persist chat session
   useEffect(() => {
     if (!showChat) return;
 
@@ -168,6 +207,15 @@ function App() {
       console.error("Failed to persist session:", e);
     }
   }, [showChat, messages, conversationState, conversationHistory]);
+
+  useEffect(() => {
+    if (!speechEnabled || !messages.length) return;
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage?.role === "bot") {
+      const text = renderBotText(lastMessage);
+      if (text) speakText(text);
+    }
+  }, [messages, speechEnabled]);
 
   const LanguagePicker = ({ variant = "light" }) => {
     const isDark = variant === "dark";
@@ -215,6 +263,15 @@ function App() {
       return t(`triage.options.topic_${optionCode}`);
     }
 
+    const normalized = String(optionCode || "").toLowerCase();
+
+    const hardcodedMap = {
+      unknown: "I don't know",
+      connect: "Connect with Chicago Advocate Legal, NFP",
+    };
+
+    if (hardcodedMap[normalized]) return hardcodedMap[normalized];
+
     const map = {
       yes: "triage.options.yes",
       no: "triage.options.no",
@@ -226,7 +283,7 @@ function App() {
       continue_to_legal_resources: "triage.options.continueToLegalResources",
     };
 
-    const key = map[String(optionCode || "").toLowerCase()];
+    const key = map[normalized];
     return key ? t(key) : String(optionCode);
   };
 
@@ -254,7 +311,29 @@ function App() {
     setIntakeId("");
     setIntakeSaved(false);
     localStorage.removeItem(INTAKE_ID_KEY);
-    localStorage.removeItem(INTAKE_SAVED_KEY); // removeItem deletes a specific key
+    localStorage.removeItem(INTAKE_SAVED_KEY);
+  };
+
+  const clearSessionAndStorage = () => {
+    stopSpeaking();
+    setMessages([]);
+    setConversationState({});
+    setConversationHistory([]);
+    setUserInput("");
+    setCurrentTopic("");
+    setShowAIChat(false);
+    setShowChat(false);
+    localStorage.removeItem(STORAGE_KEY);
+  };
+
+  const quickExit = () => {
+    try {
+      clearSessionAndStorage();
+      localStorage.removeItem(FIRST_VISIT_KEY);
+      window.location.replace("https://www.google.com");
+    } catch (e) {
+      window.location.href = "https://www.google.com";
+    }
   };
 
   const postIntakeEvent = async (eventType, eventValue) => {
@@ -270,11 +349,36 @@ function App() {
         }),
       });
     } catch (e) {
-      // best-effort
+      // best effort
+    }
+  };
+
+  const trackStepAnswer = async (step, value) => {
+    const stepKey = String(step || "").toLowerCase();
+    const answer = String(value || "").toLowerCase();
+
+    if (stepKey === "emergency_check") {
+      await postIntakeEvent("emergency_answer", answer);
+      return;
+    }
+
+    if (stepKey === "court_status") {
+      await postIntakeEvent("court_answer", answer);
+      return;
+    }
+
+    if (stepKey === "income_check") {
+      await postIntakeEvent("income_answer", answer);
+      return;
+    }
+
+    if (stepKey === "get_zip" && /^\d{5}$/.test(answer)) {
+      await postIntakeEvent("zip_entered", answer);
     }
   };
 
   const sendMessage = async (message, isBackAction = false) => {
+    if (loading) return;
     setLoading(true);
 
     const userMessage = { role: "user", content: message };
@@ -297,10 +401,14 @@ function App() {
 
       const data = await response.json();
 
+      const previousStep = conversationState?.step || "";
+      const nextStep = data?.conversation_state?.step || "";
+
       if (data.conversation_state && data.conversation_state.topic) {
         const topicCode = String(data.conversation_state.topic);
         setCurrentTopic(topicCode.replace("_", " "));
-        if (conversationState?.step === "topic_selection") {
+
+        if (previousStep === "topic_selection") {
           postIntakeEvent("topic_selected", topicCode);
         }
       }
@@ -322,6 +430,26 @@ function App() {
       };
       setConversationState(newState);
 
+      if (nextStep === "complete") {
+        const zipCode = data?.conversation_state?.zip_code;
+        const level = data?.conversation_state?.level;
+        const referrals = Array.isArray(data?.referrals) ? data.referrals : [];
+        const referralNames = referrals
+          .map((r) => String(r?.name || "").trim())
+          .filter(Boolean);
+
+        if (zipCode) {
+          postIntakeEvent("zip_entered", String(zipCode));
+        }
+        if (level !== undefined && level !== null) {
+          postIntakeEvent("triage_level_assigned", String(level));
+        }
+        if (referralNames.length > 0) {
+          postIntakeEvent("referrals_shown", JSON.stringify(referralNames));
+        }
+        postIntakeEvent("triage_completed", "true");
+      }
+
       if (!isBackAction && data.conversation_state) {
         setConversationHistory((prev) => [
           ...prev,
@@ -333,17 +461,21 @@ function App() {
       }
     } catch (error) {
       console.error("Connection error details:", error);
-      setMessages((prev) => [...prev, { role: "bot", content: t("chat.serverDown"), options: [] }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "bot", content: t("chat.serverDown"), options: [] },
+      ]);
     }
 
     setLoading(false);
   };
 
-  const startChatFromCover = () => {
+  const startChatFromCover = async () => {
     if (loading) return;
     localStorage.setItem(FIRST_VISIT_KEY, "1");
     setShowChat(true);
     setView("chat");
+    await postIntakeEvent("triage_started", "cover_begin");
     sendMessage("start");
   };
 
@@ -353,16 +485,24 @@ function App() {
     setView("cover");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (userInput.trim() && !loading) sendMessage(userInput.trim());
+    if (!userInput.trim() || loading) return;
+
+    await trackStepAnswer(conversationState?.step, userInput.trim());
+    sendMessage(userInput.trim());
   };
 
-  const handleOptionClick = (optionCode) => {
-    if (!loading) sendMessage(optionCode);
+  const handleOptionClick = async (optionCode) => {
+    if (loading) return;
+
+    await trackStepAnswer(conversationState?.step, optionCode);
+    sendMessage(optionCode);
   };
 
-  const handleRestart = () => {
+  const handleRestart = async () => {
+    await postIntakeEvent("triage_restart", conversationState?.step || "");
+
     setMessages([]);
     setConversationState({});
     setConversationHistory([]);
@@ -377,7 +517,9 @@ function App() {
     sendMessage("start");
   };
 
-  const handleBack = () => {
+  const handleBack = async () => {
+    await postIntakeEvent("triage_back", conversationState?.step || "");
+
     if (conversationHistory.length < 2) {
       goToCover();
       return;
@@ -435,8 +577,8 @@ function App() {
       if (!res.ok) throw new Error("intake failed");
 
       const data = await res.json();
-
       const newId = data.intake_id;
+
       setIntakeId(newId);
       setIntakeSaved(true);
 
@@ -451,13 +593,26 @@ function App() {
     }
   };
 
+  const renderHeaderLogo = () => (
+    <div className="brand-block">
+      <img
+        src={LOGO_SRC}
+        alt="Chicago Advocate Legal, NFP"
+        className="app-logo"
+        onError={(e) => {
+          e.currentTarget.style.display = "none";
+        }}
+      />
+    </div>
+  );
+
   // AI chat view
   if (showAIChat) {
     return (
       <Suspense
         fallback={
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
-            Loading AI Chat...
+          <div className="ai-loading-screen">
+            <div className="ai-loading-card">Loading AI assistant...</div>
           </div>
         }
       >
@@ -472,9 +627,7 @@ function App() {
       <div className="landing">
         <div className="landing-header">
           <div className="logo-container">
-            <div className="icon-circle">
-              <FaGavel color="#fff" size={50} />
-            </div>
+            {renderHeaderLogo()}
             <h1>{t("privacy.title")}</h1>
             <p className="subtitle">{t("app.subtitle")}</p>
             <LanguagePicker />
@@ -482,9 +635,7 @@ function App() {
         </div>
 
         <div className="landing-content">
-          <p className="tagline" style={{ textAlign: "left", lineHeight: 1.7 }}>
-            {t("privacy.body")}
-          </p>
+          <p className="tagline left-text">{t("privacy.body")}</p>
 
           <button
             className="btn btn-primary btn-large btn-start"
@@ -500,7 +651,7 @@ function App() {
     );
   }
 
-  // Always-first chooser ("login") view
+  // Login chooser view
   if (view === "intakeChoice") {
     const hasSaved = intakeSaved && intakeId;
 
@@ -508,12 +659,10 @@ function App() {
       <div className="landing">
         <div className="landing-header">
           <div className="logo-container">
-            <div className="icon-circle">
-              <FaGavel color="#fff" size={50} />
-            </div>
+            {renderHeaderLogo()}
             <h1>{t("intake.samePersonTitle")}</h1>
             <p className="subtitle">
-              {hasSaved ? t("intake.samePersonBody") : "Start a new inquiry to begin."}
+              {hasSaved ? t("intake.samePersonBody") : "Create a login to begin."}
             </p>
             <LanguagePicker />
           </div>
@@ -544,21 +693,14 @@ function App() {
             disabled={loading}
             style={{ marginTop: 12, background: "#6b7280" }}
           >
-            {t("intake.newInquiry")}
+            Create Login
           </button>
 
-          <div style={{ marginTop: 18, textAlign: "center" }}>
+          <div className="secondary-link-wrap">
             <button
               type="button"
               onClick={() => setView("privacy")}
-              style={{
-                background: "transparent",
-                border: "none",
-                color: "#667eea",
-                fontWeight: 700,
-                cursor: "pointer",
-                textDecoration: "underline",
-              }}
+              className="link-button"
             >
               {t("intake.privacyLink")}
             </button>
@@ -576,10 +718,8 @@ function App() {
       <div className="landing">
         <div className="landing-header">
           <div className="logo-container">
-            <div className="icon-circle">
-              <FaGavel color="#fff" size={50} />
-            </div>
-            <h1>{t("intake.title")}</h1>
+            {renderHeaderLogo()}
+            <h1>Create Login</h1>
             <p className="subtitle">{t("intake.subtitle")}</p>
             <LanguagePicker />
           </div>
@@ -592,7 +732,7 @@ function App() {
               submitIntake();
             }}
           >
-            <div style={{ display: "grid", gap: 12 }}>
+            <div className="intake-grid">
               <input
                 className="chat-input"
                 type="text"
@@ -634,29 +774,19 @@ function App() {
                 disabled={loading}
               />
 
-              <label style={{ display: "flex", gap: 10, alignItems: "flex-start", lineHeight: 1.4, color: "#374151" }}>
+              <label className="consent-label">
                 <input
                   type="checkbox"
                   checked={intakeConsent}
                   onChange={(e) => setIntakeConsent(e.target.checked)}
                   disabled={loading}
-                  style={{ marginTop: 4 }}
                 />
                 <span>
                   {t("intake.consentText")}{" "}
                   <button
                     type="button"
                     onClick={() => setView("privacy")}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      color: "#667eea",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      textDecoration: "underline",
-                      padding: 0,
-                      marginLeft: 6,
-                    }}
+                    className="inline-link-button"
                   >
                     {t("intake.privacyLink")}
                   </button>
@@ -664,9 +794,7 @@ function App() {
               </label>
 
               {intakeError && (
-                <div className="privacy-warning" style={{ marginTop: 6 }}>
-                  {intakeError}
-                </div>
+                <div className="privacy-warning intake-error">{intakeError}</div>
               )}
 
               <button className="btn btn-start" type="submit" disabled={loading}>
@@ -697,12 +825,9 @@ function App() {
       <div className="landing">
         <div className="landing-header">
           <div className="logo-container">
-            <div className="icon-circle">
-              <FaGavel color="#fff" size={50} />
-            </div>
+            {renderHeaderLogo()}
             <h1>{t("app.title")}</h1>
             <p className="subtitle">{t("app.subtitle")}</p>
-
             <LanguagePicker />
           </div>
         </div>
@@ -739,7 +864,11 @@ function App() {
             </div>
           </div>
 
-          <button className="btn btn-primary btn-large btn-start" onClick={startChatFromCover} disabled={loading}>
+          <button
+            className="btn btn-primary btn-large btn-start"
+            onClick={startChatFromCover}
+            disabled={loading}
+          >
             {t("landing.begin")}
           </button>
 
@@ -753,18 +882,11 @@ function App() {
             </p>
           </div>
 
-          <div style={{ marginTop: 14, textAlign: "center" }}>
+          <div className="secondary-link-wrap">
             <button
               type="button"
               onClick={() => setView("intakeChoice")}
-              style={{
-                background: "transparent",
-                border: "none",
-                color: "#667eea",
-                fontWeight: 700,
-                cursor: "pointer",
-                textDecoration: "underline",
-              }}
+              className="link-button"
             >
               Back to Login
             </button>
@@ -776,26 +898,37 @@ function App() {
     );
   }
 
-  // Chat view
   const progress = conversationState?.progress || {};
   const progressCurrent = Number(progress.current || 1);
   const progressTotal = Number(progress.total || 5);
 
   const progressLabel =
-    progress.label_key ? t(progress.label_key) : String(progress.label || t("progress.defaultLabel"));
+    progress.label_key
+      ? t(progress.label_key)
+      : String(progress.label || t("progress.defaultLabel"));
 
-  const progressPercent = Math.min(100, Math.max(0, (progressCurrent / progressTotal) * 100));
+  const progressPercent = Math.min(
+    100,
+    Math.max(0, (progressCurrent / progressTotal) * 100)
+  );
 
   return (
     <div className="chat-page">
       <div className="chat-header">
         <div className="header-content">
-          <FaGavel size={28} color="#fff" />
+          <img
+            src={LOGO_SRC}
+            alt="Chicago Advocate Legal, NFP"
+            className="chat-header-logo"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
+          />
           <div className="header-text">
             <h2>{t("app.title")}</h2>
             <p>{t("app.infoReferrals")}</p>
           </div>
-          <div style={{ marginLeft: "auto" }}>
+          <div className="header-right">
             <LanguagePicker variant="dark" />
           </div>
         </div>
@@ -810,12 +943,58 @@ function App() {
             <span className="progress-label">{progressLabel}</span>
           </div>
           <div className="progress-bar-track">
-            <div className="progress-bar-fill" style={{ width: `${progressPercent}%` }} />
+            <div
+              className="progress-bar-fill"
+              style={{ width: `${progressPercent}%` }}
+            />
           </div>
         </div>
       )}
 
       <div className="chat-container">
+        <div className="safety-toolbar">
+          <button
+            type="button"
+            className="btn btn-toolbar btn-quick-exit"
+            onClick={quickExit}
+          >
+            <FaSignOutAlt /> Quick Exit
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-toolbar btn-clear-session"
+            onClick={clearSessionAndStorage}
+          >
+            <FaTrashAlt /> Clear Session
+          </button>
+
+          {speechSupported && (
+            <button
+              type="button"
+              className="btn btn-toolbar btn-read-toggle"
+              onClick={() => {
+                if (speechEnabled) {
+                  stopSpeaking();
+                  setSpeechEnabled(false);
+                } else {
+                  setSpeechEnabled(true);
+                }
+              }}
+            >
+              {speechEnabled ? (
+                <>
+                  <FaStop /> Turn Off Read Aloud
+                </>
+              ) : (
+                <>
+                  <FaVolumeUp /> Turn On Read Aloud
+                </>
+              )}
+            </button>
+          )}
+        </div>
+
         <div className="messages-container" ref={messagesContainerRef}>
           {messages.length === 0 && !loading && (
             <div className="empty-state">
@@ -828,6 +1007,18 @@ function App() {
               <div className={`message ${msg.role}`}>
                 <div className="message-content">
                   {msg.role === "bot" ? renderBotText(msg) : msg.content}
+
+                  {msg.role === "bot" && speechSupported && (
+                    <div className="message-tools">
+                      <button
+                        type="button"
+                        className="btn btn-read-aloud"
+                        onClick={() => speakText(renderBotText(msg))}
+                      >
+                        <FaVolumeUp /> Read aloud
+                      </button>
+                    </div>
+                  )}
 
                   {msg.referrals && msg.referrals.length > 0 && (
                     <div className="referrals">
@@ -875,10 +1066,13 @@ function App() {
                             <button
                               className="btn btn-nfp-intake"
                               onClick={() =>
-                                window.open("https://www.chicagoadvocatelegal.com/contact.html", "_blank")
+                                window.open(
+                                  "https://www.chicagoadvocatelegal.com/contact.html",
+                                  "_blank"
+                                )
                               }
                             >
-                              📅 Schedule Intake Appointment with Cindy
+                              Connect with Chicago Advocate Legal, NFP
                             </button>
                           )}
 
@@ -895,7 +1089,13 @@ function App() {
 
                       {conversationState.step === "complete" && (
                         <div className="ai-assistant-prompt">
-                          <button className="btn btn-ai-assistant" onClick={() => setShowAIChat(true)}>
+                          <button
+                            className="btn btn-ai-assistant"
+                            onClick={() => {
+                              postIntakeEvent("ai_assistant_opened", currentTopic || "");
+                              setShowAIChat(true);
+                            }}
+                          >
                             <FaRobot size={18} /> {t("chat.aiButton")}
                           </button>
                           <p className="ai-assistant-hint">{t("chat.aiHint")}</p>
@@ -982,7 +1182,8 @@ function App() {
             <strong>{t("chat.footerInfoOnly")}</strong>
           </p>
           <p className="footer-privacy-warning">
-            ⚠️ <strong>{t("chat.footerPrivacyTitle")}</strong> {t("chat.footerPrivacyText")}
+            ⚠️ <strong>{t("chat.footerPrivacyTitle")}</strong>{" "}
+            {t("chat.footerPrivacyText")}
           </p>
         </div>
       </div>

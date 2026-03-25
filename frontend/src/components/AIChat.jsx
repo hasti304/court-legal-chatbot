@@ -4,6 +4,18 @@ import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { useTranslation } from "react-i18next";
 import { getNormalizedLanguage } from "../i18n";
+import {
+  FaArrowLeft,
+  FaPaperPlane,
+  FaVolumeUp,
+  FaStop,
+  FaSignOutAlt,
+  FaTrashAlt,
+} from "react-icons/fa";
+
+const API_BASE = String(
+  import.meta.env.VITE_API_BASE_URL ?? "https://court-legal-chatbot.onrender.com"
+).replace(/\/+$/, "");
 
 const AIChat = ({ topic, onBack }) => {
   const { t, i18n } = useTranslation();
@@ -11,19 +23,27 @@ const AIChat = ({ topic, onBack }) => {
   const [messages, setMessages] = useState([
     { role: "assistant", content: t("ai.placeholder") },
   ]);
+  const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  // If the user changes language, keep the initial assistant line aligned
-  // when the conversation is still just the first message.
+  const [speechEnabled, setSpeechEnabled] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+
+  const messagesEndRef = useRef(null);
+
+  const speechSupported =
+    typeof window !== "undefined" &&
+    "speechSynthesis" in window &&
+    typeof window.SpeechSynthesisUtterance !== "undefined";
+
+  const apiUrl = (path) => `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`;
+
   useEffect(() => {
     if (messages.length === 1 && messages[0]?.role === "assistant") {
       setMessages([{ role: "assistant", content: t("ai.placeholder") }]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [i18n.language]);
-
-  const [inputValue, setInputValue] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -33,16 +53,73 @@ const AIChat = ({ topic, onBack }) => {
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    return () => {
+      if (speechSupported) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [speechSupported]);
+
+  useEffect(() => {
+    if (!speechEnabled || !messages.length) return;
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage?.role === "assistant" && lastMessage?.content) {
+      speakText(lastMessage.content);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, speechEnabled]);
+
   const renderMessageContent = (content) => {
     const rawHtml = marked.parse(content || "", { breaks: true });
     const cleanHtml = DOMPurify.sanitize(rawHtml);
     return { __html: cleanHtml };
   };
 
+  const stopSpeaking = () => {
+    if (!speechSupported) return;
+    window.speechSynthesis.cancel();
+    setSpeaking(false);
+  };
+
+  const speakText = (text) => {
+    if (!speechSupported || !text) return;
+
+    window.speechSynthesis.cancel();
+
+    const utterance = new window.SpeechSynthesisUtterance(String(text));
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+
+    utterance.onstart = () => setSpeaking(true);
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const clearAIConversation = () => {
+    stopSpeaking();
+    setMessages([{ role: "assistant", content: t("ai.placeholder") }]);
+    setInputValue("");
+  };
+
+  const quickExit = () => {
+    try {
+      stopSpeaking();
+      setMessages([{ role: "assistant", content: t("ai.placeholder") }]);
+      setInputValue("");
+      window.location.replace("https://www.google.com");
+    } catch (e) {
+      window.location.href = "https://www.google.com";
+    }
+  };
+
   const sendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
 
-    const userMessage = { role: "user", content: inputValue };
+    const userMessage = { role: "user", content: inputValue.trim() };
     const updatedMessages = [...messages, userMessage];
 
     setMessages(updatedMessages);
@@ -50,11 +127,14 @@ const AIChat = ({ topic, onBack }) => {
     setIsLoading(true);
 
     try {
-      const response = await fetch("https://court-legal-chatbot.onrender.com/ai-chat", {
+      const response = await fetch(apiUrl("/ai-chat"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })),
+          messages: updatedMessages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
           topic: topic || "general",
           language: getNormalizedLanguage(),
         }),
@@ -74,7 +154,10 @@ const AIChat = ({ topic, onBack }) => {
       ]);
     } catch (error) {
       console.error("AI request failed:", error);
-      setMessages((prev) => [...prev, { role: "assistant", content: t("ai.error") }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: t("ai.error") },
+      ]);
     } finally {
       setIsLoading(false);
     }
@@ -91,14 +174,59 @@ const AIChat = ({ topic, onBack }) => {
     <div className="ai-chat-page">
       <div className="ai-chat-container">
         <div className="ai-chat-header">
-          <button onClick={onBack} className="back-button">
-            {t("ai.back")}
-          </button>
+          <div className="ai-header-top">
+            <button onClick={onBack} className="back-button" type="button">
+              <FaArrowLeft /> {t("ai.back")}
+            </button>
 
-          <h2>{t("ai.title")}</h2>
+            <h2>{t("ai.title")}</h2>
+          </div>
 
           <p className="ai-disclaimer">{t("ai.disclaimer")}</p>
           <p className="ai-privacy-notice">{t("ai.privacy")}</p>
+
+          <div className="ai-toolbar">
+            <button
+              type="button"
+              className="ai-toolbar-button danger"
+              onClick={quickExit}
+            >
+              <FaSignOutAlt /> Quick Exit
+            </button>
+
+            <button
+              type="button"
+              className="ai-toolbar-button neutral"
+              onClick={clearAIConversation}
+            >
+              <FaTrashAlt /> Clear Chat
+            </button>
+
+            {speechSupported && (
+              <button
+                type="button"
+                className="ai-toolbar-button dark"
+                onClick={() => {
+                  if (speechEnabled) {
+                    stopSpeaking();
+                    setSpeechEnabled(false);
+                  } else {
+                    setSpeechEnabled(true);
+                  }
+                }}
+              >
+                {speechEnabled ? (
+                  <>
+                    <FaStop /> Turn Off Read Aloud
+                  </>
+                ) : (
+                  <>
+                    <FaVolumeUp /> Turn On Read Aloud
+                  </>
+                )}
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="ai-chat-messages">
@@ -113,6 +241,28 @@ const AIChat = ({ topic, onBack }) => {
                 className="message-content"
                 dangerouslySetInnerHTML={renderMessageContent(message.content)}
               />
+
+              {message.role === "assistant" && speechSupported && (
+                <div className="ai-message-tools">
+                  <button
+                    type="button"
+                    className="ai-read-button"
+                    onClick={() => speakText(message.content)}
+                  >
+                    <FaVolumeUp /> Read aloud
+                  </button>
+
+                  {speaking && (
+                    <button
+                      type="button"
+                      className="ai-read-button stop"
+                      onClick={stopSpeaking}
+                    >
+                      <FaStop /> Stop
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           ))}
 
@@ -143,8 +293,10 @@ const AIChat = ({ topic, onBack }) => {
             onClick={sendMessage}
             disabled={isLoading || !inputValue.trim()}
             className="ai-send-button"
+            type="button"
           >
-            {isLoading ? t("ai.sending") : t("ai.send")}
+            <FaPaperPlane />
+            <span>{isLoading ? t("ai.sending") : t("ai.send")}</span>
           </button>
         </div>
 
@@ -160,19 +312,20 @@ const AIChat = ({ topic, onBack }) => {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Schedule Appointment
+                Direct Intake Form
               </a>
             </div>
+
             <div className="footer-contact-item">
               <strong>Justice Entrepreneurs Project (JEP):</strong>{" "}
               <a href="tel:+13125463282">(312) 546-3282</a>
               {" | "}
               <a
-                href="https://jepchicago.org/intake-form/"
+                href="https://jepchicago.org/connect-with-a-lawyer/"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                JEP Intake Form
+                Find a Lawyer
               </a>
             </div>
           </div>
