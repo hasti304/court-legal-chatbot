@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import json
 import os
 import io
@@ -42,17 +42,19 @@ app.add_middleware(
 )
 
 # --- Groq client ---
+groq_client = None
+groq_configured = False
+
 try:
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         print("Warning: GROQ_API_KEY not found in environment variables")
-        groq_configured = False
     else:
         groq_client = Groq(api_key=api_key)
         groq_configured = True
         print("Groq client initialized successfully")
 except Exception as e:
-    print(f"Warning: Groq client initialization failed: {e}")
+    print(f"Warning: Groq client initialization failed: {type(e).__name__}: {e}")
     groq_configured = False
 
 SUPPORTED_LANGS = {"en", "es"}
@@ -498,12 +500,43 @@ def normalize_us_phone(phone: str) -> str:
     return digits
 
 
+def log_intake_event(intake_id: Optional[str], event_type: str, event_value: Optional[str] = None):
+    if not engine or not intake_id:
+        return
+
+    try:
+        ensure_tables()
+        with engine.begin() as conn:
+            conn.execute(
+                text("""
+                INSERT INTO intake_events (id, intake_id, event_type, event_value, created_at)
+                VALUES (:id, :intake_id, :event_type, :event_value, :created_at)
+                """),
+                {
+                    "id": os.urandom(16).hex(),
+                    "intake_id": intake_id,
+                    "event_type": (event_type or "").strip(),
+                    "event_value": (event_value or "").strip(),
+                    "created_at": utc_now_iso(),
+                },
+            )
+
+            update_triage_session_from_event(
+                conn=conn,
+                intake_id=intake_id,
+                event_type=event_type,
+                event_value=event_value,
+            )
+    except Exception as e:
+        print(f"Warning: failed to log intake event '{event_type}': {e}")
+
+
 # -------------
 # API Schemas
 # -------------
 class ChatRequest(BaseModel):
     message: str
-    conversation_state: dict = {}
+    conversation_state: dict = Field(default_factory=dict)
     language: Optional[str] = "en"
     intake_id: Optional[str] = None
 
@@ -511,11 +544,11 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     response: str = ""
     response_key: Optional[str] = None
-    response_params: dict = {}
-    options: list = []
-    referrals: list = []
-    conversation_state: dict = {}
-    progress: dict = {}
+    response_params: dict = Field(default_factory=dict)
+    options: list = Field(default_factory=list)
+    referrals: list = Field(default_factory=list)
+    conversation_state: dict = Field(default_factory=dict)
+    progress: dict = Field(default_factory=dict)
 
 
 class IntakeStartRequest(BaseModel):
@@ -540,13 +573,14 @@ class IntakeEventRequest(BaseModel):
 
 class AIChatRequest(BaseModel):
     messages: List[Dict[str, str]]
-    topic: str = None
+    topic: Optional[str] = None
     language: str = "en"
+    intake_id: Optional[str] = None
 
 
 class AIChatResponse(BaseModel):
     response: str
-    usage: dict = {}
+    usage: dict = Field(default_factory=dict)
 
 
 ILLINOIS_SYSTEM_PROMPT = """Role & Purpose:
@@ -868,34 +902,6 @@ def chat_endpoint(request: ChatRequest):
     state = request.conversation_state or {}
     _lang = normalize_language(request.language)
 
-    def log_topic(topic_code: str):
-        if not engine or not request.intake_id:
-            return
-        try:
-            ensure_tables()
-            with engine.begin() as conn:
-                conn.execute(
-                    text("""
-                    INSERT INTO intake_events (id, intake_id, event_type, event_value, created_at)
-                    VALUES (:id, :intake_id, :event_type, :event_value, :created_at)
-                    """),
-                    {
-                        "id": os.urandom(16).hex(),
-                        "intake_id": request.intake_id,
-                        "event_type": "topic_selected",
-                        "event_value": topic_code,
-                        "created_at": utc_now_iso(),
-                    },
-                )
-                update_triage_session_from_event(
-                    conn=conn,
-                    intake_id=request.intake_id,
-                    event_type="topic_selected",
-                    event_value=topic_code,
-                )
-        except Exception:
-            pass
-
     if detect_crisis_keywords(message) and state.get("step") not in ["topic_selection", None]:
         return ChatResponse(
             response_key="triage.emergency.crisisDetectedBody",
@@ -905,7 +911,18 @@ def chat_endpoint(request: ChatRequest):
             progress=get_step_progress(state.get("step")),
         )
 
-    if not state or message in ["start", "restart", "begin", "start over"]:
+    if not state or message in ["start", "begin", "start over"]:
+        new_state = {"step": "topic_selection"}
+        return ChatResponse(
+            response_key="triage.topic.prompt",
+            response_params={},
+            options=["child_support", "education", "housing", "divorce", "custody"],
+            conversation_state=new_state,
+            progress=get_step_progress(new_state.get("step")),
+        )
+
+    if message == "restart":
+        log_intake_event(request.intake_id, "triage_restart", "restart")
         new_state = {"step": "topic_selection"}
         return ChatResponse(
             response_key="triage.topic.prompt",
@@ -927,7 +944,7 @@ def chat_endpoint(request: ChatRequest):
         selected_topic = topics.get(message)
 
         if selected_topic:
-            log_topic(selected_topic)
+            log_intake_event(request.intake_id, "topic_selected", selected_topic)
             state["topic"] = selected_topic
             state["step"] = "emergency_check"
             return ChatResponse(
@@ -949,6 +966,7 @@ def chat_endpoint(request: ChatRequest):
     if state.get("step") == "emergency_check":
         if message == "yes":
             state["emergency"] = "yes"
+            log_intake_event(request.intake_id, "emergency_answer", "yes")
             state["step"] = "court_status"
             return ChatResponse(
                 response_key="triage.emergency.policeNote",
@@ -960,9 +978,11 @@ def chat_endpoint(request: ChatRequest):
 
         if message == "no":
             state["emergency"] = "no"
+            log_intake_event(request.intake_id, "emergency_answer", "no")
             state["step"] = "court_status"
         elif message in ["i don't know", "unknown", "not sure", "not_sure"]:
             state["emergency"] = "unknown"
+            log_intake_event(request.intake_id, "emergency_answer", "unknown")
             state["step"] = "court_status"
         else:
             return ChatResponse(
@@ -984,9 +1004,11 @@ def chat_endpoint(request: ChatRequest):
     if state.get("step") == "court_status":
         if message == "yes":
             state["in_court"] = True
+            log_intake_event(request.intake_id, "court_answer", "yes")
             state["step"] = "income_check"
         elif message == "no":
             state["in_court"] = False
+            log_intake_event(request.intake_id, "court_answer", "no")
             state["step"] = "income_check"
         else:
             return ChatResponse(
@@ -1009,9 +1031,11 @@ def chat_endpoint(request: ChatRequest):
         if message in ["yes", "not_sure"]:
             state["income_eligible"] = True
             state["income"] = "yes"
+            log_intake_event(request.intake_id, "income_answer", message)
         elif message == "no":
             state["income_eligible"] = False
             state["income"] = "no"
+            log_intake_event(request.intake_id, "income_answer", "no")
         else:
             return ChatResponse(
                 response_key="triage.income.invalid",
@@ -1033,6 +1057,7 @@ def chat_endpoint(request: ChatRequest):
     if state.get("step") == "get_zip":
         if message.isdigit() and len(message) == 5:
             state["zip_code"] = message
+            log_intake_event(request.intake_id, "zip_entered", message)
 
             topic = state.get("topic", "general")
             emergency = state.get("emergency", "no")
@@ -1050,6 +1075,8 @@ def chat_endpoint(request: ChatRequest):
                 level_name = "general legal information"
 
             state["level"] = level
+            log_intake_event(request.intake_id, "triage_level_assigned", str(level))
+
             referrals = referral_map.get(topic, {}).get(f"level_{level}", [])
 
             if not income_eligible:
@@ -1063,6 +1090,10 @@ def chat_endpoint(request: ChatRequest):
                 for ref in referrals:
                     if "Chicago Advocate Legal, NFP" in ref.get("name", ""):
                         ref["is_nfp"] = True
+
+            referral_names = [ref.get("name", "").strip() for ref in referrals if ref.get("name")]
+            log_intake_event(request.intake_id, "referrals_shown", json.dumps(referral_names, ensure_ascii=False))
+            log_intake_event(request.intake_id, "triage_completed", "complete")
 
             final_state = {
                 "step": "complete",
@@ -1091,7 +1122,13 @@ def chat_endpoint(request: ChatRequest):
 
     if state.get("step") == "complete":
         if message == "continue":
-            new_state = {"step": "continue_check"}
+            new_state = {
+                "step": "continue_check",
+                "topic": state.get("topic"),
+                "level": state.get("level"),
+                "zip_code": state.get("zip_code"),
+                "income": state.get("income"),
+            }
             return ChatResponse(
                 response_key="triage.continueCheck.prompt",
                 response_params={},
@@ -1127,6 +1164,7 @@ def chat_endpoint(request: ChatRequest):
                     "topic": topic,
                     "level": level,
                     "zip_code": zip_code,
+                    "income": income,
                 }
                 return ChatResponse(
                     response_key="triage.results.connectTop",
@@ -1145,16 +1183,6 @@ def chat_endpoint(request: ChatRequest):
                 progress=get_step_progress(state.get("step")),
             )
 
-        if message == "restart":
-            new_state = {"step": "topic_selection"}
-            return ChatResponse(
-                response_key="triage.topic.prompt",
-                response_params={},
-                options=["child_support", "education", "housing", "divorce", "custody"],
-                conversation_state=new_state,
-                progress=get_step_progress(new_state.get("step")),
-            )
-
         return ChatResponse(
             response_key="triage.results.completeButtonsHint",
             response_params={},
@@ -1167,7 +1195,7 @@ def chat_endpoint(request: ChatRequest):
         if message == "yes":
             new_state = {"step": "topic_selection"}
             return ChatResponse(
-                response_key="triage.continueCheck.promptTopic",
+                response_key="triage.topic.prompt",
                 response_params={},
                 options=["child_support", "education", "housing", "divorce", "custody"],
                 conversation_state=new_state,
@@ -1175,13 +1203,12 @@ def chat_endpoint(request: ChatRequest):
             )
 
         if message == "no":
-            end_state = {"step": "complete"}
             return ChatResponse(
-                response_key="triage.continueCheck.goodbye",
+                response_key="triage.goodbye",
                 response_params={},
                 options=["restart"],
-                conversation_state=end_state,
-                progress=get_step_progress(end_state.get("step")),
+                conversation_state={"step": "complete"},
+                progress=get_step_progress("complete"),
             )
 
         return ChatResponse(
@@ -1192,53 +1219,69 @@ def chat_endpoint(request: ChatRequest):
             progress=get_step_progress(state.get("step")),
         )
 
-    if message == "continue_to_legal_resources":
-        new_state = {"step": "topic_selection"}
+    if state.get("step") == "resource_selected":
         return ChatResponse(
-            response_key="triage.continueToLegalResources.prompt",
+            response_key="triage.results.connectTop",
             response_params={},
-            options=["child_support", "education", "housing", "divorce", "custody"],
-            conversation_state=new_state,
-            progress=get_step_progress(new_state.get("step")),
+            options=["restart"],
+            conversation_state=state,
+            progress=get_step_progress(state.get("step")),
         )
 
     return ChatResponse(
-        response_key="triage.fallback.prompt",
+        response_key="triage.topic.prompt",
         response_params={},
-        options=["restart"],
-        conversation_state=state,
-        progress=get_step_progress(state.get("step")),
+        options=["child_support", "education", "housing", "divorce", "custody"],
+        conversation_state={"step": "topic_selection"},
+        progress=get_step_progress("topic_selection"),
     )
 
 
+# -----------------
+# AI chat endpoint
+# -----------------
 @app.post("/ai-chat", response_model=AIChatResponse)
-async def ai_chat_endpoint(request: AIChatRequest):
-    if not groq_configured:
-        raise HTTPException(
-            status_code=503,
-            detail="AI assistant is not configured. Please add GROQ_API_KEY to environment variables.",
-        )
+def ai_chat(req: AIChatRequest):
+    if not groq_configured or not groq_client:
+        raise HTTPException(status_code=503, detail="AI assistant is not configured")
+
+    if not req.messages:
+        raise HTTPException(status_code=400, detail="messages are required")
+
+    log_intake_event(req.intake_id, "ai_assistant_opened", req.topic or "general")
 
     try:
-        lang = normalize_language(request.language)
-        system_prompt = ILLINOIS_SYSTEM_PROMPT + "\n\nLANGUAGE REQUIREMENT:\n" + language_instruction(lang)
+        system_parts = [
+            ILLINOIS_SYSTEM_PROMPT,
+            language_instruction(req.language),
+        ]
 
-        messages_for_groq = [{"role": "system", "content": system_prompt}]
-        for msg in request.messages:
-            messages_for_groq.append({"role": msg["role"], "content": msg["content"]})
+        if req.topic:
+            system_parts.append(f"Topic focus: {req.topic}")
 
         response = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=messages_for_groq,
-            temperature=0.3,
-            max_tokens=1000,
+            model=os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
+            messages=[
+                {"role": "system", "content": "\n\n".join(system_parts)},
+                *req.messages,
+            ],
+            temperature=0.2,
         )
 
-        assistant_message = response.choices[0].message.content
+        content = response.choices[0].message.content if response.choices else ""
+        usage = {}
+
+        if getattr(response, "usage", None):
+            usage = {
+                "prompt_tokens": getattr(response.usage, "prompt_tokens", 0),
+                "completion_tokens": getattr(response.usage, "completion_tokens", 0),
+                "total_tokens": getattr(response.usage, "total_tokens", 0),
+            }
+
         return AIChatResponse(
-            response=assistant_message,
-            usage={"model": "llama-3.3-70b-versatile", "provider": "groq"},
+            response=content or "I'm sorry, I couldn't generate a response right now.",
+            usage=usage,
         )
+
     except Exception as e:
-        print(f"Error in AI chat endpoint: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"AI chat error: {str(e)}")
