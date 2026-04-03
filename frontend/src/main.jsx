@@ -11,7 +11,7 @@ const LoadingFallback = () => (
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      height: "100vh",
+      minHeight: "100vh",
       fontSize: "14px",
       color: "#334155",
       background: "#f6f8fb",
@@ -22,6 +22,11 @@ const LoadingFallback = () => (
 );
 
 const container = document.getElementById("root");
+
+if (!container) {
+  throw new Error('Root element with id "root" was not found.');
+}
+
 const root = createRoot(container);
 
 root.render(

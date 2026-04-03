@@ -1,14 +1,6 @@
 {
   "child_support": {
-    "free": [
-      {
-        "name": "Chicago Advocate Legal, NFP",
-        "description": "Provides free legal services to low-income Cook County residents in family law, housing, and other civil matters.",
-        "url": "https://www.chicagoadvocatelegal.com",
-        "phone": "(312) 801-5918",
-        "intake_form": "https://www.chicagoadvocatelegal.com/intake.html",
-        "is_nfp": true
-      },
+    "level_1": [
       {
         "name": "Illinois Legal Aid Online",
         "description": "Provides legal information, forms, and referrals for family law matters including child support.",
@@ -16,7 +8,9 @@
         "phone": "(866) 452-5291",
         "intake_form": "",
         "is_nfp": false
-      },
+      }
+    ],
+    "level_2": [
       {
         "name": "Legal Aid Chicago",
         "description": "Free legal services for low-income Cook County residents in family law, housing, and consumer issues.",
@@ -42,7 +36,15 @@
         "is_nfp": false
       }
     ],
-    "paid": [
+    "level_3": [
+      {
+        "name": "Chicago Advocate Legal, NFP",
+        "description": "Provides free legal services to low-income Cook County residents in family law, housing, and other civil matters.",
+        "url": "https://www.chicagoadvocatelegal.com",
+        "phone": "(312) 801-5918",
+        "intake_form": "https://www.chicagoadvocatelegal.com/intake.html",
+        "is_nfp": true
+      },
       {
         "name": "Justice Entrepreneurs Project",
         "description": "Network of independent attorneys offering accessible, affordable legal services with predictable pricing across family law, housing, immigration, and more.",
@@ -61,17 +63,18 @@
       }
     ]
   },
-
   "education": {
-    "free": [
+    "level_1": [
       {
-        "name": "Chicago Advocate Legal, NFP",
-        "description": "Provides free legal services to low-income Cook County residents in family law, housing, and other civil matters.",
-        "url": "https://www.chicagoadvocatelegal.com",
-        "phone": "(312) 801-5918",
-        "intake_form": "https://www.chicagoadvocatelegal.com/intake.html",
-        "is_nfp": true
-      },
+        "name": "Illinois Legal Aid Online - School and Education",
+        "description": "Online resources, presentations, and legal information for education rights in Illinois.",
+        "url": "https://www.illinoislegalaid.org/legal-information/school-education",
+        "phone": "(866) 452-5291",
+        "intake_form": "",
+        "is_nfp": false
+      }
+    ],
+    "level_2": [
       {
         "name": "Equip for Equality",
         "description": "Illinois Protection & Advocacy for people with disabilities. Specializes in special education, restraint and seclusion, and ADA/discrimination rights.",
@@ -136,17 +139,17 @@
         "phone": "(847) 492-1410",
         "intake_form": "",
         "is_nfp": false
-      },
-      {
-        "name": "Illinois Legal Aid Online - School and Education",
-        "description": "Online resources, presentations, and legal information for education rights in Illinois.",
-        "url": "https://www.illinoislegalaid.org/legal-information/school-education",
-        "phone": "(866) 452-5291",
-        "intake_form": "",
-        "is_nfp": false
       }
     ],
-    "paid": [
+    "level_3": [
+      {
+        "name": "Chicago Advocate Legal, NFP",
+        "description": "Provides free legal services to low-income Cook County residents in family law, housing, and other civil matters.",
+        "url": "https://www.chicagoadvocatelegal.com",
+        "phone": "(312) 801-5918",
+        "intake_form": "https://www.chicagoadvocatelegal.com/intake.html",
+        "is_nfp": true
+      },
       {
         "name": "Justice Entrepreneurs Project",
         "description": "Network of independent attorneys offering accessible, affordable legal services with predictable pricing in education law and other areas.",
@@ -157,17 +160,34 @@
       }
     ]
   },
-
   "housing": {
-    "free": [
+    "level_1": [
       {
-        "name": "Chicago Advocate Legal, NFP",
-        "description": "Provides free legal services to low-income Cook County residents in housing, family law, and other civil matters.",
-        "url": "https://www.chicagoadvocatelegal.com",
-        "phone": "(312) 801-5918",
-        "intake_form": "https://www.chicagoadvocatelegal.com/intake.html",
-        "is_nfp": true
+        "name": "Illinois Legal Aid Online - Housing",
+        "description": "Legal information, renters rights education, forms, eviction guides, and referrals to legal aid.",
+        "url": "https://www.illinoislegalaid.org/legal-information/housing",
+        "phone": "(866) 452-5291",
+        "intake_form": "",
+        "is_nfp": false
       },
+      {
+        "name": "Metropolitan Tenants Organization",
+        "description": "Tenant advocacy and support with rights education, organizing, hotline referrals, and tools for housing disputes.",
+        "url": "https://www.44thward.org/services/housing-resources",
+        "phone": "(773) 292-4988",
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "Court-Based Rental Assistance Programs (CBRAP)",
+        "description": "Emergency rental assistance (past-due rent, future rent, and court costs) for tenants in eviction court in Illinois.",
+        "url": "https://www.illinoishousinghelp.org/cbrap",
+        "phone": "(866) 454-3571",
+        "intake_form": "",
+        "is_nfp": false
+      }
+    ],
+    "level_2": [
       {
         "name": "LAW Center for Better Housing",
         "description": "Free legal services for renters facing eviction, unsafe housing, discrimination, utility shutoffs, and security deposit disputes. Also operates Rentervention tenant support platform.",
@@ -181,14 +201,6 @@
         "description": "Free legal aid hotline for eviction defense, foreclosure, small debt disputes, and rental assistance referrals.",
         "url": "https://www.cookcountyil.gov/service/cook-county-legal-aid-housing-and-debt-cclahd",
         "phone": "(855) 956-5763",
-        "intake_form": "",
-        "is_nfp": false
-      },
-      {
-        "name": "Metropolitan Tenants Organization",
-        "description": "Tenant advocacy and support with rights education, organizing, hotline referrals, and tools for housing disputes.",
-        "url": "https://www.44thward.org/services/housing-resources",
-        "phone": "(773) 292-4988",
         "intake_form": "",
         "is_nfp": false
       },
@@ -215,25 +227,17 @@
         "phone": "(312) 738-9200",
         "intake_form": "",
         "is_nfp": false
-      },
-      {
-        "name": "Court-Based Rental Assistance Programs (CBRAP)",
-        "description": "Emergency rental assistance (past-due rent, future rent, and court costs) for tenants in eviction court in Illinois.",
-        "url": "https://www.illinoishousinghelp.org/cbrap",
-        "phone": "(866) 454-3571",
-        "intake_form": "",
-        "is_nfp": false
-      },
-      {
-        "name": "Illinois Legal Aid Online - Housing",
-        "description": "Legal information, renters rights education, forms, eviction guides, and referrals to legal aid.",
-        "url": "https://www.illinoislegalaid.org/legal-information/housing",
-        "phone": "(866) 452-5291",
-        "intake_form": "",
-        "is_nfp": false
       }
     ],
-    "paid": [
+    "level_3": [
+      {
+        "name": "Chicago Advocate Legal, NFP",
+        "description": "Provides free legal services to low-income Cook County residents in housing, family law, and other civil matters.",
+        "url": "https://www.chicagoadvocatelegal.com",
+        "phone": "(312) 801-5918",
+        "intake_form": "https://www.chicagoadvocatelegal.com/intake.html",
+        "is_nfp": true
+      },
       {
         "name": "Justice Entrepreneurs Project",
         "description": "Network of independent attorneys offering accessible, affordable legal services with predictable pricing in housing law and other areas.",
@@ -244,17 +248,18 @@
       }
     ]
   },
-
   "divorce": {
-    "free": [
+    "level_1": [
       {
-        "name": "Chicago Advocate Legal, NFP",
-        "description": "Provides free legal services to low-income Cook County residents in family law including divorce proceedings.",
-        "url": "https://www.chicagoadvocatelegal.com",
-        "phone": "(312) 801-5918",
-        "intake_form": "https://www.chicagoadvocatelegal.com/intake.html",
-        "is_nfp": true
-      },
+        "name": "Illinois Legal Aid Online - Family Law",
+        "description": "Provides legal information, forms, and referrals for divorce and family law matters.",
+        "url": "https://www.illinoislegalaid.org/legal-information/family-safety",
+        "phone": "(866) 452-5291",
+        "intake_form": "",
+        "is_nfp": false
+      }
+    ],
+    "level_2": [
       {
         "name": "Legal Aid Chicago",
         "description": "Free legal services for low-income Cook County residents in family law including divorce matters.",
@@ -278,17 +283,17 @@
         "phone": "(312) 738-9200",
         "intake_form": "",
         "is_nfp": false
-      },
-      {
-        "name": "Illinois Legal Aid Online - Family Law",
-        "description": "Provides legal information, forms, and referrals for divorce and family law matters.",
-        "url": "https://www.illinoislegalaid.org/legal-information/family-safety",
-        "phone": "(866) 452-5291",
-        "intake_form": "",
-        "is_nfp": false
       }
     ],
-    "paid": [
+    "level_3": [
+      {
+        "name": "Chicago Advocate Legal, NFP",
+        "description": "Provides free legal services to low-income Cook County residents in family law including divorce proceedings.",
+        "url": "https://www.chicagoadvocatelegal.com",
+        "phone": "(312) 801-5918",
+        "intake_form": "https://www.chicagoadvocatelegal.com/intake.html",
+        "is_nfp": true
+      },
       {
         "name": "Justice Entrepreneurs Project",
         "description": "Network of independent attorneys offering accessible, affordable legal services with predictable pricing in divorce and family law.",
@@ -307,17 +312,18 @@
       }
     ]
   },
-
   "custody": {
-    "free": [
+    "level_1": [
       {
-        "name": "Chicago Advocate Legal, NFP",
-        "description": "Provides free legal services to low-income Cook County residents in family law including child custody matters.",
-        "url": "https://www.chicagoadvocatelegal.com",
-        "phone": "(312) 801-5918",
-        "intake_form": "https://www.chicagoadvocatelegal.com/intake.html",
-        "is_nfp": true
-      },
+        "name": "Illinois Legal Aid Online - Family Law",
+        "description": "Provides legal information, forms, and referrals for child custody and family law matters.",
+        "url": "https://www.illinoislegalaid.org/legal-information/family-safety",
+        "phone": "(866) 452-5291",
+        "intake_form": "",
+        "is_nfp": false
+      }
+    ],
+    "level_2": [
       {
         "name": "Legal Aid Chicago",
         "description": "Free legal services for low-income Cook County residents in family law including custody disputes.",
@@ -341,17 +347,17 @@
         "phone": "(312) 738-9200",
         "intake_form": "",
         "is_nfp": false
-      },
-      {
-        "name": "Illinois Legal Aid Online - Family Law",
-        "description": "Provides legal information, forms, and referrals for child custody and family law matters.",
-        "url": "https://www.illinoislegalaid.org/legal-information/family-safety",
-        "phone": "(866) 452-5291",
-        "intake_form": "",
-        "is_nfp": false
       }
     ],
-    "paid": [
+    "level_3": [
+      {
+        "name": "Chicago Advocate Legal, NFP",
+        "description": "Provides free legal services to low-income Cook County residents in family law including child custody matters.",
+        "url": "https://www.chicagoadvocatelegal.com",
+        "phone": "(312) 801-5918",
+        "intake_form": "https://www.chicagoadvocatelegal.com/intake.html",
+        "is_nfp": true
+      },
       {
         "name": "Justice Entrepreneurs Project",
         "description": "Network of independent attorneys offering accessible, affordable legal services with predictable pricing in custody and family law.",

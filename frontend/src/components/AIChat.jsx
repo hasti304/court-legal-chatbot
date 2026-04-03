@@ -14,10 +14,12 @@ import {
 } from "react-icons/fa";
 
 const API_BASE = String(
-  import.meta.env.VITE_API_BASE_URL ?? "https://court-legal-chatbot.onrender.com"
+  import.meta.env.VITE_API_BASE_URL ?? "https://court-legal-chatbot-1.onrender.com"
 ).replace(/\/+$/, "");
 
-const AIChat = ({ topic, onBack }) => {
+const SUPPORT_EMAIL = "cal@chicagoadvocatelegal.com";
+
+const AIChat = ({ topic, onBack, intakeId = null }) => {
   const { t, i18n } = useTranslation();
 
   const [messages, setMessages] = useState([
@@ -38,12 +40,31 @@ const AIChat = ({ topic, onBack }) => {
 
   const apiUrl = (path) => `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`;
 
+  const fetchWithTimeout = (url, options = {}, timeout = 8000) =>
+    Promise.race([
+      fetch(url, options),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Request timeout")), timeout)
+      ),
+    ]);
+
   useEffect(() => {
     if (messages.length === 1 && messages[0]?.role === "assistant") {
       setMessages([{ role: "assistant", content: t("ai.placeholder") }]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [i18n.language]);
+
+  useEffect(() => {
+    const handleEscExit = (e) => {
+      if (e.key === "Escape") {
+        quickExit();
+      }
+    };
+
+    window.addEventListener("keydown", handleEscExit);
+    return () => window.removeEventListener("keydown", handleEscExit);
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -127,7 +148,7 @@ const AIChat = ({ topic, onBack }) => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(apiUrl("/ai-chat"), {
+      const response = await fetchWithTimeout(apiUrl("/ai-chat"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -137,6 +158,7 @@ const AIChat = ({ topic, onBack }) => {
           })),
           topic: topic || "general",
           language: getNormalizedLanguage(),
+          intake_id: intakeId || null,
         }),
       });
 
@@ -150,13 +172,22 @@ const AIChat = ({ topic, onBack }) => {
 
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: data.response || t("ai.error") },
+        {
+          role: "assistant",
+          content:
+            data.response ||
+            "I’m sorry, I couldn’t generate a response right now. Please try again.",
+        },
       ]);
     } catch (error) {
       console.error("AI request failed:", error);
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: t("ai.error") },
+        {
+          role: "assistant",
+          content:
+            "I’m having trouble connecting right now. Please try again in a moment, or contact Chicago Advocate Legal, NFP directly using the information below.",
+        },
       ]);
     } finally {
       setIsLoading(false);
@@ -301,19 +332,25 @@ const AIChat = ({ topic, onBack }) => {
         </div>
 
         <div className="ai-chat-footer">
-          <p className="help-text">{t("ai.needHelp")}</p>
+          <p className="help-text">Need immediate help? Contact:</p>
+
           <div className="footer-contacts">
             <div className="footer-contact-item">
               <strong>Chicago Advocate Legal, NFP:</strong>{" "}
               <a href="tel:+13128015918">(312) 801-5918</a>
               {" | "}
               <a
-                href="https://www.chicagoadvocatelegal.com/contact.html"
+                href="https://www.chicagoadvocatelegal.com/intake.html"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 Direct Intake Form
               </a>
+            </div>
+
+            <div className="footer-contact-item">
+              <strong>Email:</strong>{" "}
+              <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
             </div>
 
             <div className="footer-contact-item">
