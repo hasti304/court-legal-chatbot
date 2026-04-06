@@ -25,20 +25,23 @@ REFERRAL_MAP_PATH = os.path.join(DATA_DIR, "referral_map.json")
 
 app = FastAPI()
 
+ALLOWED_ORIGINS = [
+    "https://court-legal-chatbot-frontend.onrender.com",
+    "https://hasti304.github.io",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://hasti304.github.io",
-        "https://hasti304.github.io/court-legal-chatbot",
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"https://.*\.onrender\.com",
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
-    max_age=3600,
+    max_age=86400,
 )
 
 # --- Groq client ---
