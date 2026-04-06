@@ -17,9 +17,9 @@ const API_BASE = String(
   import.meta.env.VITE_API_BASE_URL ?? "https://court-legal-chatbot-1.onrender.com"
 ).replace(/\/+$/, "");
 
-const SUPPORT_EMAIL = "cal@chicagoadvocatelegal.com";
+const SUPPORT_EMAIL = "intake@chicagoadvocatelegal.com";
 
-const AIChat = ({ topic, onBack, intakeId = null }) => {
+const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false }) => {
   const { t, i18n } = useTranslation();
 
   const [messages, setMessages] = useState([
@@ -67,12 +67,12 @@ const AIChat = ({ topic, onBack, intakeId = null }) => {
   }, []);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   };
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, isLoading]);
 
   useEffect(() => {
     return () => {
@@ -185,8 +185,9 @@ const AIChat = ({ topic, onBack, intakeId = null }) => {
         ...prev,
         {
           role: "assistant",
-          content:
-            "I’m having trouble connecting right now. Please try again in a moment, or contact Chicago Advocate Legal, NFP directly using the information below.",
+          content: isDiscreetMode
+            ? "I’m having trouble connecting right now. Please try again in a moment, or use the support contact information below."
+            : "I’m having trouble connecting right now. Please try again in a moment, or contact Chicago Advocate Legal, NFP directly using the information below.",
         },
       ]);
     } finally {
@@ -201,6 +202,14 @@ const AIChat = ({ topic, onBack, intakeId = null }) => {
     }
   };
 
+  const headerTitle = isDiscreetMode ? "Support Assistant" : t("ai.title");
+  const helpText = isDiscreetMode
+    ? "Need immediate help? Contact support:"
+    : "Need immediate help? Contact:";
+  const orgLabel = isDiscreetMode
+    ? "Support Team:"
+    : "Chicago Advocate Legal, NFP:";
+
   return (
     <div className="ai-chat-page">
       <div className="ai-chat-container">
@@ -210,7 +219,7 @@ const AIChat = ({ topic, onBack, intakeId = null }) => {
               <FaArrowLeft /> {t("ai.back")}
             </button>
 
-            <h2>{t("ai.title")}</h2>
+            <h2>{headerTitle}</h2>
           </div>
 
           <p className="ai-disclaimer">{t("ai.disclaimer")}</p>
@@ -332,11 +341,11 @@ const AIChat = ({ topic, onBack, intakeId = null }) => {
         </div>
 
         <div className="ai-chat-footer">
-          <p className="help-text">Need immediate help? Contact:</p>
+          <p className="help-text">{helpText}</p>
 
           <div className="footer-contacts">
             <div className="footer-contact-item">
-              <strong>Chicago Advocate Legal, NFP:</strong>{" "}
+              <strong>{orgLabel}</strong>{" "}
               <a href="tel:+13128015918">(312) 801-5918</a>
               {" | "}
               <a

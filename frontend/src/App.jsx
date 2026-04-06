@@ -35,25 +35,7 @@ const API_BASE = String(
   import.meta.env.VITE_API_BASE_URL ?? "https://court-legal-chatbot-1.onrender.com"
 ).replace(/\/+$/, "");
 
-const SUPPORT_EMAIL = "cal@chicagoadvocatelegal.com";
-
-
-function getDiscreetModeFromUrl() {
-  if (typeof window === "undefined") return false;
-  const params = new URLSearchParams(window.location.search);
-  return params.get("mode") === "discreet";
-}
-
-function setDiscreetModeInUrl(enabled) {
-  if (typeof window === "undefined") return;
-  const url = new URL(window.location.href);
-  if (enabled) {
-    url.searchParams.set("mode", "discreet");
-  } else {
-    url.searchParams.delete("mode");
-  }
-  window.history.replaceState({}, "", url.toString());
-}
+const SUPPORT_EMAIL = "intake@chicagoadvocatelegal.com";
 
 function isValidEmail(email) {
   const v = String(email || "").trim();
@@ -82,6 +64,115 @@ function fetchWithTimeout(url, options = {}, timeout = 8000) {
       setTimeout(() => reject(new Error("Request timeout")), timeout)
     ),
   ]);
+}
+
+function inferTopicFromFreeText(input) {
+  const text = String(input || "").toLowerCase().trim();
+  if (!text) return "";
+
+  const topicMatchers = [
+    {
+      topic: "housing",
+      patterns: [
+        "apartment",
+        "landlord",
+        "tenant",
+        "eviction",
+        "lockout",
+        "locked out",
+        "can't get into my apartment",
+        "cannot get into my apartment",
+        "housing",
+        "lease",
+        "rent",
+        "utilities",
+        "repair",
+      ],
+    },
+    {
+      topic: "education",
+      patterns: [
+        "school",
+        "student",
+        "special education",
+        "iep",
+        "504",
+        "bullying",
+        "discipline",
+        "education",
+        "suspension",
+        "expulsion",
+      ],
+    },
+    {
+      topic: "child_support",
+      patterns: [
+        "child support",
+        "support payment",
+        "support order",
+        "pay child support",
+        "receive child support",
+      ],
+    },
+    {
+      topic: "divorce",
+      patterns: [
+        "divorce",
+        "separation",
+        "spouse",
+        "marriage",
+        "dissolution",
+      ],
+    },
+    {
+      topic: "custody",
+      patterns: [
+        "custody",
+        "parenting time",
+        "visitation",
+        "child care decisions",
+        "my child",
+      ],
+    },
+  ];
+
+  for (const matcher of topicMatchers) {
+    if (matcher.patterns.some((pattern) => text.includes(pattern))) {
+      return matcher.topic;
+    }
+  }
+
+  return "";
+}
+
+function normalizeFreeTextMessageForStep(message, step) {
+  const raw = String(message || "").trim();
+  const lowered = raw.toLowerCase();
+  const currentStep = String(step || "").toLowerCase();
+
+  if (currentStep === "topic_selection") {
+    const inferredTopic = inferTopicFromFreeText(lowered);
+    if (inferredTopic) return inferredTopic;
+  }
+
+  if (currentStep === "emergency_check") {
+    if (/(i don't know|dont know|do not know|not sure|unsure|unknown)/i.test(raw)) return "unknown";
+    if (/(yes|yep|yeah|urgent|emergency|danger|unsafe)/i.test(raw)) return "yes";
+    if (/(no|nope|not an emergency|safe)/i.test(raw)) return "no";
+  }
+
+  if (currentStep === "court_status") {
+    if (/(yes|i do|already|have a court case|in court)/i.test(raw)) return "yes";
+    if (/(no|not in court|don't have a court case|do not have a court case)/i.test(raw)) return "no";
+  }
+
+  if (currentStep === "income_check") {
+    if (/(not sure|unsure|don't know|do not know)/i.test(raw)) return "not_sure";
+    if (/(yes|qualify|low income|free legal help)/i.test(raw)) return "yes";
+    if (/(no|do not qualify|don't qualify)/i.test(raw)) return "no";
+  }
+
+  return raw;
 }
 
 function App() {
@@ -124,8 +215,6 @@ function App() {
 
   const [speechEnabled, setSpeechEnabled] = useState(false);
   const [speaking, setSpeaking] = useState(false);
-
-  const [isDiscreetMode, setIsDiscreetMode] = useState(getDiscreetModeFromUrl());
 
   const apiUrl = (path) => `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`;
 
@@ -200,26 +289,42 @@ function App() {
   }, [i18n.language, i18n.resolvedLanguage, normalizedLang]);
 
   useEffect(() => {
-    document.body.classList.toggle("discreet-mode", isDiscreetMode);
-    document.title = isDiscreetMode ? "Resource Portal" : "CAL Legal Chatbot";
-    setDiscreetModeInUrl(isDiscreetMode);
-
-    return () => {
-      document.body.classList.remove("discreet-mode");
-    };
-  }, [isDiscreetMode]);
-
-
-  useEffect(() => {
     setView("intakeChoice");
   }, []);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  };
+
+  const scrollToLatestReferrals = () => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const referralSections = container.querySelectorAll(".referrals");
+    const latestReferralSection = referralSections[referralSections.length - 1];
+
+    if (latestReferralSection) {
+      latestReferralSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    scrollToBottom();
   };
 
   useEffect(() => {
-    if (messages.length > 0) scrollToBottom();
+    if (messages.length === 0) return;
+
+    const timer = window.setTimeout(() => {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage?.role === "bot" && Array.isArray(lastMessage?.referrals) && lastMessage.referrals.length > 0) {
+        scrollToLatestReferrals();
+        return;
+      }
+
+      scrollToBottom();
+    }, 120);
+
+    return () => window.clearTimeout(timer);
   }, [messages]);
 
   useEffect(() => {
@@ -272,68 +377,6 @@ function App() {
     }
   }, [messages, speechEnabled]);
 
-
-  const toggleDiscreetMode = () => {
-    setIsDiscreetMode((prev) => !prev);
-  };
-
-  const discreetAppTitle = isDiscreetMode ? "Resource Portal" : t("app.title");
-  const discreetSubtitle = isDiscreetMode
-    ? "Private support and referral tool"
-    : t("app.subtitle");
-  const discreetPrivacyTitle = isDiscreetMode ? "Privacy & Safety" : t("privacy.title");
-  const discreetPrivacyBody = isDiscreetMode
-    ? "This private support tool is designed to reduce visible legal wording on screen. Quick Exit and Clear Session are available for safety."
-    : t("privacy.body");
-  const discreetIntakeChoiceTitle = isDiscreetMode
-    ? "Welcome Back"
-    : t("intake.samePersonTitle");
-  const discreetIntakeChoiceSubtitle = isDiscreetMode
-    ? hasSavedIntakeText()
-    : intakeSaved && intakeId
-      ? t("intake.samePersonBody")
-      : "Create a login to begin.";
-  const discreetIntakeTitle = isDiscreetMode ? "Create Access" : "Create Login";
-  const discreetIntakeSubtitle = isDiscreetMode
-    ? "Enter your details to save your progress securely."
-    : t("intake.subtitle");
-  const discreetWelcomeTitle = isDiscreetMode
-    ? "Find Support Options"
-    : t("landing.welcomeTitle");
-  const discreetWelcomeTagline = isDiscreetMode
-    ? "Answer a few questions to explore support and referral options."
-    : t("landing.tagline");
-  const discreetBeginLabel = isDiscreetMode ? "Open Support Tool" : t("landing.begin");
-  const discreetBackToLoginLabel = isDiscreetMode ? "Back" : "Back to Login";
-  const discreetContactHelpLabel = isDiscreetMode ? "Need help? Contact support:" : "Need help? Email:";
-  const discreetImportantNoticeTitle = isDiscreetMode
-    ? "Private Mode"
-    : t("landing.importantNoticeTitle");
-  const discreetInfoOnly = isDiscreetMode
-    ? "This tool provides general support information and referrals."
-    : t("landing.infoOnly");
-  const discreetPrivacyWarning = isDiscreetMode
-    ? "This screen uses neutral wording and keeps Quick Exit available."
-    : `${t("landing.privacyTitle")} ${t("landing.privacyText")}`;
-  const discreetChatHeaderTitle = isDiscreetMode
-    ? "Resource Portal"
-    : "CAL Legal Information and Resources Chatbot";
-  const discreetChatHeaderSubtitle = isDiscreetMode
-    ? "Support & Resources"
-    : "Information & Referrals";
-  const discreetFooterDisclaimer = isDiscreetMode
-    ? "This tool provides general support information and referrals."
-    : t("landing.infoOnly");
-  const discreetFooterPrivacy = isDiscreetMode
-    ? "Quick Exit and Clear Session are available if you need to leave quickly."
-    : "Quick Exit is available if you need to leave this page quickly.";
-
-  function hasSavedIntakeText() {
-    return intakeSaved && intakeId
-      ? "Continue with your saved access."
-      : "Create access to begin.";
-  }
-
   const LanguagePicker = ({ variant = "light" }) => {
     const isDark = variant === "dark";
     const style = {
@@ -384,7 +427,7 @@ function App() {
 
     const hardcodedMap = {
       unknown: "I don't know",
-      connect: isDiscreetMode ? "Open Support Form" : "Connect with Chicago Advocate Legal, NFP",
+      connect: "Connect with Chicago Advocate Legal, NFP",
     };
 
     if (hardcodedMap[normalized]) return hardcodedMap[normalized];
@@ -608,8 +651,13 @@ function App() {
     e.preventDefault();
     if (!userInput.trim() || loading) return;
 
-    await trackStepAnswer(conversationState?.step, userInput.trim());
-    sendMessage(userInput.trim());
+    const normalizedMessage = normalizeFreeTextMessageForStep(
+      userInput.trim(),
+      conversationState?.step
+    );
+
+    await trackStepAnswer(conversationState?.step, normalizedMessage);
+    sendMessage(normalizedMessage);
   };
 
   const handleOptionClick = async (optionCode) => {
@@ -712,59 +760,45 @@ function App() {
     }
   };
 
-  const renderHeaderLogo = () => {
-    if (isDiscreetMode) return null;
-
-    return (
-      <div className="brand-block">
-        <img
-          src={calLogo}
-          alt="Chicago Advocate Legal, NFP logo"
-          className="app-logo"
-        />
-      </div>
-    );
-  };
+  const renderHeaderLogo = () => (
+    <div className="brand-block">
+      <img
+        src={calLogo}
+        alt="Chicago Advocate Legal, NFP logo"
+        className="app-logo"
+      />
+    </div>
+  );
 
   const topicCards = [
     {
       key: "childSupport",
-      title: isDiscreetMode ? "Family Support" : t("landing.topics.childSupportTitle"),
-      desc: isDiscreetMode
-        ? "Help exploring family support options and next steps."
-        : t("landing.topics.childSupportDesc"),
+      title: t("landing.topics.childSupportTitle"),
+      desc: t("landing.topics.childSupportDesc"),
       icon: <FaUsers />,
     },
     {
       key: "education",
-      title: isDiscreetMode ? "School Help" : t("landing.topics.educationTitle"),
-      desc: isDiscreetMode
-        ? "Guidance for school-related support and referrals."
-        : t("landing.topics.educationDesc"),
+      title: t("landing.topics.educationTitle"),
+      desc: t("landing.topics.educationDesc"),
       icon: <FaGraduationCap />,
     },
     {
       key: "housing",
-      title: isDiscreetMode ? "Housing Help" : t("landing.topics.housingTitle"),
-      desc: isDiscreetMode
-        ? "Support for housing concerns and trusted referrals."
-        : t("landing.topics.housingDesc"),
+      title: t("landing.topics.housingTitle"),
+      desc: t("landing.topics.housingDesc"),
       icon: <FaHome />,
     },
     {
       key: "divorce",
-      title: isDiscreetMode ? "Family Changes" : t("landing.topics.divorceTitle"),
-      desc: isDiscreetMode
-        ? "Support related to family changes and next steps."
-        : t("landing.topics.divorceDesc"),
+      title: t("landing.topics.divorceTitle"),
+      desc: t("landing.topics.divorceDesc"),
       icon: <FaBalanceScale />,
     },
     {
       key: "custody",
-      title: isDiscreetMode ? "Child Care Decisions" : t("landing.topics.custodyTitle"),
-      desc: isDiscreetMode
-        ? "Guidance for child care decisions and available referrals."
-        : t("landing.topics.custodyDesc"),
+      title: t("landing.topics.custodyTitle"),
+      desc: t("landing.topics.custodyDesc"),
       icon: <FaChild />,
     },
   ];
@@ -782,7 +816,6 @@ function App() {
           topic={currentTopic}
           intakeId={intakeId}
           onBack={() => setShowAIChat(false)}
-          isDiscreetMode={isDiscreetMode}
         />
       </Suspense>
     );
@@ -795,22 +828,14 @@ function App() {
         <div className="landing-header">
           <div className="logo-container">
             {renderHeaderLogo()}
-            <h1>{discreetPrivacyTitle}</h1>
-            <p className="subtitle">{discreetSubtitle}</p>
+            <h1>{t("privacy.title")}</h1>
+            <p className="subtitle">{t("app.subtitle")}</p>
             <LanguagePicker />
           </div>
-                    <button
-              type="button"
-              className="btn btn-start discreet-toggle-btn"
-              onClick={toggleDiscreetMode}
-              disabled={loading}
-            >
-              {isDiscreetMode ? "Standard View" : "Discreet Mode"}
-            </button>
-          </div>
+        </div>
 
         <div className="landing-content">
-          <p className="tagline left-text">{discreetPrivacyBody}</p>
+          <p className="tagline left-text">{t("privacy.body")}</p>
 
           <button
             className="btn btn-primary btn-large btn-start"
@@ -835,19 +860,11 @@ function App() {
         <div className="landing-header">
           <div className="logo-container">
             {renderHeaderLogo()}
-            <h1>{discreetIntakeChoiceTitle}</h1>
+            <h1>{t("intake.samePersonTitle")}</h1>
             <p className="subtitle">
-              {isDiscreetMode ? discreetIntakeChoiceSubtitle : hasSaved ? t("intake.samePersonBody") : "Create a login to begin."}
+              {hasSaved ? t("intake.samePersonBody") : "Create a login to begin."}
             </p>
             <LanguagePicker />
-            <button
-              type="button"
-              className="btn btn-start discreet-toggle-btn"
-              onClick={toggleDiscreetMode}
-              disabled={loading}
-            >
-              {isDiscreetMode ? "Standard View" : "Discreet Mode"}
-            </button>
           </div>
         </div>
 
@@ -857,7 +874,7 @@ function App() {
             onClick={() => setView(hasSaved ? "cover" : "intake")}
             disabled={loading}
           >
-            {isDiscreetMode ? (hasSaved ? "Continue" : "Start") : hasSaved ? t("intake.samePerson") : "Start"}
+            {hasSaved ? t("intake.samePerson") : "Start"}
           </button>
 
           <button
@@ -902,17 +919,9 @@ function App() {
         <div className="landing-header">
           <div className="logo-container">
             {renderHeaderLogo()}
-            <h1>{discreetIntakeTitle}</h1>
-            <p className="subtitle">{discreetIntakeSubtitle}</p>
+            <h1>Create Login</h1>
+            <p className="subtitle">{t("intake.subtitle")}</p>
             <LanguagePicker />
-            <button
-              type="button"
-              className="btn btn-start discreet-toggle-btn"
-              onClick={toggleDiscreetMode}
-              disabled={loading}
-            >
-              {isDiscreetMode ? "Standard View" : "Discreet Mode"}
-            </button>
           </div>
         </div>
 
@@ -1017,23 +1026,15 @@ function App() {
         <div className="landing-header">
           <div className="logo-container">
             {renderHeaderLogo()}
-            <h1>{discreetAppTitle}</h1>
-            <p className="subtitle">{discreetSubtitle}</p>
+            <h1>{t("app.title")}</h1>
+            <p className="subtitle">{t("app.subtitle")}</p>
             <LanguagePicker />
-            <button
-              type="button"
-              className="btn btn-start discreet-toggle-btn"
-              onClick={toggleDiscreetMode}
-              disabled={loading}
-            >
-              {isDiscreetMode ? "Standard View" : "Discreet Mode"}
-            </button>
           </div>
         </div>
 
         <div className="landing-content">
-          <h2>{discreetWelcomeTitle}</h2>
-          <p className="tagline">{discreetWelcomeTagline}</p>
+          <h2>{t("landing.welcomeTitle")}</h2>
+          <p className="tagline">{t("landing.tagline")}</p>
 
           <div className="topic-cards">
             {topicCards.map((card) => (
@@ -1050,23 +1051,23 @@ function App() {
             onClick={startChatFromCover}
             disabled={loading}
           >
-            {discreetBeginLabel}
+            {t("landing.begin")}
           </button>
 
           <div className="contact-help-box">
             <p>
-              {discreetContactHelpLabel}{" "}
+              Need help? Email:{" "}
               <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
             </p>
           </div>
 
           <div className="disclaimer-box">
-            <p className="disclaimer-title">{discreetImportantNoticeTitle}</p>
+            <p className="disclaimer-title">{t("landing.importantNoticeTitle")}</p>
             <p className="disclaimer-text">
-              <strong>{discreetInfoOnly}</strong>
+              <strong>{t("landing.infoOnly")}</strong>
             </p>
             <p className="privacy-warning">
-              ⚠️ {discreetPrivacyWarning}
+              ⚠️ <strong>{t("landing.privacyTitle")}</strong> {t("landing.privacyText")}
             </p>
           </div>
 
@@ -1076,7 +1077,7 @@ function App() {
               onClick={() => setView("intakeChoice")}
               className="link-button"
             >
-              {discreetBackToLoginLabel}
+              Back to Login
             </button>
           </div>
         </div>
@@ -1104,26 +1105,17 @@ function App() {
     <div className="chat-page">
       <div className="chat-header">
         <div className="header-content">
-          {!isDiscreetMode && (
-            <img
-              src={calLogo}
-              alt="Chicago Advocate Legal, NFP logo"
-              className="chat-header-logo"
-            />
-          )}
+          <img
+            src={calLogo}
+            alt="Chicago Advocate Legal, NFP logo"
+            className="chat-header-logo"
+          />
           <div className="header-text">
-            <h2>{discreetChatHeaderTitle}</h2>
-            <p>{discreetChatHeaderSubtitle}</p>
+            <h2>CAL Legal Information and Resources Chatbot</h2>
+            <p>Information & Referrals</p>
           </div>
           <div className="header-right">
             <LanguagePicker variant="dark" />
-            <button
-              type="button"
-              className="btn btn-toolbar btn-discreet-toggle"
-              onClick={toggleDiscreetMode}
-            >
-              {isDiscreetMode ? "Standard View" : "Discreet Mode"}
-            </button>
           </div>
         </div>
       </div>
@@ -1216,7 +1208,7 @@ function App() {
 
                   {msg.referrals && msg.referrals.length > 0 && (
                     <div className="referrals">
-                      <h4 className="referrals-title">{isDiscreetMode ? "Suggested Support Options" : t("chat.referralsTitle")}</h4>
+                      <h4 className="referrals-title">{t("chat.referralsTitle")}</h4>
                       {msg.referrals.map((ref, i) => (
                         <div key={i} className="referral-card">
                           <div className="referral-header">
@@ -1229,7 +1221,7 @@ function App() {
                               <div className="contact-item">
                                 <FaPhone size={14} />
                                 <span>
-                                  <strong>{isDiscreetMode ? "Phone:" : "Intake Phone:"}</strong> {ref.phone}
+                                  <strong>Intake Phone:</strong> {ref.phone}
                                 </span>
                               </div>
                             )}
@@ -1243,7 +1235,7 @@ function App() {
                                   rel="noopener noreferrer"
                                   className="intake-link"
                                 >
-                                  {isDiscreetMode ? "Open Form" : "Direct Intake Form"}
+                                  Direct Intake Form
                                 </a>
                               </div>
                             )}
@@ -1260,7 +1252,7 @@ function App() {
                                 <div className="contact-item">
                                   <FaPhone size={14} />
                                   <span>
-                                    <strong>{isDiscreetMode ? "Support Helpline:" : "Special Education Helpline:"}</strong>{" "}
+                                    <strong>Special Education Helpline:</strong>{" "}
                                     {ref.special_education_helpline}
                                   </span>
                                 </div>
@@ -1278,7 +1270,7 @@ function App() {
                                 )
                               }
                             >
-                              {isDiscreetMode ? "Open Support Form" : "Connect with Chicago Advocate Legal, NFP"}
+                              Connect with Chicago Advocate Legal, NFP
                             </button>
                           )}
 
@@ -1288,7 +1280,7 @@ function App() {
                             rel="noopener noreferrer"
                             className="btn btn-referral"
                           >
-                            {isDiscreetMode ? "Open Website →" : "Visit Website →"}
+                            Visit Website →
                           </a>
                         </div>
                       ))}
@@ -1302,9 +1294,9 @@ function App() {
                               setShowAIChat(true);
                             }}
                           >
-                            <FaRobot size={18} /> {isDiscreetMode ? "Open Assistant" : t("chat.aiButton")}
+                            <FaRobot size={18} /> {t("chat.aiButton")}
                           </button>
-                          <p className="ai-assistant-hint">{isDiscreetMode ? "Ask general questions and get support information." : t("chat.aiHint")}</p>
+                          <p className="ai-assistant-hint">{t("chat.aiHint")}</p>
                         </div>
                       )}
                     </div>
@@ -1368,7 +1360,7 @@ function App() {
               type="text"
               value={userInput}
               onChange={(e) => setUserInput(e.target.value)}
-              placeholder={isDiscreetMode ? "Type your message..." : t("chat.placeholder")}
+              placeholder={t("chat.placeholder")}
               disabled={loading}
               className="chat-input"
             />
@@ -1379,9 +1371,9 @@ function App() {
         </div>
 
         <div className="chat-footer">
-          <p className="footer-disclaimer">{discreetFooterDisclaimer}</p>
+          <p className="footer-disclaimer">{t("landing.infoOnly")}</p>
           <p className="footer-privacy-warning">
-            {discreetFooterPrivacy}
+            Quick Exit is available if you need to leave this page quickly.
           </p>
         </div>
       </div>
