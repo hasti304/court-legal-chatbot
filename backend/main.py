@@ -25,23 +25,20 @@ REFERRAL_MAP_PATH = os.path.join(DATA_DIR, "referral_map.json")
 
 app = FastAPI()
 
-ALLOWED_ORIGINS = [
-    "https://court-legal-chatbot-frontend.onrender.com",
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://hasti304.github.io",
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_origin_regex=r"https://.*\.onrender\.com",
+    allow_origins=[
+        "https://hasti304.github.io",
+        "https://hasti304.github.io/court-legal-chatbot",
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
     expose_headers=["*"],
-    max_age=86400,
+    max_age=3600,
 )
 
 # --- Groq client ---
@@ -98,6 +95,102 @@ def detect_crisis_keywords(message: str) -> bool:
     ]
     message_lower = (message or "").lower()
     return any(keyword in message_lower for keyword in crisis_keywords)
+
+
+def infer_topic_from_text(message: str) -> Optional[str]:
+    text_value = (message or "").strip().lower()
+    if not text_value:
+        return None
+
+    direct_topics = {
+        "child support": "child_support",
+        "child_support": "child_support",
+        "education": "education",
+        "housing": "housing",
+        "divorce": "divorce",
+        "custody": "custody",
+    }
+    if text_value in direct_topics:
+        return direct_topics[text_value]
+
+    topic_keywords = {
+        "housing": [
+            "apartment", "landlord", "tenant", "lease", "evict", "eviction",
+            "lockout", "locked out", "can't get into my apartment", "cannot get into my apartment",
+            "cant get into my apartment", "home", "house", "rent", "utilities",
+            "heat", "water", "mold", "shelter", "homeless", "housing"
+        ],
+        "education": [
+            "school", "student", "teacher", "iep", "504", "special education",
+            "suspension", "expulsion", "bullying", "education", "classroom"
+        ],
+        "child_support": [
+            "child support", "support payment", "support order", "pay support",
+            "owed support", "maintenance payment for child"
+        ],
+        "divorce": [
+            "divorce", "separation", "separated", "spouse", "marriage", "married",
+            "dissolution"
+        ],
+        "custody": [
+            "custody", "parenting time", "visitation", "childcare decisions",
+            "my child", "see my child", "parental responsibilities"
+        ],
+    }
+
+    for topic, keywords in topic_keywords.items():
+        if any(keyword in text_value for keyword in keywords):
+            return topic
+
+    return None
+
+
+def filter_referrals_for_income(referrals: List[dict], income_value: Optional[str]) -> List[dict]:
+    filtered = list(referrals or [])
+    if income_value == "no":
+        filtered = [
+            ref for ref in filtered
+            if not any(
+                keyword in ref.get("name", "").lower()
+                for keyword in ["legal aid", "prairie state", "carpls"]
+            )
+        ]
+        for ref in filtered:
+            if "Chicago Advocate Legal, NFP" in ref.get("name", ""):
+                ref["is_nfp"] = True
+    return filtered
+
+
+def get_referrals_for_topic(referral_map: dict, topic: str, level: int, income_value: Optional[str]) -> List[dict]:
+    topic_bucket = referral_map.get(topic, {}) if isinstance(referral_map, dict) else {}
+
+    candidate_levels = []
+    try:
+        candidate_levels.append(int(level))
+    except Exception:
+        candidate_levels.append(1)
+
+    for fallback_level in [3, 2, 1]:
+        if fallback_level not in candidate_levels:
+            candidate_levels.append(fallback_level)
+
+    for lvl in candidate_levels:
+        referrals = topic_bucket.get(f"level_{lvl}", [])
+        referrals = filter_referrals_for_income(referrals, income_value)
+        if referrals:
+            return referrals
+
+    for fallback_topic in ["housing", "education", "child_support", "divorce", "custody", "general"]:
+        if fallback_topic == topic:
+            continue
+        fallback_bucket = referral_map.get(fallback_topic, {})
+        for lvl in [3, 2, 1]:
+            referrals = fallback_bucket.get(f"level_{lvl}", [])
+            referrals = filter_referrals_for_income(referrals, income_value)
+            if referrals:
+                return referrals
+
+    return []
 
 
 def normalize_step(step: Optional[str]) -> str:
@@ -936,15 +1029,7 @@ def chat_endpoint(request: ChatRequest):
         )
 
     if state.get("step") == "topic_selection":
-        topics = {
-            "child support": "child_support",
-            "child_support": "child_support",
-            "education": "education",
-            "housing": "housing",
-            "divorce": "divorce",
-            "custody": "custody",
-        }
-        selected_topic = topics.get(message)
+        selected_topic = infer_topic_from_text(message)
 
         if selected_topic:
             log_intake_event(request.intake_id, "topic_selected", selected_topic)
@@ -1080,19 +1165,12 @@ def chat_endpoint(request: ChatRequest):
             state["level"] = level
             log_intake_event(request.intake_id, "triage_level_assigned", str(level))
 
-            referrals = referral_map.get(topic, {}).get(f"level_{level}", [])
-
-            if not income_eligible:
-                referrals = [
-                    ref for ref in referrals
-                    if not any(
-                        keyword in ref.get("name", "").lower()
-                        for keyword in ["legal aid", "prairie state", "carpls"]
-                    )
-                ]
-                for ref in referrals:
-                    if "Chicago Advocate Legal, NFP" in ref.get("name", ""):
-                        ref["is_nfp"] = True
+            referrals = get_referrals_for_topic(
+                referral_map=referral_map,
+                topic=topic,
+                level=level,
+                income_value=state.get("income", "yes"),
+            )
 
             referral_names = [ref.get("name", "").strip() for ref in referrals if ref.get("name")]
             log_intake_event(request.intake_id, "referrals_shown", json.dumps(referral_names, ensure_ascii=False))
@@ -1146,19 +1224,12 @@ def chat_endpoint(request: ChatRequest):
             zip_code = state.get("zip_code", "")
             income = state.get("income", "yes")
 
-            referrals = referral_map.get(topic, {}).get(f"level_{level}", [])
-
-            if income == "no":
-                referrals = [
-                    ref for ref in referrals
-                    if not any(
-                        keyword in ref.get("name", "").lower()
-                        for keyword in ["legal aid", "prairie state", "carpls"]
-                    )
-                ]
-                for ref in referrals:
-                    if "Chicago Advocate Legal, NFP" in ref.get("name", ""):
-                        ref["is_nfp"] = True
+            referrals = get_referrals_for_topic(
+                referral_map=referral_map,
+                topic=topic,
+                level=level,
+                income_value=income,
+            )
 
             top_resource = referrals[0] if referrals else None
             if top_resource:
