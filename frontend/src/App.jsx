@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from "react";
 import {
   FaPaperPlane,
   FaRedo,
@@ -16,24 +16,40 @@ import {
   FaHome,
   FaBalanceScale,
   FaChild,
+  FaPrint,
+  FaSun,
+  FaMoon,
 } from "react-icons/fa";
 import "./App.css";
+import "./cal-app-dark.css";
 import EmergencyButton from "./components/EmergencyButton";
+import StatusBanner from "./components/StatusBanner";
+import SiteFooter from "./components/SiteFooter";
+import TrustPanel from "./components/TrustPanel";
+import { printReferralsSummary } from "./utils/printReferrals";
+import { STORAGE_KEY } from "./utils/storageKeys";
+import { getApiBaseUrl } from "./utils/apiBase";
+import {
+  getPendingTriageFromStorage,
+  clearSavedChatState,
+} from "./utils/savedChat";
+import { getStoredTheme, persistTheme } from "./utils/themeStorage";
+import TopicResourcesPanel from "./components/TopicResourcesPanel";
+import ReferralMap from "./components/ReferralMap";
+import LegalGlossary from "./components/LegalGlossary";
 import calLogo from "./assets/cal_logo.png";
 
 import { useTranslation } from "react-i18next";
-import { setAppLanguage, getNormalizedLanguage } from "./i18n";
+import i18n, { setAppLanguage, getNormalizedLanguage } from "./i18n";
 
 const AIChat = lazy(() => import("./components/AIChat"));
 
-const STORAGE_KEY = "cal_chatbot_state_v1";
 const FIRST_VISIT_KEY = "cal_first_visit_done_v1";
 const INTAKE_ID_KEY = "cal_intake_id_v1";
 const INTAKE_SAVED_KEY = "cal_intake_saved_v1";
+const LARGE_TEXT_KEY = "cal_large_text_v1";
 
-const API_BASE = String(
-  import.meta.env.VITE_API_BASE_URL ?? "https://court-legal-chatbot-1.onrender.com"
-).replace(/\/+$/, "");
+const API_BASE = getApiBaseUrl();
 
 const SUPPORT_EMAIL = "intake@chicagoadvocatelegal.com";
 
@@ -57,7 +73,27 @@ function isValidZip(zip) {
   return /^\d{5}$/.test(String(zip || "").trim());
 }
 
-function fetchWithTimeout(url, options = {}, timeout = 8000) {
+const DEFAULT_FETCH_TIMEOUT_MS = 8000;
+/** Backend / DB (e.g. Render cold start, remote Postgres) often needs more than 8s. */
+const INTAKE_FETCH_TIMEOUT_MS = 45000;
+const CHAT_FETCH_TIMEOUT_MS = 30000;
+const WARMUP_TIMEOUT_MS = 15000;
+
+function initialAuthView() {
+  try {
+    if (
+      localStorage.getItem(INTAKE_SAVED_KEY) === "1" &&
+      localStorage.getItem(INTAKE_ID_KEY)
+    ) {
+      return "intakeChoice";
+    }
+  } catch {
+    /* ignore */
+  }
+  return "intake";
+}
+
+function fetchWithTimeout(url, options = {}, timeout = DEFAULT_FETCH_TIMEOUT_MS) {
   return Promise.race([
     fetch(url, options),
     new Promise((_, reject) =>
@@ -66,8 +102,36 @@ function fetchWithTimeout(url, options = {}, timeout = 8000) {
   ]);
 }
 
+async function postIntakeStartWithRetry(url, payload, onRetryStart) {
+  const run = () =>
+    fetchWithTimeout(
+      url,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+      INTAKE_FETCH_TIMEOUT_MS
+    );
+
+  try {
+    return await run();
+  } catch (error) {
+    if (String(error?.message || "").toLowerCase().includes("timeout")) {
+      if (typeof onRetryStart === "function") onRetryStart();
+      await fetchWithTimeout(`${API_BASE}/health`, {}, WARMUP_TIMEOUT_MS).catch(() => null);
+      return run();
+    }
+    throw error;
+  }
+}
+
 function inferTopicFromFreeText(input) {
-  const text = String(input || "").toLowerCase().trim();
+  const text = String(input || "")
+    .toLowerCase()
+    .replace(/[’`]/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
   if (!text) return "";
 
   const topicMatchers = [
@@ -81,7 +145,10 @@ function inferTopicFromFreeText(input) {
         "lockout",
         "locked out",
         "can't get into my apartment",
+        "cant get into my apartment",
         "cannot get into my apartment",
+        "can't access my apartment",
+        "cannot access my apartment",
         "housing",
         "lease",
         "rent",
@@ -150,6 +217,10 @@ function normalizeFreeTextMessageForStep(message, step) {
   const lowered = raw.toLowerCase();
   const currentStep = String(step || "").toLowerCase();
 
+  if (currentStep === "problem_summary") {
+    return raw.slice(0, 4000);
+  }
+
   if (currentStep === "topic_selection") {
     const inferredTopic = inferTopicFromFreeText(lowered);
     if (inferredTopic) return inferredTopic;
@@ -179,8 +250,9 @@ function App() {
   const { t, i18n } = useTranslation();
   const normalizedLang = getNormalizedLanguage();
 
-  const [view, setView] = useState("intakeChoice");
+  const [view, setView] = useState(initialAuthView);
   const [loading, setLoading] = useState(false);
+  const [chatError, setChatError] = useState("");
 
   const [showChat, setShowChat] = useState(
     () => localStorage.getItem(FIRST_VISIT_KEY) === "1"
@@ -207,16 +279,71 @@ function App() {
   const [intakeFirstName, setIntakeFirstName] = useState("");
   const [intakeLastName, setIntakeLastName] = useState("");
   const [intakeEmail, setIntakeEmail] = useState("");
+  const [intakePassword, setIntakePassword] = useState("");
   const [intakePhone, setIntakePhone] = useState("");
   const [intakeZip, setIntakeZip] = useState("");
   const [intakeConsent, setIntakeConsent] = useState(false);
 
   const [intakeError, setIntakeError] = useState("");
+  const [intakeSubmitPhase, setIntakeSubmitPhase] = useState("idle");
+
+  const [magicLinkEmail, setMagicLinkEmail] = useState("");
+  const [magicLinkBusy, setMagicLinkBusy] = useState(false);
+  const [magicLinkSentTo, setMagicLinkSentTo] = useState("");
+  const [magicLinkError, setMagicLinkError] = useState("");
+  const [magicVerifyError, setMagicVerifyError] = useState("");
+  const [magicDevLink, setMagicDevLink] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [passwordLoginBusy, setPasswordLoginBusy] = useState(false);
+  const [passwordLoginError, setPasswordLoginError] = useState("");
+  const [passwordResetNotice, setPasswordResetNotice] = useState("");
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotBusy, setForgotBusy] = useState(false);
+  const [forgotError, setForgotError] = useState("");
+  const [forgotNotice, setForgotNotice] = useState("");
+  const [forgotDevLink, setForgotDevLink] = useState("");
+  const [resetToken, setResetToken] = useState("");
+  const [resetPassword1, setResetPassword1] = useState("");
+  const [resetPassword2, setResetPassword2] = useState("");
+  const [showResetPassword1, setShowResetPassword1] = useState(false);
+  const [showResetPassword2, setShowResetPassword2] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetError, setResetError] = useState("");
+  const [showIntakePassword, setShowIntakePassword] = useState(false);
+
+  const [largeText, setLargeText] = useState(
+    () => localStorage.getItem(LARGE_TEXT_KEY) === "1"
+  );
+  const [triageFeedback, setTriageFeedback] = useState(null);
+  const [pendingTriage, setPendingTriage] = useState(null);
+
+  const [theme, setTheme] = useState(getStoredTheme);
+  const isDark = theme === "dark";
+
+  useLayoutEffect(() => {
+    persistTheme(theme);
+    document.documentElement.setAttribute("data-cal-theme", theme);
+  }, [theme]);
 
   const [speechEnabled, setSpeechEnabled] = useState(false);
   const [speaking, setSpeaking] = useState(false);
 
   const apiUrl = (path) => `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`;
+
+  const passwordStrengthKey = (passwordRaw) => {
+    const password = String(passwordRaw || "");
+    if (!password) return "";
+    let score = 0;
+    if (password.length >= 8) score += 1;
+    if (password.length >= 12) score += 1;
+    if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score += 1;
+    if (/\d/.test(password)) score += 1;
+    if (/[^A-Za-z0-9]/.test(password)) score += 1;
+    if (score <= 2) return "weak";
+    if (score <= 4) return "medium";
+    return "strong";
+  };
 
   const speechSupported =
     typeof window !== "undefined" &&
@@ -266,12 +393,14 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const apiPath = (path) =>
+      `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`;
     const params = new URLSearchParams(window.location.search);
     const fresh = params.get("fresh") === "1";
 
     if (fresh) {
       localStorage.removeItem(FIRST_VISIT_KEY);
-      localStorage.removeItem(STORAGE_KEY);
+      clearSavedChatState();
 
       setShowAIChat(false);
       setShowChat(false);
@@ -280,7 +409,63 @@ function App() {
       setConversationHistory([]);
       setUserInput("");
       setCurrentTopic("");
+      setView("intake");
     }
+
+    const resetTokenParam = params.get("reset_token");
+    if (resetTokenParam) {
+      setResetToken(String(resetTokenParam).trim());
+      setResetError("");
+      setView("resetPassword");
+      return undefined;
+    }
+
+    const token = params.get("magic_token");
+    if (!token) return undefined;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetchWithTimeout(
+          apiPath("/auth/magic-link/verify"),
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token }),
+          },
+          INTAKE_FETCH_TIMEOUT_MS
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          if (!cancelled) {
+            setMagicVerifyError(
+              data?.detail ? String(data.detail) : i18n.t("login.verifyFailed")
+            );
+            setView("login");
+          }
+          return;
+        }
+        if (cancelled) return;
+
+        const p = new URLSearchParams(window.location.search);
+        p.delete("magic_token");
+        const qs = p.toString();
+        const newUrl = `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash || ""}`;
+        window.history.replaceState({}, "", newUrl);
+        completeLogin(data.intake_id);
+        setMagicVerifyError("");
+      } catch {
+        if (!cancelled) {
+          setMagicVerifyError(i18n.t("login.verifyFailed"));
+          setView("login");
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -289,26 +474,35 @@ function App() {
   }, [i18n.language, i18n.resolvedLanguage, normalizedLang]);
 
   useEffect(() => {
-    setView("intakeChoice");
-  }, []);
+    document.documentElement.classList.toggle("large-text-mode", largeText);
+    localStorage.setItem(LARGE_TEXT_KEY, largeText ? "1" : "0");
+  }, [largeText]);
+
+  useEffect(() => {
+    if (conversationState?.step !== "complete") {
+      setTriageFeedback(null);
+    }
+  }, [conversationState?.step]);
+
+  useEffect(() => {
+    if (view === "intakeChoice" && !(intakeSaved && intakeId)) {
+      setView("intake");
+    }
+  }, [view, intakeSaved, intakeId]);
+
+  useEffect(() => {
+    if (view === "cover") {
+      setPendingTriage(getPendingTriageFromStorage());
+    }
+  }, [view]);
+
+  useEffect(() => {
+    if (!["cover", "intake", "intakeChoice", "login", "magicSent", "forgotPassword", "resetPassword"].includes(view)) return;
+    fetchWithTimeout(apiUrl("/health"), {}, WARMUP_TIMEOUT_MS).catch(() => null);
+  }, [view]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  };
-
-  const scrollToLatestReferrals = () => {
-    const container = messagesContainerRef.current;
-    if (!container) return;
-
-    const referralSections = container.querySelectorAll(".referrals");
-    const latestReferralSection = referralSections[referralSections.length - 1];
-
-    if (latestReferralSection) {
-      latestReferralSection.scrollIntoView({ behavior: "smooth", block: "start" });
-      return;
-    }
-
-    scrollToBottom();
   };
 
   useEffect(() => {
@@ -317,8 +511,16 @@ function App() {
     const timer = window.setTimeout(() => {
       const lastMessage = messages[messages.length - 1];
       if (lastMessage?.role === "bot" && Array.isArray(lastMessage?.referrals) && lastMessage.referrals.length > 0) {
-        scrollToLatestReferrals();
         return;
+      }
+
+      const container = messagesContainerRef.current;
+      if (container) {
+        const distanceFromBottom =
+          container.scrollHeight - container.scrollTop - container.clientHeight;
+        if (distanceFromBottom > 220) {
+          return;
+        }
       }
 
       scrollToBottom();
@@ -348,7 +550,7 @@ function App() {
       }
     } catch (e) {
       console.error("Failed to restore session:", e);
-      localStorage.removeItem(STORAGE_KEY);
+      clearSavedChatState();
     }
   }, [showChat]);
 
@@ -392,15 +594,25 @@ function App() {
       flexWrap: "wrap",
     };
 
-    const selectStyle = {
-      padding: "8px 10px",
-      borderRadius: "10px",
-      border: "2px solid rgba(229,231,235,1)",
-      background: "white",
-      fontWeight: 700,
-      cursor: "pointer",
-      color: "#111827",
-    };
+    const selectStyle = isDark
+      ? {
+          padding: "8px 10px",
+          borderRadius: "8px",
+          border: "1px solid #30363d",
+          background: "#161b22",
+          fontWeight: 700,
+          cursor: "pointer",
+          color: "#f0f6fc",
+        }
+      : {
+          padding: "8px 10px",
+          borderRadius: "10px",
+          border: "2px solid rgba(229,231,235,1)",
+          background: "white",
+          fontWeight: 700,
+          cursor: "pointer",
+          color: "#111827",
+        };
 
     return (
       <div style={style}>
@@ -417,6 +629,28 @@ function App() {
       </div>
     );
   };
+
+  const ThemeToggle = () => (
+    <button
+      type="button"
+      className="theme-toggle-btn"
+      onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
+      aria-pressed={isDark}
+      title={isDark ? t("theme.useLight") : t("theme.useDark")}
+      aria-label={isDark ? t("theme.useLight") : t("theme.useDark")}
+    >
+      {isDark ? <FaSun size={15} aria-hidden /> : <FaMoon size={15} aria-hidden />}
+    </button>
+  );
+
+  const landingClass = isDark ? "landing cal-app-dark" : "landing";
+  const chatShellClass = isDark ? "chat-page cal-app-dark" : "chat-page";
+  const authPageClass = isDark ? "auth-github-page" : "auth-github-page auth-github-page--light";
+  const lpVariant = isDark ? "dark" : "light";
+  const footerAuthClass = isDark ? "site-footer--auth-dark" : "";
+  const chatFooterClassName = isDark
+    ? "site-footer-chat site-footer--auth-dark"
+    : "site-footer-chat site-footer-chat--light";
 
   const optionLabel = (optionCode) => {
     if (["child_support", "education", "housing", "divorce", "custody"].includes(optionCode)) {
@@ -474,6 +708,201 @@ function App() {
     localStorage.removeItem(INTAKE_SAVED_KEY);
   };
 
+  const completeLogin = (nextIntakeId) => {
+    const safeId = String(nextIntakeId || "").trim();
+    if (!safeId) return;
+    localStorage.setItem(INTAKE_ID_KEY, safeId);
+    localStorage.setItem(INTAKE_SAVED_KEY, "1");
+    localStorage.setItem(FIRST_VISIT_KEY, "1");
+    setIntakeId(safeId);
+    setIntakeSaved(true);
+    setShowChat(false);
+    setView("cover");
+  };
+
+  const handlePasswordLoginSubmit = async (e) => {
+    e.preventDefault();
+    if (passwordLoginBusy || magicLinkBusy) return;
+    const email = String(magicLinkEmail || "").trim().toLowerCase();
+    const password = String(loginPassword || "");
+    if (!isValidEmail(email)) {
+      setPasswordLoginError(t("intake.invalidEmail"));
+      return;
+    }
+    if (password.length < 8) {
+      setPasswordLoginError(t("login.passwordTooShort"));
+      return;
+    }
+    setPasswordLoginBusy(true);
+    setPasswordLoginError("");
+    setMagicVerifyError("");
+    try {
+      const res = await fetchWithTimeout(
+        apiUrl("/auth/password/login"),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        },
+        INTAKE_FETCH_TIMEOUT_MS
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.detail ? String(data.detail) : t("login.passwordLoginFailed"));
+      }
+      completeLogin(data.intake_id);
+      setLoginPassword("");
+      setPasswordResetNotice("");
+    } catch (err) {
+      setPasswordLoginError(
+        err?.message && String(err.message).trim().length > 0
+          ? String(err.message)
+          : t("login.passwordLoginFailed")
+      );
+    } finally {
+      setPasswordLoginBusy(false);
+    }
+  };
+
+  const handleForgotPasswordSubmit = async (e) => {
+    e.preventDefault();
+    const email = String(forgotEmail || "").trim().toLowerCase();
+    if (!isValidEmail(email)) {
+      setForgotError(t("intake.invalidEmail"));
+      return;
+    }
+    setForgotBusy(true);
+    setForgotError("");
+    setForgotNotice("");
+    setForgotDevLink("");
+    try {
+      const res = await fetchWithTimeout(
+        apiUrl("/auth/password/forgot"),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        },
+        INTAKE_FETCH_TIMEOUT_MS
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.detail ? String(data.detail) : t("login.requestFailed"));
+      }
+      setForgotNotice(t("login.forgotNotice"));
+      setForgotDevLink(typeof data?.dev_reset_link === "string" ? data.dev_reset_link : "");
+    } catch (err) {
+      setForgotError(
+        err?.message && String(err.message).trim().length > 0
+          ? String(err.message)
+          : t("login.requestFailed")
+      );
+    } finally {
+      setForgotBusy(false);
+    }
+  };
+
+  const handleResetPasswordSubmit = async (e) => {
+    e.preventDefault();
+    if (!resetToken) {
+      setResetError(t("login.resetInvalid"));
+      return;
+    }
+    if (resetPassword1.length < 8) {
+      setResetError(t("login.passwordTooShort"));
+      return;
+    }
+    if (resetPassword1 !== resetPassword2) {
+      setResetError(t("login.passwordMismatch"));
+      return;
+    }
+    setResetBusy(true);
+    setResetError("");
+    try {
+      const res = await fetchWithTimeout(
+        apiUrl("/auth/password/reset"),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: resetToken, new_password: resetPassword1 }),
+        },
+        INTAKE_FETCH_TIMEOUT_MS
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.detail ? String(data.detail) : t("login.resetInvalid"));
+      }
+      const p = new URLSearchParams(window.location.search);
+      p.delete("reset_token");
+      const qs = p.toString();
+      const newUrl = `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash || ""}`;
+      window.history.replaceState({}, "", newUrl);
+      setResetToken("");
+      setResetPassword1("");
+      setResetPassword2("");
+      setPasswordResetNotice(t("login.resetDone"));
+      setMagicLinkEmail("");
+      setView("login");
+    } catch (err) {
+      setResetError(
+        err?.message && String(err.message).trim().length > 0
+          ? String(err.message)
+          : t("login.resetInvalid")
+      );
+    } finally {
+      setResetBusy(false);
+    }
+  };
+
+  const sendMagicLinkRequest = async (emailRaw) => {
+    const email = String(emailRaw ?? magicLinkEmail).trim();
+    if (!isValidEmail(email)) {
+      setMagicLinkError(t("intake.invalidEmail"));
+      return false;
+    }
+    setMagicLinkBusy(true);
+    setMagicLinkError("");
+    try {
+      const res = await fetchWithTimeout(
+        apiUrl("/auth/magic-link/request"),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        },
+        INTAKE_FETCH_TIMEOUT_MS
+      );
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+      if (!res.ok) {
+        const detail = data?.detail;
+        let msg = t("login.requestFailed");
+        if (Array.isArray(detail)) {
+          msg = detail
+            .map((d) => (typeof d?.msg === "string" ? d.msg : JSON.stringify(d)))
+            .join(" ");
+        } else if (typeof detail === "string") {
+          msg = detail;
+        }
+        setMagicLinkError(msg);
+        return false;
+      }
+      setMagicLinkSentTo(email);
+      setMagicDevLink(typeof data?.dev_magic_link === "string" ? data.dev_magic_link : "");
+      setView("magicSent");
+      return true;
+    } catch {
+      setMagicLinkError(t("login.requestFailed"));
+      return false;
+    } finally {
+      setMagicLinkBusy(false);
+    }
+  };
+
   const clearSessionAndStorage = () => {
     stopSpeaking();
     setMessages([]);
@@ -483,7 +912,7 @@ function App() {
     setCurrentTopic("");
     setShowAIChat(false);
     setShowChat(false);
-    localStorage.removeItem(STORAGE_KEY);
+    clearSavedChatState();
   };
 
   const quickExit = () => {
@@ -499,16 +928,47 @@ function App() {
   const postIntakeEvent = async (eventType, eventValue) => {
     if (!intakeId) return;
     try {
-      await fetchWithTimeout(apiUrl("/intake/event"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          intake_id: intakeId,
-          event_type: eventType,
-          event_value: eventValue || "",
-        }),
-      });
+      await fetchWithTimeout(
+        apiUrl("/intake/event"),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            intake_id: intakeId,
+            event_type: eventType,
+            event_value: eventValue || "",
+          }),
+        },
+        INTAKE_FETCH_TIMEOUT_MS
+      );
     } catch (e) {}
+  };
+
+  const getLastReferralsFromMessages = () => {
+    const msg = [...messages]
+      .reverse()
+      .find((m) => m.role === "bot" && m.referrals?.length);
+    return msg?.referrals || [];
+  };
+
+  const topicLabelForPrint = () => {
+    const topic = conversationState?.topic;
+    if (!topic) return "";
+    return t(`triage.options.topic_${topic}`);
+  };
+
+  const handlePrintReferrals = () => {
+    printReferralsSummary({
+      referrals: getLastReferralsFromMessages(),
+      topicLabel: topicLabelForPrint(),
+      zipCode: String(conversationState?.zip_code || ""),
+      t,
+    });
+  };
+
+  const handleTriageFeedback = async (positive) => {
+    await postIntakeEvent("triage_feedback", positive ? "helpful_yes" : "helpful_no");
+    setTriageFeedback("done");
   };
 
   const trackStepAnswer = async (step, value) => {
@@ -537,6 +997,7 @@ function App() {
 
   const sendMessage = async (message, isBackAction = false) => {
     if (loading) return;
+    setChatError("");
     setLoading(true);
 
     const userMessage = { role: "user", content: message };
@@ -545,31 +1006,42 @@ function App() {
     setUserInput("");
 
     try {
-      const response = await fetchWithTimeout(apiUrl("/chat"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: String(message).toLowerCase(),
-          conversation_state: conversationState,
-          language: normalizedLang,
-          intake_id: intakeId || null,
-        }),
-      });
+      const response = await fetchWithTimeout(
+        apiUrl("/chat"),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message:
+              String(conversationState?.step || "").toLowerCase() === "problem_summary"
+                ? String(message || "").trim()
+                : String(message || "").toLowerCase(),
+            conversation_state: conversationState,
+            language: normalizedLang,
+            intake_id: intakeId || null,
+          }),
+        },
+        CHAT_FETCH_TIMEOUT_MS
+      );
 
-      if (!response.ok) throw new Error(`Server error: ${response.status}`);
+      if (!response.ok) {
+        let detail = "";
+        try {
+          const payload = await response.json();
+          detail = payload?.detail ? String(payload.detail) : "";
+        } catch (e) {}
+        throw new Error(
+          detail || `Server error: ${response.status}. Please try again.`
+        );
+      }
 
       const data = await response.json();
 
-      const previousStep = conversationState?.step || "";
       const nextStep = data?.conversation_state?.step || "";
 
       if (data.conversation_state && data.conversation_state.topic) {
         const topicCode = String(data.conversation_state.topic);
         setCurrentTopic(topicCode.replace("_", " "));
-
-        if (previousStep === "topic_selection") {
-          postIntakeEvent("topic_selected", topicCode);
-        }
       }
 
       const botMessage = {
@@ -590,21 +1062,7 @@ function App() {
       setConversationState(newState);
 
       if (nextStep === "complete") {
-        const zipCode = data?.conversation_state?.zip_code;
-        const level = data?.conversation_state?.level;
-        const referrals = Array.isArray(data?.referrals) ? data.referrals : [];
-        const referralNames = referrals
-          .map((r) => String(r?.name || "").trim())
-          .filter(Boolean);
-
-        if (zipCode) postIntakeEvent("zip_entered", String(zipCode));
-        if (level !== undefined && level !== null) {
-          postIntakeEvent("triage_level_assigned", String(level));
-        }
-        if (referralNames.length > 0) {
-          postIntakeEvent("referrals_shown", JSON.stringify(referralNames));
-        }
-        postIntakeEvent("triage_completed", "true");
+        // Completion state can trigger UI tools; analytics are logged server-side.
       }
 
       if (!isBackAction && data.conversation_state) {
@@ -618,6 +1076,11 @@ function App() {
       }
     } catch (error) {
       console.error("Connection error details:", error);
+      const friendlyError =
+        error?.message && String(error.message).trim().length > 0
+          ? String(error.message)
+          : "We’re having trouble connecting right now.";
+      setChatError(friendlyError);
       setMessages((prev) => [
         ...prev,
         {
@@ -634,11 +1097,34 @@ function App() {
 
   const startChatFromCover = async () => {
     if (loading) return;
+    setChatError("");
+    clearSavedChatState();
+    setMessages([]);
+    setConversationState({});
+    setConversationHistory([]);
+    setUserInput("");
+    setCurrentTopic("");
     localStorage.setItem(FIRST_VISIT_KEY, "1");
     setShowChat(true);
     setView("chat");
     await postIntakeEvent("triage_started", "cover_begin");
     sendMessage("start");
+  };
+
+  const resumeTriageFromCover = async () => {
+    if (loading) return;
+    setChatError("");
+    localStorage.setItem(FIRST_VISIT_KEY, "1");
+    setShowChat(true);
+    setView("chat");
+    await postIntakeEvent("session_resume", pendingTriage?.step || "");
+  };
+
+  const discardPendingAndStartFresh = async () => {
+    if (loading) return;
+    clearSavedChatState();
+    setPendingTriage(null);
+    await startChatFromCover();
   };
 
   const goToCover = () => {
@@ -668,6 +1154,7 @@ function App() {
   };
 
   const handleRestart = async () => {
+    setChatError("");
     await postIntakeEvent("triage_restart", conversationState?.step || "");
 
     setMessages([]);
@@ -677,7 +1164,7 @@ function App() {
     setCurrentTopic("");
     setShowAIChat(false);
 
-    localStorage.removeItem(STORAGE_KEY);
+    clearSavedChatState();
 
     setShowChat(true);
     setView("chat");
@@ -685,6 +1172,7 @@ function App() {
   };
 
   const handleBack = async () => {
+    setChatError("");
     await postIntakeEvent("triage_back", conversationState?.step || "");
 
     if (conversationHistory.length < 2) {
@@ -723,25 +1211,38 @@ function App() {
       setIntakeError(t("intake.invalidZip"));
       return;
     }
+    if (String(intakePassword || "").trim().length < 8) {
+      setIntakeError(t("login.passwordTooShort"));
+      return;
+    }
 
     setLoading(true);
+    setIntakeSubmitPhase("saving");
 
     try {
-      const res = await fetchWithTimeout(apiUrl("/intake/start"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const res = await postIntakeStartWithRetry(
+        apiUrl("/intake/start"),
+        {
           first_name: intakeFirstName.trim(),
           last_name: intakeLastName.trim(),
           email: intakeEmail.trim().toLowerCase(),
+          password: intakePassword,
           phone: intakePhone.trim(),
           zip: intakeZip.trim(),
           language: normalizedLang,
           consent: true,
-        }),
-      });
+        },
+        () => setIntakeSubmitPhase("retrying")
+      );
 
-      if (!res.ok) throw new Error("intake failed");
+      if (!res.ok) {
+        let detail = "";
+        try {
+          const payload = await res.json();
+          detail = payload?.detail ? String(payload.detail) : "";
+        } catch (e) {}
+        throw new Error(detail || "Unable to save intake right now.");
+      }
 
       const data = await res.json();
       const newId = data.intake_id;
@@ -751,12 +1252,18 @@ function App() {
 
       localStorage.setItem(INTAKE_ID_KEY, newId);
       localStorage.setItem(INTAKE_SAVED_KEY, "1");
+      setIntakePassword("");
 
-      setView("cover");
+      setView("intakeSuccess");
     } catch (e) {
-      setIntakeError(t("intake.serverError"));
+      setIntakeError(
+        e?.message && String(e.message).trim().length > 0
+          ? String(e.message)
+          : t("intake.serverError")
+      );
     } finally {
       setLoading(false);
+      setIntakeSubmitPhase("idle");
     }
   };
 
@@ -807,8 +1314,8 @@ function App() {
     return (
       <Suspense
         fallback={
-          <div className="ai-loading-screen">
-            <div className="ai-loading-card">Loading AI assistant...</div>
+          <div className="ai-loading-screen ai-loading-screen--dark">
+            <div className="ai-loading-card ai-loading-card--dark">Loading AI assistant...</div>
           </div>
         }
       >
@@ -816,6 +1323,7 @@ function App() {
           topic={currentTopic}
           intakeId={intakeId}
           onBack={() => setShowAIChat(false)}
+          useCalDark={isDark}
         />
       </Suspense>
     );
@@ -823,29 +1331,422 @@ function App() {
 
   if (view === "privacy") {
     return (
-      <div className="landing">
+      <div className={landingClass}>
         <div className="landing-background-accent"></div>
         <div className="landing-header">
           <div className="logo-container">
             {renderHeaderLogo()}
             <h1>{t("privacy.title")}</h1>
             <p className="subtitle">{t("app.subtitle")}</p>
-            <LanguagePicker />
+            <div className="landing-lang-theme-row">
+              <ThemeToggle />
+              <LanguagePicker variant={lpVariant} />
+            </div>
           </div>
         </div>
 
-        <div className="landing-content">
-          <p className="tagline left-text">{t("privacy.body")}</p>
+        <main className="landing-main" id="main-content">
+          <div className="landing-content">
+            <p className="tagline left-text">{t("privacy.body")}</p>
 
-          <button
-            className="btn btn-primary btn-large btn-start"
-            onClick={() => setView("intakeChoice")}
-            disabled={loading}
-          >
-            {t("privacy.back")}
-          </button>
+            <button
+              className="btn btn-primary btn-large btn-start"
+              onClick={() => setView(intakeSaved && intakeId ? "intakeChoice" : "intake")}
+              disabled={loading}
+            >
+              {t("privacy.back")}
+            </button>
+          </div>
+        </main>
+
+        <SiteFooter
+          className={footerAuthClass}
+          supportEmail={SUPPORT_EMAIL}
+          showStaffSignIn
+        />
+        <EmergencyButton />
+      </div>
+    );
+  }
+
+  if (view === "login") {
+    return (
+      <div className={authPageClass}>
+        <div className="auth-github-lang-row">
+          <ThemeToggle />
+          <LanguagePicker variant={lpVariant} />
         </div>
 
+        <main className="auth-github-main" id="main-content">
+          <div className="auth-github-logo-wrap">{renderHeaderLogo()}</div>
+          <h1 className="auth-github-title">{t("login.heading")}</h1>
+          <p className="auth-github-sub">{t("login.lead")}</p>
+
+          <form className="auth-github-card" onSubmit={handlePasswordLoginSubmit}>
+            {magicVerifyError ? (
+              <div className="auth-github-alert" role="alert">
+                {magicVerifyError}
+              </div>
+            ) : null}
+            {passwordResetNotice ? (
+              <div className="auth-github-success" role="status">
+                {passwordResetNotice}
+              </div>
+            ) : null}
+            {passwordLoginError ? (
+              <div className="auth-github-alert" role="alert">
+                {passwordLoginError}
+              </div>
+            ) : null}
+            {magicLinkError ? (
+              <div className="auth-github-alert" role="alert">
+                {magicLinkError}
+              </div>
+            ) : null}
+
+            <label className="auth-github-label" htmlFor="auth-signin-email">
+              {t("login.emailLabel")}
+            </label>
+            <input
+              id="auth-signin-email"
+              className="auth-github-input"
+              type="email"
+              name="login"
+              autoComplete="email"
+              value={magicLinkEmail}
+              onChange={(e) => {
+                setMagicLinkEmail(e.target.value);
+                setMagicLinkError("");
+                setMagicVerifyError("");
+                setPasswordLoginError("");
+              }}
+              disabled={magicLinkBusy || passwordLoginBusy}
+            />
+            <label className="auth-github-label" htmlFor="auth-signin-password">
+              {t("login.passwordLabel")}
+            </label>
+            <div className="auth-password-wrap">
+              <input
+                id="auth-signin-password"
+                className="auth-github-input auth-github-input--in-password-wrap"
+                type={showLoginPassword ? "text" : "password"}
+                autoComplete="current-password"
+                value={loginPassword}
+                onChange={(e) => {
+                  setLoginPassword(e.target.value);
+                  setPasswordLoginError("");
+                }}
+                disabled={magicLinkBusy || passwordLoginBusy}
+              />
+              <button
+                type="button"
+                className="auth-password-toggle"
+                onClick={() => setShowLoginPassword((s) => !s)}
+                disabled={magicLinkBusy || passwordLoginBusy}
+                aria-label={showLoginPassword ? t("login.hidePassword") : t("login.showPassword")}
+              >
+                {showLoginPassword ? t("login.hide") : t("login.show")}
+              </button>
+            </div>
+            {loginPassword ? (
+              <p className={`auth-password-strength auth-password-strength--${passwordStrengthKey(loginPassword)}`}>
+                {t(`login.passwordStrength.${passwordStrengthKey(loginPassword)}`)}
+              </p>
+            ) : null}
+
+            <button
+              type="submit"
+              className="auth-github-btn-primary"
+              disabled={magicLinkBusy || passwordLoginBusy}
+            >
+              {passwordLoginBusy ? t("login.signingIn") : t("login.passwordLoginButton")}
+            </button>
+            <button
+              type="button"
+              className="auth-github-btn-secondary"
+              disabled={magicLinkBusy || passwordLoginBusy}
+              onClick={() => {
+                setForgotEmail(String(magicLinkEmail || "").trim().toLowerCase());
+                setForgotError("");
+                setForgotNotice("");
+                setForgotDevLink("");
+                setView("forgotPassword");
+              }}
+            >
+              {t("login.forgotPassword")}
+            </button>
+            <button
+              type="button"
+              className="auth-github-btn-ghost"
+              disabled={magicLinkBusy || passwordLoginBusy}
+              onClick={() => sendMagicLinkRequest(magicLinkEmail)}
+            >
+              {magicLinkBusy ? t("login.sending") : t("login.emailLoginButton")}
+            </button>
+          </form>
+
+          <p className="auth-github-foot">
+            {t("login.newUserPrompt")}{" "}
+            <button
+              type="button"
+              className="auth-github-text-link"
+              onClick={() => {
+                setMagicLinkError("");
+                setMagicVerifyError("");
+                setView("intake");
+              }}
+            >
+              {t("login.createAccount")}
+            </button>
+          </p>
+          <button
+            type="button"
+            className="auth-github-text-link auth-github-foot-solo"
+            onClick={() => setView("privacy")}
+          >
+            {t("intake.privacyLink")}
+          </button>
+        </main>
+
+        <SiteFooter
+          className={footerAuthClass}
+          supportEmail={SUPPORT_EMAIL}
+          onPrivacyClick={() => setView("privacy")}
+          showStaffSignIn
+        />
+        <EmergencyButton />
+      </div>
+    );
+  }
+
+  if (view === "magicSent") {
+    return (
+      <div className={authPageClass}>
+        <div className="auth-github-lang-row">
+          <ThemeToggle />
+          <LanguagePicker variant={lpVariant} />
+        </div>
+
+        <main className="auth-github-main" id="main-content">
+          <div className="auth-github-logo-wrap">{renderHeaderLogo()}</div>
+          <h1 className="auth-github-title">{t("login.checkTitle")}</h1>
+          <p className="auth-github-sub">
+            {t("login.checkBody", { email: magicLinkSentTo || "—" })}
+          </p>
+
+          {magicDevLink ? (
+            <div className="auth-github-dev-box">
+              <p className="auth-github-dev-label">{t("login.devLinkLabel")}</p>
+              <a className="auth-github-text-link auth-github-dev-link" href={magicDevLink}>
+                {magicDevLink}
+              </a>
+            </div>
+          ) : null}
+
+          <div className="auth-github-card auth-github-card--plain">
+            <button
+              type="button"
+              className="auth-github-btn-primary"
+              disabled={magicLinkBusy}
+              onClick={() => sendMagicLinkRequest(magicLinkSentTo)}
+            >
+              {magicLinkBusy ? t("login.sending") : t("login.resend")}
+            </button>
+            <button
+              type="button"
+              className="auth-github-btn-secondary"
+              onClick={() => {
+                setMagicLinkError("");
+                setMagicDevLink("");
+                setView("login");
+              }}
+            >
+              {t("login.backToSignIn")}
+            </button>
+          </div>
+
+          <button
+            type="button"
+            className="auth-github-text-link auth-github-foot-solo"
+            onClick={() => setView("privacy")}
+          >
+            {t("intake.privacyLink")}
+          </button>
+        </main>
+
+        <SiteFooter
+          className={footerAuthClass}
+          supportEmail={SUPPORT_EMAIL}
+          onPrivacyClick={() => setView("privacy")}
+          showStaffSignIn
+        />
+        <EmergencyButton />
+      </div>
+    );
+  }
+
+  if (view === "forgotPassword") {
+    return (
+      <div className={authPageClass}>
+        <div className="auth-github-lang-row">
+          <ThemeToggle />
+          <LanguagePicker variant={lpVariant} />
+        </div>
+        <main className="auth-github-main" id="main-content">
+          <div className="auth-github-logo-wrap">{renderHeaderLogo()}</div>
+          <h1 className="auth-github-title">{t("login.forgotTitle")}</h1>
+          <p className="auth-github-sub">{t("login.forgotBody")}</p>
+          <form className="auth-github-card" onSubmit={handleForgotPasswordSubmit}>
+            {forgotError ? (
+              <div className="auth-github-alert" role="alert">
+                {forgotError}
+              </div>
+            ) : null}
+            {forgotNotice ? (
+              <div className="auth-github-success" role="status">
+                {forgotNotice}
+              </div>
+            ) : null}
+            {forgotDevLink ? (
+              <div className="auth-github-dev-box">
+                <p className="auth-github-dev-label">{t("login.resetDevLinkLabel")}</p>
+                <a className="auth-github-text-link auth-github-dev-link" href={forgotDevLink}>
+                  {forgotDevLink}
+                </a>
+              </div>
+            ) : null}
+            <label className="auth-github-label" htmlFor="auth-forgot-email">
+              {t("login.emailLabel")}
+            </label>
+            <input
+              id="auth-forgot-email"
+              className="auth-github-input"
+              type="email"
+              autoComplete="email"
+              value={forgotEmail}
+              onChange={(e) => {
+                setForgotEmail(e.target.value);
+                setForgotError("");
+              }}
+              disabled={forgotBusy}
+            />
+            <button type="submit" className="auth-github-btn-primary" disabled={forgotBusy}>
+              {forgotBusy ? t("login.sending") : t("login.sendReset")}
+            </button>
+            <button
+              type="button"
+              className="auth-github-btn-secondary"
+              onClick={() => setView("login")}
+              disabled={forgotBusy}
+            >
+              {t("login.backToSignIn")}
+            </button>
+          </form>
+        </main>
+        <SiteFooter
+          className={footerAuthClass}
+          supportEmail={SUPPORT_EMAIL}
+          onPrivacyClick={() => setView("privacy")}
+          showStaffSignIn
+        />
+        <EmergencyButton />
+      </div>
+    );
+  }
+
+  if (view === "resetPassword") {
+    return (
+      <div className={authPageClass}>
+        <div className="auth-github-lang-row">
+          <ThemeToggle />
+          <LanguagePicker variant={lpVariant} />
+        </div>
+        <main className="auth-github-main" id="main-content">
+          <div className="auth-github-logo-wrap">{renderHeaderLogo()}</div>
+          <h1 className="auth-github-title">{t("login.resetTitle")}</h1>
+          <p className="auth-github-sub">{t("login.resetBody")}</p>
+          <form className="auth-github-card" onSubmit={handleResetPasswordSubmit}>
+            {resetError ? (
+              <div className="auth-github-alert" role="alert">
+                {resetError}
+              </div>
+            ) : null}
+            <label className="auth-github-label" htmlFor="auth-reset-password-1">
+              {t("login.newPassword")}
+            </label>
+            <div className="auth-password-wrap">
+              <input
+                id="auth-reset-password-1"
+                className="auth-github-input auth-github-input--in-password-wrap"
+                type={showResetPassword1 ? "text" : "password"}
+                autoComplete="new-password"
+                value={resetPassword1}
+                onChange={(e) => {
+                  setResetPassword1(e.target.value);
+                  setResetError("");
+                }}
+                disabled={resetBusy}
+              />
+              <button
+                type="button"
+                className="auth-password-toggle"
+                onClick={() => setShowResetPassword1((s) => !s)}
+                disabled={resetBusy}
+                aria-label={showResetPassword1 ? t("login.hidePassword") : t("login.showPassword")}
+              >
+                {showResetPassword1 ? t("login.hide") : t("login.show")}
+              </button>
+            </div>
+            {resetPassword1 ? (
+              <p className={`auth-password-strength auth-password-strength--${passwordStrengthKey(resetPassword1)}`}>
+                {t(`login.passwordStrength.${passwordStrengthKey(resetPassword1)}`)}
+              </p>
+            ) : null}
+            <label className="auth-github-label" htmlFor="auth-reset-password-2">
+              {t("login.confirmPassword")}
+            </label>
+            <div className="auth-password-wrap">
+              <input
+                id="auth-reset-password-2"
+                className="auth-github-input auth-github-input--in-password-wrap"
+                type={showResetPassword2 ? "text" : "password"}
+                autoComplete="new-password"
+                value={resetPassword2}
+                onChange={(e) => {
+                  setResetPassword2(e.target.value);
+                  setResetError("");
+                }}
+                disabled={resetBusy}
+              />
+              <button
+                type="button"
+                className="auth-password-toggle"
+                onClick={() => setShowResetPassword2((s) => !s)}
+                disabled={resetBusy}
+                aria-label={showResetPassword2 ? t("login.hidePassword") : t("login.showPassword")}
+              >
+                {showResetPassword2 ? t("login.hide") : t("login.show")}
+              </button>
+            </div>
+            <button type="submit" className="auth-github-btn-primary" disabled={resetBusy}>
+              {resetBusy ? t("login.savingPassword") : t("login.resetPasswordButton")}
+            </button>
+            <button
+              type="button"
+              className="auth-github-btn-secondary"
+              onClick={() => setView("login")}
+              disabled={resetBusy}
+            >
+              {t("login.backToSignIn")}
+            </button>
+          </form>
+        </main>
+        <SiteFooter
+          className={footerAuthClass}
+          supportEmail={SUPPORT_EMAIL}
+          onPrivacyClick={() => setView("privacy")}
+          showStaffSignIn
+        />
         <EmergencyButton />
       </div>
     );
@@ -855,58 +1756,70 @@ function App() {
     const hasSaved = intakeSaved && intakeId;
 
     return (
-      <div className="landing">
-        <div className="landing-background-accent"></div>
-        <div className="landing-header">
-          <div className="logo-container">
-            {renderHeaderLogo()}
-            <h1>{t("intake.samePersonTitle")}</h1>
-            <p className="subtitle">
-              {hasSaved ? t("intake.samePersonBody") : "Create a login to begin."}
-            </p>
-            <LanguagePicker />
-          </div>
+      <div className={authPageClass}>
+        <div className="auth-github-lang-row">
+          <ThemeToggle />
+          <LanguagePicker variant={lpVariant} />
         </div>
 
-        <div className="landing-content">
-          <button
-            className="btn btn-start"
-            onClick={() => setView(hasSaved ? "cover" : "intake")}
-            disabled={loading}
-          >
-            {hasSaved ? t("intake.samePerson") : "Start"}
-          </button>
+        <main className="auth-github-main" id="main-content">
+          <div className="auth-github-logo-wrap">{renderHeaderLogo()}</div>
+          <h1 className="auth-github-title">{t("login.welcomeBackTitle")}</h1>
+          <p className="auth-github-sub">{t("login.welcomeBackBody")}</p>
 
-          <button
-            className="btn btn-start"
-            onClick={() => {
-              clearSavedIntake();
-              setIntakeFirstName("");
-              setIntakeLastName("");
-              setIntakeEmail("");
-              setIntakePhone("");
-              setIntakeZip("");
-              setIntakeConsent(false);
-              setIntakeError("");
-              setView("intake");
-            }}
-            disabled={loading}
-            style={{ marginTop: 12, background: "#6b7280" }}
-          >
-            Create Login
-          </button>
-
-          <div className="secondary-link-wrap">
+          <div className="auth-github-card auth-github-card--plain">
             <button
               type="button"
-              onClick={() => setView("privacy")}
-              className="link-button"
+              className="auth-github-btn-primary"
+              onClick={() => setView("cover")}
+              disabled={loading || !hasSaved}
             >
-              {t("intake.privacyLink")}
+              {t("login.continueThisDevice")}
+            </button>
+            <button
+              type="button"
+              className="auth-github-btn-secondary"
+              onClick={() => {
+                setMagicLinkEmail("");
+                setMagicLinkError("");
+                setMagicVerifyError("");
+                setView("login");
+              }}
+              disabled={loading}
+            >
+              {t("login.useDifferentEmail")}
+            </button>
+            <button
+              type="button"
+              className="auth-github-btn-ghost"
+              onClick={() => {
+                clearSavedIntake();
+                setMagicLinkEmail("");
+                setMagicLinkError("");
+                setMagicVerifyError("");
+                setView("login");
+              }}
+              disabled={loading}
+            >
+              {t("login.signOutDevice")}
             </button>
           </div>
-        </div>
 
+          <button
+            type="button"
+            className="auth-github-text-link auth-github-foot-solo"
+            onClick={() => setView("privacy")}
+          >
+            {t("intake.privacyLink")}
+          </button>
+        </main>
+
+        <SiteFooter
+          className={footerAuthClass}
+          supportEmail={SUPPORT_EMAIL}
+          onPrivacyClick={() => setView("privacy")}
+          showStaffSignIn
+        />
         <EmergencyButton />
       </div>
     );
@@ -914,27 +1827,42 @@ function App() {
 
   if (view === "intake") {
     return (
-      <div className="landing">
-        <div className="landing-background-accent"></div>
-        <div className="landing-header">
-          <div className="logo-container">
-            {renderHeaderLogo()}
-            <h1>Create Login</h1>
-            <p className="subtitle">{t("intake.subtitle")}</p>
-            <LanguagePicker />
-          </div>
+      <div className={authPageClass}>
+        <div className="auth-github-lang-row">
+          <ThemeToggle />
+          <LanguagePicker variant={lpVariant} />
         </div>
 
-        <div className="landing-content">
+        <main className="auth-github-main" id="main-content">
+          <div className="auth-github-logo-wrap">{renderHeaderLogo()}</div>
+          <h1 className="auth-github-title">{t("login.createAccountTitle")}</h1>
+          <p className="auth-github-sub">{t("intake.subtitle")}</p>
+
+          <p className="auth-github-returning">
+            {t("login.returningPrompt")}{" "}
+            <button
+              type="button"
+              className="auth-github-text-link"
+              onClick={() => {
+                setMagicLinkError("");
+                setMagicVerifyError("");
+                setView("login");
+              }}
+            >
+              {t("login.signInWithEmail")}
+            </button>
+          </p>
+
           <form
+            className="auth-github-card"
             onSubmit={(e) => {
               e.preventDefault();
               submitIntake();
             }}
           >
-            <div className="intake-grid">
+            <div className="intake-grid auth-github-intake-grid">
               <input
-                className="chat-input"
+                className="auth-github-input"
                 type="text"
                 value={intakeFirstName}
                 onChange={(e) => setIntakeFirstName(e.target.value)}
@@ -942,7 +1870,7 @@ function App() {
                 disabled={loading}
               />
               <input
-                className="chat-input"
+                className="auth-github-input"
                 type="text"
                 value={intakeLastName}
                 onChange={(e) => setIntakeLastName(e.target.value)}
@@ -950,15 +1878,7 @@ function App() {
                 disabled={loading}
               />
               <input
-                className="chat-input"
-                type="email"
-                value={intakeEmail}
-                onChange={(e) => setIntakeEmail(e.target.value)}
-                placeholder={t("intake.email")}
-                disabled={loading}
-              />
-              <input
-                className="chat-input"
+                className="auth-github-input"
                 type="tel"
                 value={intakePhone}
                 onChange={(e) => setIntakePhone(e.target.value)}
@@ -966,7 +1886,40 @@ function App() {
                 disabled={loading}
               />
               <input
-                className="chat-input"
+                className="auth-github-input"
+                type="email"
+                value={intakeEmail}
+                onChange={(e) => setIntakeEmail(e.target.value)}
+                placeholder={t("intake.email")}
+                disabled={loading}
+              />
+              <div className="auth-password-wrap">
+                <input
+                  className="auth-github-input auth-github-input--in-password-wrap"
+                  type={showIntakePassword ? "text" : "password"}
+                  value={intakePassword}
+                  onChange={(e) => setIntakePassword(e.target.value)}
+                  placeholder={t("login.createPassword")}
+                  autoComplete="new-password"
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  className="auth-password-toggle"
+                  onClick={() => setShowIntakePassword((s) => !s)}
+                  disabled={loading}
+                  aria-label={showIntakePassword ? t("login.hidePassword") : t("login.showPassword")}
+                >
+                  {showIntakePassword ? t("login.hide") : t("login.show")}
+                </button>
+              </div>
+              {intakePassword ? (
+                <p className={`auth-password-strength auth-password-strength--${passwordStrengthKey(intakePassword)}`}>
+                  {t(`login.passwordStrength.${passwordStrengthKey(intakePassword)}`)}
+                </p>
+              ) : null}
+              <input
+                className="auth-github-input"
                 type="text"
                 value={intakeZip}
                 onChange={(e) => setIntakeZip(e.target.value)}
@@ -974,7 +1927,7 @@ function App() {
                 disabled={loading}
               />
 
-              <label className="consent-label">
+              <label className="consent-label auth-github-consent">
                 <input
                   type="checkbox"
                   checked={intakeConsent}
@@ -986,34 +1939,76 @@ function App() {
                   <button
                     type="button"
                     onClick={() => setView("privacy")}
-                    className="inline-link-button"
+                    className="auth-github-inline-link"
                   >
                     {t("intake.privacyLink")}
                   </button>
                 </span>
               </label>
 
-              {intakeError && (
-                <div className="privacy-warning intake-error">{intakeError}</div>
-              )}
+              {intakeError ? (
+                <div className="auth-github-alert" role="alert">
+                  {intakeError}
+                </div>
+              ) : null}
 
-              <button className="btn btn-start" type="submit" disabled={loading}>
-                {loading ? t("intake.submitting") : t("intake.submit")}
-              </button>
-
-              <button
-                type="button"
-                className="btn btn-start"
-                onClick={() => setView("intakeChoice")}
-                disabled={loading}
-                style={{ background: "#6b7280" }}
-              >
-                Back
+              <button className="auth-github-btn-primary" type="submit" disabled={loading}>
+                {loading
+                  ? intakeSubmitPhase === "retrying"
+                    ? t("intake.retryingDetail")
+                    : t("intake.savingDetail")
+                  : t("intake.submit")}
               </button>
             </div>
           </form>
+        </main>
+
+        <SiteFooter
+          className={footerAuthClass}
+          supportEmail={SUPPORT_EMAIL}
+          onPrivacyClick={() => setView("privacy")}
+          showStaffSignIn
+        />
+        <EmergencyButton />
+      </div>
+    );
+  }
+
+  if (view === "intakeSuccess") {
+    return (
+      <div className={landingClass}>
+        <div className="landing-background-accent"></div>
+        <div className="landing-header">
+          <div className="logo-container">
+            {renderHeaderLogo()}
+            <h1>{t("intake.successTitle")}</h1>
+            <p className="subtitle">{t("app.subtitle")}</p>
+            <div className="landing-lang-theme-row">
+              <ThemeToggle />
+              <LanguagePicker variant={lpVariant} />
+            </div>
+          </div>
         </div>
 
+        <main className="landing-main intake-success-main" id="main-content">
+          <div className="landing-content">
+            <p className="tagline intake-success-body">{t("intake.successBody")}</p>
+            <button
+              type="button"
+              className="btn btn-primary btn-large btn-start"
+              onClick={() => setView("cover")}
+            >
+              {t("intake.continueToPortal")}
+            </button>
+          </div>
+        </main>
+
+        <SiteFooter
+          className={footerAuthClass}
+          supportEmail={SUPPORT_EMAIL}
+          onPrivacyClick={() => setView("privacy")}
+          showStaffSignIn
+        />
         <EmergencyButton />
       </div>
     );
@@ -1021,20 +2016,28 @@ function App() {
 
   if (!showChat || view === "cover") {
     return (
-      <div className="landing">
+      <div className={landingClass}>
         <div className="landing-background-accent"></div>
         <div className="landing-header">
           <div className="logo-container">
             {renderHeaderLogo()}
             <h1>{t("app.title")}</h1>
             <p className="subtitle">{t("app.subtitle")}</p>
-            <LanguagePicker />
+            <div className="landing-lang-theme-row">
+              <ThemeToggle />
+              <LanguagePicker variant={lpVariant} />
+            </div>
           </div>
         </div>
 
-        <div className="landing-content">
+        <main className="landing-main" id="main-content">
+          <div className="landing-content">
           <h2>{t("landing.welcomeTitle")}</h2>
           <p className="tagline">{t("landing.tagline")}</p>
+
+          <TrustPanel className="trust-panel-landing" />
+
+          <LegalGlossary className="legal-glossary-landing" />
 
           <div className="topic-cards">
             {topicCards.map((card) => (
@@ -1046,13 +2049,38 @@ function App() {
             ))}
           </div>
 
-          <button
-            className="btn btn-primary btn-large btn-start"
-            onClick={startChatFromCover}
-            disabled={loading}
-          >
-            {t("landing.begin")}
-          </button>
+          {pendingTriage ? (
+            <div className="resume-session-card">
+              <h3 className="resume-session-title">{t("resume.title")}</h3>
+              <p className="resume-session-detail">{t("resume.detail")}</p>
+              <div className="resume-session-actions">
+                <button
+                  type="button"
+                  className="btn btn-primary btn-large btn-start"
+                  onClick={resumeTriageFromCover}
+                  disabled={loading}
+                >
+                  {t("resume.continueBtn")}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-start btn-cover-secondary"
+                  onClick={discardPendingAndStartFresh}
+                  disabled={loading}
+                >
+                  {t("resume.startNewBtn")}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              className="btn btn-primary btn-large btn-start"
+              onClick={startChatFromCover}
+              disabled={loading}
+            >
+              {t("landing.begin")}
+            </button>
+          )}
 
           <div className="contact-help-box">
             <p>
@@ -1071,17 +2099,38 @@ function App() {
             </p>
           </div>
 
-          <div className="secondary-link-wrap">
+          <div className="secondary-link-wrap secondary-link-wrap--split">
             <button
               type="button"
-              onClick={() => setView("intakeChoice")}
+              onClick={() => setView(intakeSaved && intakeId ? "intakeChoice" : "intake")}
               className="link-button"
             >
-              Back to Login
+              {t("login.backToSignIn")}
+            </button>
+            <span className="secondary-link-sep" aria-hidden="true">
+              ·
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setMagicLinkError("");
+                setMagicVerifyError("");
+                setView("login");
+              }}
+              className="link-button"
+            >
+              {t("login.signInWithEmail")}
             </button>
           </div>
-        </div>
+          </div>
+        </main>
 
+        <SiteFooter
+          className={footerAuthClass}
+          supportEmail={SUPPORT_EMAIL}
+          onPrivacyClick={() => setView("privacy")}
+          showStaffSignIn
+        />
         <EmergencyButton />
       </div>
     );
@@ -1089,7 +2138,7 @@ function App() {
 
   const progress = conversationState?.progress || {};
   const progressCurrent = Number(progress.current || 1);
-  const progressTotal = Number(progress.total || 5);
+  const progressTotal = Number(progress.total || 6);
 
   const progressLabel =
     progress.label_key
@@ -1101,8 +2150,15 @@ function App() {
     Math.max(0, (progressCurrent / progressTotal) * 100)
   );
 
+  const referralMatchLine = () => {
+    const lv = Number(conversationState?.level);
+    if (lv === 3) return t("referral.matchLevel3");
+    if (lv === 2) return t("referral.matchLevel2");
+    return t("referral.matchLevel1");
+  };
+
   return (
-    <div className="chat-page">
+    <div className={chatShellClass}>
       <div className="chat-header">
         <div className="header-content">
           <img
@@ -1115,7 +2171,16 @@ function App() {
             <p>Information & Referrals</p>
           </div>
           <div className="header-right">
-            <LanguagePicker variant="dark" />
+            <button
+              type="button"
+              className="btn btn-large-text-toggle"
+              onClick={() => setLargeText((v) => !v)}
+              aria-pressed={largeText}
+            >
+              {largeText ? t("accessibility.largeTextOff") : t("accessibility.largeText")}
+            </button>
+            <ThemeToggle />
+            <LanguagePicker variant={lpVariant} />
           </div>
         </div>
       </div>
@@ -1181,7 +2246,20 @@ function App() {
           )}
         </div>
 
+        <main className="chat-main" id="main-content">
         <div className="messages-container" ref={messagesContainerRef}>
+          {chatError && (
+            <StatusBanner type="error" className="chat-status-banner" role="alert">
+              {chatError}
+            </StatusBanner>
+          )}
+
+          {loading && (
+            <StatusBanner type="info" className="chat-status-banner">
+              {t("chat.loadingBanner")}
+            </StatusBanner>
+          )}
+
           {messages.length === 0 && !loading && (
             <div className="empty-state">
               <p>{t("chat.starting")}</p>
@@ -1189,7 +2267,12 @@ function App() {
           )}
 
           {messages.map((msg, idx) => (
-            <div key={idx} className={`message-wrapper ${msg.role}`}>
+            <div
+              key={idx}
+              className={`message-wrapper ${msg.role} ${
+                msg.role === "bot" && msg.referrals?.length ? "has-referrals" : ""
+              }`}
+            >
               <div className={`message ${msg.role}`}>
                 <div className="message-content">
                   {msg.role === "bot" ? renderBotText(msg) : msg.content}
@@ -1214,7 +2297,31 @@ function App() {
                           <div className="referral-header">
                             <h3>{ref.name}</h3>
                           </div>
+                          <p className="referral-why">{referralMatchLine()}</p>
                           <p className="referral-description">{ref.description}</p>
+
+                          <div className="referral-summary-row">
+                            {ref.phone && ref.phone !== "" && (
+                              <span className="referral-summary-pill">
+                                <FaPhone size={12} />
+                                <span>{ref.phone}</span>
+                              </span>
+                            )}
+
+                            {ref.intake_form && ref.intake_form !== "" && (
+                              <span className="referral-summary-pill">
+                                <FaFileAlt size={12} />
+                                <span>Intake Form</span>
+                              </span>
+                            )}
+
+                            {ref.url && ref.url !== "" && (
+                              <span className="referral-summary-pill">
+                                <FaInfoCircle size={12} />
+                                <span>Website Available</span>
+                              </span>
+                            )}
+                          </div>
 
                           <div className="referral-contact">
                             {ref.phone && ref.phone !== "" && (
@@ -1259,6 +2366,12 @@ function App() {
                               )}
                           </div>
 
+                          <ReferralMap
+                            referral={ref}
+                            userZip={conversationState?.zip_code}
+                            t={t}
+                          />
+
                           {ref.is_nfp && (
                             <button
                               className="btn btn-nfp-intake"
@@ -1284,6 +2397,65 @@ function App() {
                           </a>
                         </div>
                       ))}
+
+                      {conversationState.step === "complete" &&
+                        msg.referrals?.length > 0 &&
+                        idx ===
+                          messages.findLastIndex(
+                            (m) => m.referrals && m.referrals.length
+                          ) && (
+                          <div className="post-referral-tools">
+                            <button
+                              type="button"
+                              className="btn btn-print-resources"
+                              onClick={handlePrintReferrals}
+                            >
+                              <FaPrint /> {t("chat.printResources")}
+                            </button>
+                            {triageFeedback !== "done" ? (
+                              <div
+                                className="triage-feedback"
+                                role="group"
+                                aria-label={t("chat.feedbackQuestion")}
+                              >
+                                <p className="triage-feedback-q">
+                                  {t("chat.feedbackQuestion")}
+                                </p>
+                                <div className="triage-feedback-btns">
+                                  <button
+                                    type="button"
+                                    className="btn btn-feedback"
+                                    onClick={() => handleTriageFeedback(true)}
+                                    disabled={loading}
+                                  >
+                                    {t("chat.feedbackYes")}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-feedback btn-feedback-secondary"
+                                    onClick={() => handleTriageFeedback(false)}
+                                    disabled={loading}
+                                  >
+                                    {t("chat.feedbackNo")}
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="triage-feedback-thanks" role="status">
+                                {t("chat.feedbackThanks")}
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                      {conversationState.step === "complete" &&
+                        msg.referrals?.length > 0 &&
+                        idx ===
+                          messages.findLastIndex(
+                            (m) => m.referrals && m.referrals.length
+                          ) && (
+                          <TopicResourcesPanel topic={conversationState.topic} />
+                        )}
 
                       {conversationState.step === "complete" && (
                         <div className="ai-assistant-prompt">
@@ -1360,12 +2532,20 @@ function App() {
               type="text"
               value={userInput}
               onChange={(e) => setUserInput(e.target.value)}
-              placeholder={t("chat.placeholder")}
+              placeholder={
+                conversationState?.step === "problem_summary"
+                  ? t("chat.placeholderSummary")
+                  : t("chat.placeholder")
+              }
               disabled={loading}
               className="chat-input"
             />
             <button type="submit" className="btn btn-send" disabled={loading}>
-              <FaPaperPlane size={20} />
+              {loading ? (
+                <span className="send-loading-spinner" aria-hidden="true"></span>
+              ) : (
+                <FaPaperPlane size={20} />
+              )}
             </button>
           </form>
         </div>
@@ -1376,6 +2556,12 @@ function App() {
             Quick Exit is available if you need to leave this page quickly.
           </p>
         </div>
+        </main>
+
+        <SiteFooter
+          supportEmail={SUPPORT_EMAIL}
+          className={chatFooterClassName}
+        />
       </div>
 
       <EmergencyButton />
