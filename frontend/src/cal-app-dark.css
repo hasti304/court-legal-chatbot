@@ -1,0 +1,682 @@
+/**
+ * Post-login surfaces: same palette as auth (GitHub-style dark).
+ * Scoped with body:not(.discreet-mode) so discreet mode stays neutral/gray.
+ */
+
+body:not(.discreet-mode) .landing.cal-app-dark {
+  background: #0d1117;
+  color: #f0f6fc;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .landing-background-accent {
+  background:
+    radial-gradient(circle at top center, rgba(47, 129, 247, 0.06), transparent 32%),
+    radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.03), transparent 25%);
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .landing-header h1 {
+  color: #f0f6fc;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .subtitle {
+  color: #8b949e;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .app-logo {
+  background: #161b22;
+  border-color: #30363d;
+  box-shadow: none;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .landing-content {
+  background: #161b22;
+  border: 1px solid #30363d;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .landing-content h2 {
+  color: #f0f6fc;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .tagline {
+  color: #8b949e;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .link-button,
+body:not(.discreet-mode) .landing.cal-app-dark .inline-link-button {
+  color: #2f81f7;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .professional-topic-card {
+  background: #0d1117;
+  border-color: #30363d;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .professional-topic-card:hover {
+  border-color: #484f58;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .topic-card-icon {
+  background: #21262d;
+  color: #8b949e;
+  border: 1px solid #30363d;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .topic-card h3 {
+  color: #f0f6fc;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .topic-card p {
+  color: #8b949e;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .contact-help-box {
+  background: #0d1117;
+  border-color: #30363d;
+  color: #8b949e;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .contact-help-box a {
+  color: #2f81f7;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .disclaimer-box {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-left: 3px solid #6e7681;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .disclaimer-title {
+  color: #f0f6fc;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .disclaimer-text {
+  color: #8b949e;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .privacy-warning {
+  background: rgba(248, 81, 73, 0.08);
+  border: 1px solid rgba(248, 81, 73, 0.35);
+  color: #ffa198;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .resume-session-card {
+  background: #0d1117;
+  border: 1px solid #30363d;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .resume-session-title {
+  color: #f0f6fc;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .resume-session-detail {
+  color: #8b949e;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .btn-start:not(.btn-cover-secondary):not(.trust-panel-toggle) {
+  background: #238636;
+}
+
+body:not(.discreet-mode)
+  .landing.cal-app-dark
+  .btn-start:not(.btn-cover-secondary):not(.trust-panel-toggle):hover:not(:disabled) {
+  background: #2ea043;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .btn-cover-secondary {
+  background: #30363d;
+  color: #f0f6fc;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .btn-cover-secondary:hover:not(:disabled) {
+  background: #484f58;
+}
+
+/* Trust + glossary on cover */
+body:not(.discreet-mode) .landing.cal-app-dark .trust-panel-toggle {
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #f0f6fc;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .trust-panel.open .trust-panel-toggle {
+  border-bottom-color: transparent;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .trust-panel-body {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-top: none;
+  color: #8b949e;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .trust-panel-lead {
+  color: #c9d1d9;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .trust-panel-list {
+  color: #8b949e;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .trust-panel-list-muted {
+  color: #6e7681;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .trust-panel-sub {
+  color: #c9d1d9;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .legal-glossary {
+  background: #0d1117;
+  border-color: #30363d;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .legal-glossary-summary {
+  color: #f0f6fc;
+  cursor: pointer;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .legal-glossary-summary:hover {
+  color: #58a6ff;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .legal-glossary-intro,
+body:not(.discreet-mode) .landing.cal-app-dark .legal-glossary-row dd {
+  color: #8b949e;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .legal-glossary-row dt {
+  color: #e6edf3;
+}
+
+/* Admin card on cover */
+body:not(.discreet-mode) .landing.cal-app-dark .admin-analytics {
+  background: #0d1117;
+  border-color: #30363d;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .admin-analytics-summary {
+  color: #f0f6fc;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .admin-analytics-card {
+  border-top-color: #30363d;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .admin-analytics-hint,
+body:not(.discreet-mode) .landing.cal-app-dark .admin-metric-label {
+  color: #8b949e;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .admin-metric {
+  background: #161b22;
+  border-color: #30363d;
+}
+
+body:not(.discreet-mode) .landing.cal-app-dark .admin-metric-value {
+  color: #f0f6fc;
+}
+
+/* ----- Chat (triage) ----- */
+body:not(.discreet-mode) .chat-page.cal-app-dark {
+  background: #0d1117;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .chat-header {
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  box-shadow: none;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .btn-large-text-toggle {
+  background: #21262d;
+  color: #f0f6fc;
+  border: 1px solid #30363d;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .btn-large-text-toggle:hover {
+  background: #30363d;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .btn-large-text-toggle[aria-pressed="true"] {
+  background: #238636;
+  border-color: #238636;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .chat-container {
+  background: #161b22;
+  border-color: #30363d;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .safety-toolbar {
+  background: #0d1117;
+  border-bottom-color: #30363d;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .progress-bar-container {
+  background: #0d1117;
+  border-bottom-color: #30363d;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .progress-step {
+  color: #58a6ff;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .progress-label {
+  color: #8b949e;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .progress-bar-track {
+  background: #30363d;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .progress-bar-fill {
+  background: #238636;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .empty-state {
+  color: #8b949e;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .message.bot {
+  background: #21262d;
+  color: #f0f6fc;
+  border-color: #30363d;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .message.user {
+  width: fit-content;
+  max-width: min(520px, 92%);
+  margin-left: auto;
+  background: #1f4c82;
+  border-bottom-right-radius: 6px;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .btn-option {
+  background: #0d1117;
+  color: #f0f6fc;
+  border-color: #30363d;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .btn-option:hover:not(:disabled) {
+  background: #21262d;
+  border-color: #484f58;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .referrals {
+  border-top-color: #30363d;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .referrals-title {
+  color: #f0f6fc;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .referral-card {
+  background: #0d1117;
+  border-color: #30363d;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .referral-header h3 {
+  color: #f0f6fc;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .referral-description,
+body:not(.discreet-mode) .chat-page.cal-app-dark .referral-why {
+  color: #8b949e;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .referral-summary-pill {
+  background: #21262d;
+  border-color: #30363d;
+  color: #c9d1d9;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .contact-item {
+  background: #161b22;
+  border-color: #30363d;
+  color: #8b949e;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .contact-item svg {
+  color: #58a6ff;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .intake-link {
+  color: #2f81f7;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .intake-instructions {
+  background: rgba(187, 128, 9, 0.12);
+  border-left-color: #bb8009;
+  color: #d4a72c;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .btn-referral {
+  background: #238636;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .btn-referral:hover {
+  background: #2ea043;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .btn-nfp-intake {
+  background: #1f6feb;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .btn-nfp-intake:hover {
+  background: #388bfd;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .referral-map-section,
+body:not(.discreet-mode) .chat-page.cal-app-dark .referral-map-fallback {
+  border-top-color: #30363d;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .referral-map-distance {
+  color: #f0f6fc;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .referral-map-disclaimer,
+body:not(.discreet-mode) .chat-page.cal-app-dark .referral-map-note {
+  color: #8b949e;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .referral-map-frame {
+  border-color: #30363d;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .referral-map-link {
+  color: #58a6ff;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .ai-assistant-prompt {
+  background: #0d1117;
+  border-color: #30363d;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .ai-assistant-hint {
+  color: #8b949e;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .topic-resources-panel {
+  background: #0d1117;
+  border-color: #30363d;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .topic-resources-title {
+  color: #f0f6fc;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .topic-resources-disclaimer,
+body:not(.discreet-mode) .chat-page.cal-app-dark .topic-resources-sub {
+  color: #8b949e;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .topic-resources-steps {
+  color: #c9d1d9;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .topic-resources-links a {
+  color: #2f81f7;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .topic-resources-letter {
+  background: #161b22;
+  border-color: #30363d;
+  color: #e6edf3;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .btn-copy-template {
+  background: #238636;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .btn-copy-template:hover {
+  background: #2ea043;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .post-referral-tools {
+  border-top-color: #30363d;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .post-referral-tools .btn-print-resources {
+  background: #21262d;
+  color: #f0f6fc;
+  border: 1px solid #30363d;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .post-referral-tools .btn-print-resources:hover {
+  background: #30363d;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .triage-feedback-q {
+  color: #c9d1d9;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .btn-feedback {
+  background: #238636;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .btn-feedback:hover {
+  background: #2ea043;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .btn-feedback-secondary {
+  background: #30363d;
+  color: #f0f6fc;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .btn-feedback-secondary:hover {
+  background: #484f58;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .triage-feedback-thanks {
+  color: #3fb950;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .input-container {
+  background: #0d1117;
+  border-top-color: #30363d;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .chat-input {
+  background: #161b22;
+  border-color: #30363d;
+  color: #f0f6fc;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .chat-input:focus {
+  border-color: #2f81f7;
+  box-shadow: 0 0 0 3px rgba(47, 129, 247, 0.25);
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .chat-input:disabled {
+  background: #21262d;
+  opacity: 0.7;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .btn-send {
+  background: #238636;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .btn-send:hover:not(:disabled) {
+  background: #2ea043;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .chat-footer {
+  background: #0d1117;
+  border-top-color: #30363d;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .footer-disclaimer {
+  color: #8b949e;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .footer-privacy-warning {
+  background: rgba(248, 81, 73, 0.08);
+  color: #ffa198;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .status-banner.info {
+  background: rgba(31, 111, 235, 0.12);
+  border-color: rgba(56, 139, 253, 0.45);
+  color: #79c0ff;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .status-banner.info .status-banner-icon {
+  background: rgba(31, 111, 235, 0.2);
+  color: #58a6ff;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .status-banner.error {
+  background: rgba(248, 81, 73, 0.1);
+  border-color: rgba(248, 81, 73, 0.4);
+  color: #ffa198;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .status-banner.error .status-banner-icon {
+  background: rgba(248, 81, 73, 0.15);
+  color: #ff7b72;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .site-footer.site-footer-chat.site-footer--auth-dark {
+  background: #0d1117;
+  border-top-color: #30363d;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .site-footer.site-footer-chat.site-footer--auth-dark .site-footer-org,
+body:not(.discreet-mode) .chat-page.cal-app-dark .site-footer.site-footer-chat.site-footer--auth-dark .site-footer-disclaimer,
+body:not(.discreet-mode) .chat-page.cal-app-dark .site-footer.site-footer-chat.site-footer--auth-dark .site-footer-contact {
+  color: #8b949e;
+}
+
+body:not(.discreet-mode) .chat-page.cal-app-dark .site-footer.site-footer-chat.site-footer--auth-dark .site-footer-contact a,
+body:not(.discreet-mode) .chat-page.cal-app-dark .site-footer.site-footer-chat.site-footer--auth-dark .site-footer-privacy-btn {
+  color: #2f81f7;
+}
+
+/* AI assistant loading */
+body:not(.discreet-mode) .ai-loading-screen--dark {
+  background: #0d1117;
+}
+
+body:not(.discreet-mode) .ai-loading-card--dark {
+  background: #161b22;
+  border: 1px solid #30363d;
+  color: #f0f6fc;
+}
+
+/* Bot message links (markdown) */
+body:not(.discreet-mode) .chat-page.cal-app-dark .message-content a {
+  color: #58a6ff;
+}
+
+/* ----- AI assistant full page ----- */
+body:not(.discreet-mode) .ai-chat-page.cal-app-dark {
+  background: #0d1117;
+}
+
+body:not(.discreet-mode) .ai-chat-page.cal-app-dark .ai-chat-container {
+  background: #161b22;
+  border-color: #30363d;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+body:not(.discreet-mode) .ai-chat-page.cal-app-dark .ai-chat-header {
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  box-shadow: none;
+}
+
+body:not(.discreet-mode) .ai-chat-page.cal-app-dark .ai-chat-messages {
+  background: #0d1117;
+}
+
+body:not(.discreet-mode) .ai-chat-page.cal-app-dark .assistant-message .message-content {
+  background: #21262d;
+  color: #f0f6fc;
+  border-color: #30363d;
+}
+
+body:not(.discreet-mode) .ai-chat-page.cal-app-dark .user-message .message-content {
+  background: #1f4c82;
+}
+
+body:not(.discreet-mode) .ai-chat-page.cal-app-dark .message-content a {
+  color: #58a6ff;
+}
+
+body:not(.discreet-mode) .ai-chat-page.cal-app-dark .message-content code {
+  background: #30363d;
+  color: #e6edf3;
+}
+
+body:not(.discreet-mode) .ai-chat-page.cal-app-dark .ai-chat-input-container {
+  background: #0d1117;
+  border-top-color: #30363d;
+}
+
+body:not(.discreet-mode) .ai-chat-page.cal-app-dark .ai-chat-input {
+  background: #161b22;
+  border-color: #30363d;
+  color: #f0f6fc;
+}
+
+body:not(.discreet-mode) .ai-chat-page.cal-app-dark .ai-chat-input:focus {
+  border-color: #2f81f7;
+  box-shadow: 0 0 0 3px rgba(47, 129, 247, 0.25);
+}
+
+body:not(.discreet-mode) .ai-chat-page.cal-app-dark .ai-send-button {
+  background: #238636;
+}
+
+body:not(.discreet-mode) .ai-chat-page.cal-app-dark .ai-send-button:hover:not(:disabled) {
+  background: #2ea043;
+}
+
+body:not(.discreet-mode) .ai-chat-page.cal-app-dark .ai-chat-footer {
+  background: #0d1117;
+  border-top: 1px solid #30363d;
+}
+
+body:not(.discreet-mode) .ai-chat-page.cal-app-dark .help-text {
+  color: #8b949e;
+}
+
+body:not(.discreet-mode) .ai-chat-page.cal-app-dark .footer-contact-item {
+  background: #161b22;
+  border-color: #30363d;
+  color: #8b949e;
+}
+
+body:not(.discreet-mode) .ai-chat-page.cal-app-dark .footer-contact-item strong {
+  color: #e6edf3;
+}
+
+body:not(.discreet-mode) .ai-chat-page.cal-app-dark .footer-contact-item a {
+  color: #2f81f7;
+}
+
+body:not(.discreet-mode) .ai-chat-page.cal-app-dark .status-banner.info {
+  background: rgba(31, 111, 235, 0.12);
+  border-color: rgba(56, 139, 253, 0.45);
+  color: #79c0ff;
+}
+
+body:not(.discreet-mode) .ai-chat-page.cal-app-dark .status-banner.info .status-banner-icon {
+  background: rgba(31, 111, 235, 0.2);
+  color: #58a6ff;
+}
+
+body:not(.discreet-mode) .ai-chat-page.cal-app-dark .status-banner.error {
+  background: rgba(248, 81, 73, 0.1);
+  border-color: rgba(248, 81, 73, 0.4);
+  color: #ffa198;
+}
+
+body:not(.discreet-mode) .ai-chat-page.cal-app-dark .status-banner.error .status-banner-icon {
+  background: rgba(248, 81, 73, 0.15);
+  color: #ff7b72;
+}

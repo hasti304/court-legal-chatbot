@@ -8,6 +8,22 @@
         "phone": "(866) 452-5291",
         "intake_form": "",
         "is_nfp": false
+      },
+      {
+        "name": "Cook County Clerk of the Circuit Court",
+        "description": "Official Cook County court forms, fees, and public access to case services.",
+        "url": "https://www.cookcountyclerkofcourt.org/",
+        "phone": "(312) 603-5031",
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "Illinois Courts — Court User Resource Center",
+        "description": "Statewide self-help information, court locations, and e-filing guidance from the Illinois judicial branch.",
+        "url": "https://www.illinoiscourts.gov/court-users/",
+        "phone": "",
+        "intake_form": "",
+        "is_nfp": false
       }
     ],
     "level_2": [
@@ -70,6 +86,22 @@
         "description": "Online resources, presentations, and legal information for education rights in Illinois.",
         "url": "https://www.illinoislegalaid.org/legal-information/school-education",
         "phone": "(866) 452-5291",
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "Cook County Clerk of the Circuit Court",
+        "description": "Official Cook County court forms, fees, and public access to case services.",
+        "url": "https://www.cookcountyclerkofcourt.org/",
+        "phone": "(312) 603-5031",
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "Illinois Courts — Court User Resource Center",
+        "description": "Statewide self-help information, court locations, and e-filing guidance from the Illinois judicial branch.",
+        "url": "https://www.illinoiscourts.gov/court-users/",
+        "phone": "",
         "intake_form": "",
         "is_nfp": false
       }
@@ -139,6 +171,30 @@
         "phone": "(847) 492-1410",
         "intake_form": "",
         "is_nfp": false
+      },
+      {
+        "name": "Chicago Coalition to End Homelessness",
+        "description": "Advocacy and legal help for youth experiencing homelessness, including school access and educational rights support.",
+        "url": "https://www.chicagohomeless.org/our-work/educational-rights/",
+        "phone": "(312) 641-4140",
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "Cabrini Green Legal Aid",
+        "description": "Provides legal services and policy advocacy, including support that may intersect with school access and youth legal needs.",
+        "url": "https://www.cgla.net/",
+        "phone": "(312) 738-2452",
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "Illinois Attorney General - Legal Assistance Referrals",
+        "description": "Statewide referral directory for legal help providers, including pro bono and reduced-cost options.",
+        "url": "https://www.illinoisattorneygeneral.gov/Legal-Assistance-Referrals/",
+        "phone": "(800) 386-5438",
+        "intake_form": "",
+        "is_nfp": false
       }
     ],
     "level_3": [
@@ -183,6 +239,22 @@
         "description": "Emergency rental assistance (past-due rent, future rent, and court costs) for tenants in eviction court in Illinois.",
         "url": "https://www.illinoishousinghelp.org/cbrap",
         "phone": "(866) 454-3571",
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "Cook County Clerk of the Circuit Court",
+        "description": "Official Cook County court forms, fees, and public access to case services.",
+        "url": "https://www.cookcountyclerkofcourt.org/",
+        "phone": "(312) 603-5031",
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "Illinois Courts — Court User Resource Center",
+        "description": "Statewide self-help information, court locations, and e-filing guidance from the Illinois judicial branch.",
+        "url": "https://www.illinoiscourts.gov/court-users/",
+        "phone": "",
         "intake_form": "",
         "is_nfp": false
       }
@@ -257,6 +329,22 @@
         "phone": "(866) 452-5291",
         "intake_form": "",
         "is_nfp": false
+      },
+      {
+        "name": "Cook County Clerk of the Circuit Court",
+        "description": "Official Cook County court forms, fees, and public access to case services.",
+        "url": "https://www.cookcountyclerkofcourt.org/",
+        "phone": "(312) 603-5031",
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "Illinois Courts — Court User Resource Center",
+        "description": "Statewide self-help information, court locations, and e-filing guidance from the Illinois judicial branch.",
+        "url": "https://www.illinoiscourts.gov/court-users/",
+        "phone": "",
+        "intake_form": "",
+        "is_nfp": false
       }
     ],
     "level_2": [
@@ -319,6 +407,22 @@
         "description": "Provides legal information, forms, and referrals for child custody and family law matters.",
         "url": "https://www.illinoislegalaid.org/legal-information/family-safety",
         "phone": "(866) 452-5291",
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "Cook County Clerk of the Circuit Court",
+        "description": "Official Cook County court forms, fees, and public access to case services.",
+        "url": "https://www.cookcountyclerkofcourt.org/",
+        "phone": "(312) 603-5031",
+        "intake_form": "",
+        "is_nfp": false
+      },
+      {
+        "name": "Illinois Courts — Court User Resource Center",
+        "description": "Statewide self-help information, court locations, and e-filing guidance from the Illinois judicial branch.",
+        "url": "https://www.illinoiscourts.gov/court-users/",
+        "phone": "",
         "intake_form": "",
         "is_nfp": false
       }

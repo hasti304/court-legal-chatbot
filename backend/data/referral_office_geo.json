@@ -1,0 +1,46 @@
+{
+  "Legal Aid Chicago": { "latitude": 41.879, "longitude": -87.6294 },
+  "Greater Chicago Legal Clinic": { "latitude": 41.8765, "longitude": -87.626 },
+  "CARPLS (Coordinated Advice & Referral Program for Legal Services)": {
+    "latitude": 41.8847,
+    "longitude": -87.6296
+  },
+  "Chicago Advocate Legal, NFP": { "latitude": 41.8764, "longitude": -87.6261 },
+  "Justice Entrepreneurs Project": { "latitude": 41.8773, "longitude": -87.6287 },
+  "Illinois State Bar Association Lawyer Finder": {
+    "latitude": 39.7995,
+    "longitude": -89.6543
+  },
+  "Equip for Equality": { "latitude": 41.88275, "longitude": -87.62442 },
+  "Chicago Lawyers' Committee for Civil Rights": {
+    "latitude": 41.8852,
+    "longitude": -87.625
+  },
+  "Land of Lincoln Legal Aid": { "latitude": 39.8076, "longitude": -89.6547 },
+  "Stand Up For Each Other (SUFEO)": { "latitude": 41.8975, "longitude": -87.6289 },
+  "Illinois Guardianship and Advocacy Commission (IGAC)": {
+    "latitude": 41.8846,
+    "longitude": -87.6301
+  },
+  "Legal Council for Health Justice": { "latitude": 41.885, "longitude": -87.6305 },
+  "Moran Center for Youth Advocacy": { "latitude": 42.0411, "longitude": -87.6998 },
+  "Chicago Coalition to End Homelessness": {
+    "latitude": 41.8829,
+    "longitude": -87.6325
+  },
+  "Cabrini Green Legal Aid": { "latitude": 41.9255, "longitude": -87.6482 },
+  "Illinois Attorney General - Legal Assistance Referrals": {
+    "latitude": 41.8846,
+    "longitude": -87.6301
+  },
+  "Metropolitan Tenants Organization": { "latitude": 41.9337, "longitude": -87.7108 },
+  "Court-Based Rental Assistance Programs (CBRAP)": {
+    "latitude": 39.7817,
+    "longitude": -89.6501
+  },
+  "LAW Center for Better Housing": { "latitude": 41.8758, "longitude": -87.6273 },
+  "Cook County Legal Aid for Housing and Debt (CCLAHD)": {
+    "latitude": 41.884,
+    "longitude": -87.6307
+  }
+}

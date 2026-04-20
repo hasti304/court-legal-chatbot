@@ -87,16 +87,17 @@
   }
 }
 
-/* Modal Header */
+/* Modal Header — single sober tone (no rainbow; body stays neutral) */
 .emergency-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 16px;
   padding: 24px;
-  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
-  color: white;
+  background: #1e293b;
+  color: #f8fafc;
   border-radius: 16px 16px 0 0;
+  border-bottom: 3px solid #991b1b;
 }
 
 .emergency-modal-header h2 {
@@ -135,12 +136,13 @@
 }
 
 .emergency-warning {
-  background: #fef2f2;
-  border: 2px solid #dc2626;
-  color: #991b1b;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #991b1b;
+  color: #1e293b;
   padding: 16px;
   border-radius: 10px;
-  font-size: 18px;
+  font-size: 1rem;
   font-weight: 700;
   text-align: center;
   margin-bottom: 24px;
@@ -156,16 +158,21 @@
 }
 
 .emergency-resource-card {
-  background: #f9fafb;
+  background: #ffffff;
   padding: 20px;
   border-radius: 12px;
-  border-left: 4px solid #dc2626;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #64748b;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.emergency-resource-card--urgent {
+  border-left-color: #991b1b;
 }
 
 .emergency-resource-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+  border-color: #cbd5e1;
 }
 
 .emergency-resource-card h3 {
@@ -184,22 +191,39 @@
 }
 
 .emergency-call-button {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   width: 100%;
-  padding: 12px;
-  background: #dc2626;
-  color: white;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  background: #1e293b;
+  color: #f8fafc;
   text-decoration: none;
   text-align: center;
-  font-weight: 700;
-  font-size: 16px;
+  font-weight: 600;
+  font-size: 0.95rem;
   border-radius: 8px;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.emergency-call-button--urgent {
+  background: #7f1d1d;
 }
 
 .emergency-call-button:hover {
-  transform: scale(1.02);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  background: #334155;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+}
+
+.emergency-call-button--urgent:hover {
+  background: #991b1b;
+}
+
+.emergency-call-icon {
+  flex-shrink: 0;
+  opacity: 0.95;
 }
 
 .emergency-call-button:focus {
@@ -209,11 +233,11 @@
 
 /* Safety Notice */
 .emergency-safety-notice {
-  background: #fffbeb;
-  border: 2px solid #f59e0b;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   padding: 16px;
   border-radius: 10px;
-  color: #78350f;
+  color: #334155;
   line-height: 1.6;
   display: flex;
   flex-direction: column;
@@ -227,12 +251,12 @@
 }
 
 .quick-exit-button {
-  background: #f59e0b;
-  color: white;
+  background: #334155;
+  color: #f8fafc;
   border: none;
   padding: 12px 18px;
   border-radius: 8px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   margin-top: 4px;
   transition: background 0.2s ease;
@@ -243,8 +267,39 @@
   align-self: flex-start;
 }
 
+.discreet-install-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.discreet-link-button {
+  background: #1e40af;
+  color: #fff;
+  text-decoration: none;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.discreet-link-secondary {
+  background: #475569;
+}
+
+.discreet-link-button:hover {
+  opacity: 0.92;
+}
+
+.discreet-link-button:focus {
+  outline: 3px solid rgba(17, 24, 39, 0.18);
+  outline-offset: 3px;
+}
+
 .quick-exit-button:hover {
-  background: #d97706;
+  background: #1e293b;
 }
 
 .quick-exit-button:focus {
@@ -302,7 +357,8 @@
   }
 
   .quick-exit-button,
-  .emergency-call-button {
+  .emergency-call-button,
+  .discreet-link-button {
     width: 100%;
     justify-content: center;
   }

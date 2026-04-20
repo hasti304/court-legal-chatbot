@@ -149,6 +149,10 @@
   scroll-behavior: smooth;
 }
 
+.ai-status-banner {
+  margin-bottom: 12px;
+}
+
 .ai-message {
   display: flex;
   flex-direction: column;

@@ -1,27 +1,68 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
-export default defineConfig({
-  plugins: [
-    react(),
-    VitePWA({
-      registerType: "autoUpdate",
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  const apiBase = String(env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
+  let apiOrigin = "";
+  if (apiBase) {
+    try {
+      apiOrigin = new URL(apiBase).origin;
+    } catch {
+      apiOrigin = "";
+    }
+  }
 
-      // IMPORTANT: do NOT override manifest here
-      manifest: false,
+  const devProxyTarget = String(env.VITE_DEV_PROXY_TARGET || "http://127.0.0.1:8000").replace(
+    /\/+$/,
+    ""
+  );
 
-      includeAssets: [
-        "cal_logo.png"
-      ],
+  return {
+    server:
+      mode === "development"
+        ? {
+            proxy: {
+              "^/(health|auth|intake|chat|ai-chat|admin|resources)(/|$)": {
+                target: devProxyTarget,
+                changeOrigin: true,
+              },
+            },
+          }
+        : undefined,
+    plugins: [
+      react(),
+      VitePWA({
+        registerType: "autoUpdate",
 
-      workbox: {
-        globPatterns: ["**/*.{js,css,html,png,svg,ico}"],
+        // IMPORTANT: do NOT override manifest here
+        manifest: false,
+
+        includeAssets: ["cal_logo.png"],
+
+        workbox: {
+          globPatterns: ["**/*.{js,css,html,png,svg,ico}"],
+        },
+
+        devOptions: {
+          enabled: false,
+        },
+      }),
+      {
+        name: "inject-api-preconnect",
+        transformIndexHtml(html) {
+          if (!apiOrigin) return html;
+          const tags = `
+    <link rel="preconnect" href="${apiOrigin}" crossorigin />
+    <link rel="dns-prefetch" href="${apiOrigin}" />`;
+          const anchor = /<meta\s+name="viewport"[^>]*>/i;
+          if (anchor.test(html)) {
+            return html.replace(anchor, (m) => `${m}${tags}`);
+          }
+          return html.replace("</head>", `${tags}\n</head>`);
+        },
       },
-
-      devOptions: {
-        enabled: true
-      }
-    }),
-  ],
+    ],
+  };
 });

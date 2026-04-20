@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./AIChat.css";
+import StatusBanner from "./StatusBanner";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { useTranslation } from "react-i18next";
@@ -12,14 +13,15 @@ import {
   FaSignOutAlt,
   FaTrashAlt,
 } from "react-icons/fa";
+import { getApiBaseUrl } from "../utils/apiBase";
 
-const API_BASE = String(
-  import.meta.env.VITE_API_BASE_URL ?? "https://court-legal-chatbot-1.onrender.com"
-).replace(/\/+$/, "");
+const API_BASE = getApiBaseUrl();
 
 const SUPPORT_EMAIL = "intake@chicagoadvocatelegal.com";
 
-const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false }) => {
+const AI_CHAT_FETCH_TIMEOUT_MS = 30000;
+
+const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCalDark = true }) => {
   const { t, i18n } = useTranslation();
 
   const [messages, setMessages] = useState([
@@ -27,6 +29,7 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false }) => {
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [requestError, setRequestError] = useState("");
 
   const [speechEnabled, setSpeechEnabled] = useState(false);
   const [speaking, setSpeaking] = useState(false);
@@ -124,6 +127,7 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false }) => {
     stopSpeaking();
     setMessages([{ role: "assistant", content: t("ai.placeholder") }]);
     setInputValue("");
+    setRequestError("");
   };
 
   const quickExit = () => {
@@ -139,6 +143,7 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false }) => {
 
   const sendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
+    setRequestError("");
 
     const userMessage = { role: "user", content: inputValue.trim() };
     const updatedMessages = [...messages, userMessage];
@@ -148,24 +153,36 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false }) => {
     setIsLoading(true);
 
     try {
-      const response = await fetchWithTimeout(apiUrl("/ai-chat"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: updatedMessages.map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-          topic: topic || "general",
-          language: getNormalizedLanguage(),
-          intake_id: intakeId || null,
-        }),
-      });
+      const response = await fetchWithTimeout(
+        apiUrl("/ai-chat"),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: updatedMessages.map((m) => ({
+              role: m.role,
+              content: m.content,
+            })),
+            topic: topic || "general",
+            language: getNormalizedLanguage(),
+            intake_id: intakeId || null,
+          }),
+        },
+        AI_CHAT_FETCH_TIMEOUT_MS
+      );
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("AI server error:", errorText);
-        throw new Error(`HTTP error! status: ${response.status}`);
+        let detail = "";
+        try {
+          const payload = await response.json();
+          detail = payload?.detail ? String(payload.detail) : "";
+        } catch (e) {
+          const errorText = await response.text();
+          detail = String(errorText || "").trim();
+        }
+        throw new Error(
+          detail || `Unable to process request right now (status ${response.status}).`
+        );
       }
 
       const data = await response.json();
@@ -181,6 +198,11 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false }) => {
       ]);
     } catch (error) {
       console.error("AI request failed:", error);
+      setRequestError(
+        error?.message && String(error.message).trim().length > 0
+          ? String(error.message)
+          : "Unable to connect to the AI assistant right now."
+      );
       setMessages((prev) => [
         ...prev,
         {
@@ -210,8 +232,13 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false }) => {
     ? "Support Team:"
     : "Chicago Advocate Legal, NFP:";
 
+  const urlDiscreet =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("mode") === "discreet";
+  const showCalDarkChrome = useCalDark && !isDiscreetMode && !urlDiscreet;
+
   return (
-    <div className="ai-chat-page">
+    <div className={`ai-chat-page${showCalDarkChrome ? " cal-app-dark" : ""}`}>
       <div className="ai-chat-container">
         <div className="ai-chat-header">
           <div className="ai-header-top">
@@ -270,6 +297,18 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false }) => {
         </div>
 
         <div className="ai-chat-messages">
+          {requestError && (
+            <StatusBanner type="error" className="ai-status-banner" role="alert">
+              {requestError}
+            </StatusBanner>
+          )}
+
+          {isLoading && (
+            <StatusBanner type="info" className="ai-status-banner">
+              Thinking through your question...
+            </StatusBanner>
+          )}
+
           {messages.map((message, index) => (
             <div
               key={index}

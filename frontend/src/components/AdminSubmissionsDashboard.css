@@ -1,0 +1,150 @@
+.admin-dashboard-page {
+  min-height: 100vh;
+  background: var(--bg-page, #f4f7fb);
+  color: var(--text-primary, #0f172a);
+  padding: 24px 16px 48px;
+  box-sizing: border-box;
+}
+
+.admin-dashboard-header {
+  max-width: 960px;
+  margin: 0 auto 20px;
+}
+
+.admin-dashboard-header h1 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.admin-dashboard-subtitle {
+  color: var(--text-secondary, #475569);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.admin-dashboard-subtitle code {
+  font-size: 0.85em;
+  background: #e2e8f0;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.admin-dashboard-home {
+  display: inline-block;
+  font-weight: 700;
+  color: var(--primary, #1d4ed8);
+  text-decoration: none;
+}
+
+.admin-dashboard-home:hover {
+  text-decoration: underline;
+}
+
+.admin-dashboard-card {
+  max-width: 960px;
+  margin: 0 auto;
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 16px;
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(15, 23, 42, 0.08));
+  padding: 20px;
+}
+
+.admin-dashboard-banner {
+  margin-bottom: 14px;
+}
+
+.admin-dashboard-controls {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  margin-bottom: 20px;
+  align-items: stretch;
+}
+
+@media (max-width: 640px) {
+  .admin-dashboard-controls {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-dashboard-input {
+  padding: 12px 14px;
+  border: 1px solid var(--border-medium, #cbd5e1);
+  border-radius: 12px;
+  font-size: 1rem;
+  font-family: inherit;
+  min-height: 48px;
+}
+
+.admin-dashboard-input:focus {
+  outline: none;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.admin-dashboard-button {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 12px;
+  background: var(--primary, #1d4ed8);
+  color: white;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  min-height: 48px;
+}
+
+.admin-dashboard-button:hover:not(:disabled) {
+  background: var(--primary-hover, #1e40af);
+}
+
+.admin-dashboard-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-dashboard-table-wrap {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid var(--border-light, #e2e8f0);
+}
+
+.admin-dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.admin-dashboard-table th,
+.admin-dashboard-table td {
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-light, #e2e8f0);
+}
+
+.admin-dashboard-table th {
+  background: #f8fafc;
+  font-weight: 800;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #64748b);
+}
+
+.admin-dashboard-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-dashboard-table tbody tr:hover td {
+  background: #f8fafc;
+}
+
+.admin-dashboard-empty {
+  color: var(--text-muted, #64748b);
+  text-align: center;
+  padding: 28px 16px !important;
+}

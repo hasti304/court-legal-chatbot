@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { FaExclamationTriangle, FaTimes, FaSignOutAlt } from "react-icons/fa";
+import { FaExclamationTriangle, FaTimes, FaSignOutAlt, FaPhone } from "react-icons/fa";
 import "./EmergencyButton.css";
 import { useTranslation } from "react-i18next";
 
@@ -14,37 +14,32 @@ const EmergencyButton = () => {
         name: t("emergency.resources.emsName"),
         phone: "911",
         description: t("emergency.resources.emsDesc"),
-        color: "#dc2626",
+        urgent: true,
       },
       {
         name: t("emergency.resources.ndvName"),
         phone: "1-800-799-7233",
         description: t("emergency.resources.ndvDesc"),
-        color: "#ea580c",
       },
       {
         name: t("emergency.resources.idvName"),
         phone: "1-877-863-6338",
         description: t("emergency.resources.idvDesc"),
-        color: "#d97706",
       },
       {
         name: t("emergency.resources.lifelineName"),
         phone: "988",
         description: t("emergency.resources.lifelineDesc"),
-        color: "#7c3aed",
       },
       {
         name: t("emergency.resources.dcfsName"),
         phone: "1-800-252-2873",
         description: t("emergency.resources.dcfsDesc"),
-        color: "#0891b2",
       },
       {
         name: t("emergency.resources.rainnName"),
         phone: "1-800-656-4673",
         description: t("emergency.resources.rainnDesc"),
-        color: "#db2777",
       },
     ],
     [t]
@@ -83,6 +78,18 @@ const EmergencyButton = () => {
     } catch (e) {
       window.location.href = "https://www.google.com";
     }
+  };
+
+  const getDiscreetUrl = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("mode", "discreet");
+    return url.toString();
+  };
+
+  const getRegularUrl = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("mode");
+    return url.toString();
   };
 
   const toTelHref = (phone) => {
@@ -136,17 +143,20 @@ const EmergencyButton = () => {
                 {emergencyResources.map((resource, index) => (
                   <div
                     key={index}
-                    className="emergency-resource-card"
-                    style={{ borderLeftColor: resource.color }}
+                    className={`emergency-resource-card${
+                      resource.urgent ? " emergency-resource-card--urgent" : ""
+                    }`}
                   >
                     <h3>{resource.name}</h3>
                     <p>{resource.description}</p>
                     <a
                       href={toTelHref(resource.phone)}
-                      className="emergency-call-button"
-                      style={{ background: resource.color }}
+                      className={`emergency-call-button${
+                        resource.urgent ? " emergency-call-button--urgent" : ""
+                      }`}
                     >
-                      📞 Call {resource.phone}
+                      <FaPhone className="emergency-call-icon" aria-hidden />
+                      {t("emergency.callAction", { phone: resource.phone })}
                     </a>
                   </div>
                 ))}
@@ -155,6 +165,16 @@ const EmergencyButton = () => {
               <div className="emergency-safety-notice">
                 <strong>{t("emergency.safetyNoteTitle")}</strong>
                 <span>{t("emergency.safetyNoteText")}</span>
+                <span>{t("emergency.installHint")}</span>
+
+                <div className="discreet-install-actions">
+                  <a className="discreet-link-button" href={getDiscreetUrl()}>
+                    {t("emergency.installDiscreet")}
+                  </a>
+                  <a className="discreet-link-button discreet-link-secondary" href={getRegularUrl()}>
+                    {t("emergency.installRegular")}
+                  </a>
+                </div>
 
                 <button
                   className="quick-exit-button"

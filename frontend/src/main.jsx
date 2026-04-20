@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import "./i18n";
 
-const App = lazy(() => import("./App.jsx"));
+const Root = lazy(() => import("./Root.jsx"));
 
 const LoadingFallback = () => (
   <div
@@ -11,7 +11,7 @@ const LoadingFallback = () => (
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      minHeight: "100vh",
+      minHeight: "100dvh",
       fontSize: "14px",
       color: "#334155",
       background: "#f6f8fb",
@@ -32,7 +32,7 @@ const root = createRoot(container);
 root.render(
   <StrictMode>
     <Suspense fallback={<LoadingFallback />}>
-      <App />
+      <Root />
     </Suspense>
   </StrictMode>
 );
