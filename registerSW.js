@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/court-legal-chatbot/sw.js', { scope: '/court-legal-chatbot/' })})}

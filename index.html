@@ -2,18 +2,110 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#667eea" />
-    <meta name="description" content="CAL Legal Information and Resources Chatbot - Connect Illinois residents with legal resources and information" />
+
+    <!-- Viewport (safe-area for notched phones; avoids 100vh jump on mobile browsers) -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <link rel="preconnect" href="https://court-legal-chatbot.onrender.com" crossorigin />
+    <link rel="dns-prefetch" href="https://court-legal-chatbot.onrender.com" />
+
+    <!-- Dynamic Title -->
+    <title>CAL Legal Chatbot</title>
+    <meta
+      name="description"
+      content="Illinois legal information and referrals. Connect with resources for housing, family, education, and more. General information only—not legal advice."
+    />
+    <meta property="og:title" content="CAL Legal Resource Navigator" />
+    <meta
+      property="og:description"
+      content="Illinois legal information and referrals for self-represented litigants. Not legal advice."
+    />
+    <meta property="og:type" content="website" />
+
+    <!-- Manifest (dynamic switch enabled) -->
+    <link rel="manifest" id="manifest-link" href="/court-legal-chatbot/manifest.json" />
+
+    <!-- Theme color -->
+    <meta name="theme-color" content="#1d4ed8" id="theme-color-meta" />
+
+    <!-- Mobile support -->
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- Apple support -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <link rel="icon" type="image/svg+xml" href="/court-legal-chatbot/vite.svg" />
-    <title>CAL Legal Chatbot</title>
-    <script type="module" crossorigin src="/court-legal-chatbot/assets/index-30743cec.js"></script>
-    <link rel="stylesheet" href="/court-legal-chatbot/assets/index-b3238d13.css">
-  </head>
+
+    <!-- Icons -->
+    <link rel="icon" type="image/png" href="/court-legal-chatbot/cal_logo.png" id="app-favicon" />
+    <link rel="apple-touch-icon" href="/court-legal-chatbot/cal_logo.png" id="apple-icon" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- 🔒 DISCREET MODE SCRIPT (RUNS BEFORE REACT LOADS) -->
+    <script>
+      (function () {
+        const params = new URLSearchParams(window.location.search);
+        const isDiscreet = params.get("mode") === "discreet";
+
+        if (isDiscreet) {
+          // Change title immediately
+          document.title = "Resource Portal";
+
+          // Change browser theme color
+          const themeMeta = document.getElementById("theme-color-meta");
+          if (themeMeta) {
+            themeMeta.setAttribute("content", "#6b7280");
+          }
+
+          // 🔥 SWITCH MANIFEST (for disguised install)
+          const manifestLink = document.getElementById("manifest-link");
+          if (manifestLink) {
+            manifestLink.setAttribute("href", "/manifest-discreet.json");
+          }
+
+          // Optional: keep same icon OR replace with neutral later
+          const favicon = document.getElementById("app-favicon");
+          const appleIcon = document.getElementById("apple-icon");
+
+          if (favicon) favicon.setAttribute("href", "/cal_logo.png");
+          if (appleIcon) appleIcon.setAttribute("href", "/cal_logo.png");
+
+          // Apply discreet mode class BEFORE React loads
+          document.documentElement.classList.add("discreet-mode");
+          document.body.classList.add("discreet-mode");
+        }
+      })();
+    </script>
+
+    <!-- Base styles -->
+    <style>
+      body {
+        margin: 0;
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        background: #f4f7fb;
+      }
+
+      /* Discreet fallback */
+      body.discreet-mode {
+        background: #f5f5f5;
+      }
+    </style>
+    <script type="module" crossorigin src="/court-legal-chatbot/assets/index-1fe2532a.js"></script>
+    <link rel="stylesheet" href="/court-legal-chatbot/assets/index-e05a99a4.css">
+  <script id="vite-plugin-pwa:register-sw" src="/court-legal-chatbot/registerSW.js"></script></head>
+
   <body>
     <div id="root"></div>
+
+    <!-- React entry -->
     
   </body>
 </html>
