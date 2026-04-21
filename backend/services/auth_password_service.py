@@ -16,6 +16,7 @@ try:
         FRONTEND_BASE_URL,
         RESET_PASSWORD_DEV_RETURN_TOKEN,
         RESET_PASSWORD_TTL_MINUTES,
+        dev_auth_links_in_response_allowed,
     )
     from .magic_link_service import find_intake_for_email, hash_token
     from .transactional_email import send_transactional_email
@@ -27,6 +28,7 @@ except ImportError:
         FRONTEND_BASE_URL,
         RESET_PASSWORD_DEV_RETURN_TOKEN,
         RESET_PASSWORD_TTL_MINUTES,
+        dev_auth_links_in_response_allowed,
     )
     from services.magic_link_service import find_intake_for_email, hash_token  # type: ignore
     from services.transactional_email import send_transactional_email  # type: ignore
@@ -145,7 +147,7 @@ def request_password_reset(payload, db: Session) -> dict:
             result["delivery_hint"] = (
                 "Email provider is configured, but sending failed. Check backend logs for provider errors."
             )
-    if RESET_PASSWORD_DEV_RETURN_TOKEN:
+    if RESET_PASSWORD_DEV_RETURN_TOKEN and dev_auth_links_in_response_allowed():
         result["dev_reset_link"] = reset_url
     return result
 

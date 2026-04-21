@@ -56,9 +56,13 @@ const INTAKE_SAVED_KEY = "cal_intake_saved_v1";
 const LARGE_TEXT_KEY = "cal_large_text_v1";
 const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
 
-const API_BASE = getApiBaseUrl();
-
 const SUPPORT_EMAIL = "intake@chicagoadvocatelegal.com";
+
+function isLocalDevHost() {
+  if (typeof window === "undefined") return false;
+  const h = window.location.hostname || "";
+  return h === "localhost" || h === "127.0.0.1";
+}
 
 function isValidEmail(email) {
   const v = String(email || "").trim();
@@ -122,7 +126,8 @@ async function postIntakeStartWithRetry(url, payload, onRetryStart) {
   } catch (error) {
     if (String(error?.message || "").toLowerCase().includes("timeout")) {
       if (typeof onRetryStart === "function") onRetryStart();
-      await fetchWithTimeout(`${API_BASE}/health`, {}, WARMUP_TIMEOUT_MS).catch(() => null);
+      const base = getApiBaseUrl();
+      await fetchWithTimeout(`${base}/health`, {}, WARMUP_TIMEOUT_MS).catch(() => null);
       return run();
     }
     throw error;
@@ -351,7 +356,10 @@ function App() {
   const [speechEnabled, setSpeechEnabled] = useState(false);
   const [speaking, setSpeaking] = useState(false);
 
-  const apiUrl = (path) => `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`;
+  const apiUrl = (path) => {
+    const base = getApiBaseUrl();
+    return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+  };
 
   const passwordStrengthKey = (passwordRaw) => {
     const password = String(passwordRaw || "");
@@ -415,8 +423,10 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const apiPath = (path) =>
-      `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`;
+    const apiPath = (path) => {
+      const base = getApiBaseUrl();
+      return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+    };
     const params = new URLSearchParams(window.location.search);
     const fresh = params.get("fresh") === "1";
 
@@ -1706,7 +1716,7 @@ function App() {
             {t("login.checkBody", { email: magicLinkSentTo || "—" })}
           </p>
 
-          {magicDevLink ? (
+          {magicDevLink && isLocalDevHost() ? (
             <div className="auth-github-dev-box">
               <p className="auth-github-dev-label">{t("login.devLinkLabel")}</p>
               <a className="auth-github-text-link auth-github-dev-link" href={magicDevLink}>
@@ -1787,7 +1797,7 @@ function App() {
                 {forgotNotice}
               </div>
             ) : null}
-            {forgotDevLink ? (
+            {forgotDevLink && isLocalDevHost() ? (
               <div className="auth-github-dev-box">
                 <p className="auth-github-dev-label">{t("login.resetDevLinkLabel")}</p>
                 <a className="auth-github-text-link auth-github-dev-link" href={forgotDevLink}>

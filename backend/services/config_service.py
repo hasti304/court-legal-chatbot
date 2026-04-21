@@ -27,6 +27,16 @@ FRONTEND_BASE_URL = os.getenv(
     "FRONTEND_BASE_URL",
     "https://hasti304.github.io/court-legal-chatbot",
 ).strip().rstrip("/")
+
+
+def dev_auth_links_in_response_allowed() -> bool:
+    """Never return sign-in/reset URLs in API JSON for public GitHub Pages (tokens in JSON are unsafe)."""
+    base = (FRONTEND_BASE_URL or "").strip().lower()
+    if "127.0.0.1" in base:
+        return True
+    return "://localhost" in base or base.startswith("http://localhost") or base.startswith("https://localhost")
+
+
 MAGIC_LINK_TTL_MINUTES = int(os.getenv("MAGIC_LINK_TTL_MINUTES", "20") or "20")
 MAGIC_LINK_DEV_RETURN_TOKEN = os.getenv("MAGIC_LINK_DEV_RETURN_TOKEN", "").strip().lower() in (
     "1",
