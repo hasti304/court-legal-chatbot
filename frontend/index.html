@@ -23,7 +23,7 @@
     <meta property="og:type" content="website" />
 
     <!-- Manifest (dynamic switch enabled) -->
-    <link rel="manifest" id="manifest-link" href="/manifest.json" />
+    <link rel="manifest" id="manifest-link" href="%BASE_URL%manifest.json" />
 
     <!-- Theme color -->
     <meta name="theme-color" content="#1d4ed8" id="theme-color-meta" />
@@ -36,8 +36,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
     <!-- Icons -->
-    <link rel="icon" type="image/png" href="/cal_logo.png" id="app-favicon" />
-    <link rel="apple-touch-icon" href="/cal_logo.png" id="apple-icon" />
+    <link rel="icon" type="image/png" href="%BASE_URL%cal_logo.png" id="app-favicon" />
+    <link rel="apple-touch-icon" href="%BASE_URL%cal_logo.png" id="apple-icon" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -66,15 +66,15 @@
           // 🔥 SWITCH MANIFEST (for disguised install)
           const manifestLink = document.getElementById("manifest-link");
           if (manifestLink) {
-            manifestLink.setAttribute("href", "/manifest-discreet.json");
+            manifestLink.setAttribute("href", `${basePath}manifest-discreet.json`);
           }
 
           // Optional: keep same icon OR replace with neutral later
           const favicon = document.getElementById("app-favicon");
           const appleIcon = document.getElementById("apple-icon");
 
-          if (favicon) favicon.setAttribute("href", "/cal_logo.png");
-          if (appleIcon) appleIcon.setAttribute("href", "/cal_logo.png");
+          if (favicon) favicon.setAttribute("href", `${basePath}cal_logo.png`);
+          if (appleIcon) appleIcon.setAttribute("href", `${basePath}cal_logo.png`);
 
           // Apply discreet mode class BEFORE React loads
           document.documentElement.classList.add("discreet-mode");

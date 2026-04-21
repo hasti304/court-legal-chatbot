@@ -312,6 +312,8 @@ function App() {
   const [magicLinkSentTo, setMagicLinkSentTo] = useState("");
   const [magicLinkError, setMagicLinkError] = useState("");
   const [magicVerifyError, setMagicVerifyError] = useState("");
+  const [magicTokenPending, setMagicTokenPending] = useState("");
+  const [magicVerifyBusy, setMagicVerifyBusy] = useState(false);
   const [magicDevLink, setMagicDevLink] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [showLoginPassword, setShowLoginPassword] = useState(false);
@@ -442,51 +444,48 @@ function App() {
 
     const token = params.get("magic_token");
     if (!token) return undefined;
-
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const res = await fetchWithTimeout(
-          apiPath("/auth/magic-link/verify"),
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token }),
-          },
-          INTAKE_FETCH_TIMEOUT_MS
-        );
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          if (!cancelled) {
-            setMagicVerifyError(
-              data?.detail ? String(data.detail) : i18n.t("login.verifyFailed")
-            );
-            setView("login");
-          }
-          return;
-        }
-        if (cancelled) return;
-
-        const p = new URLSearchParams(window.location.search);
-        p.delete("magic_token");
-        const qs = p.toString();
-        const newUrl = `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash || ""}`;
-        window.history.replaceState({}, "", newUrl);
-        completeLogin(data.intake_id);
-        setMagicVerifyError("");
-      } catch {
-        if (!cancelled) {
-          setMagicVerifyError(i18n.t("login.verifyFailed"));
-          setView("login");
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
+    setMagicTokenPending(String(token).trim());
+    setMagicVerifyError("");
+    setView("login");
+    return undefined;
   }, []);
+
+  const verifyPendingMagicLink = async () => {
+    const token = String(magicTokenPending || "").trim();
+    if (!token || magicVerifyBusy) return;
+    setMagicVerifyBusy(true);
+    setMagicVerifyError("");
+    try {
+      const res = await fetchWithTimeout(
+        apiUrl("/auth/magic-link/verify"),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        },
+        INTAKE_FETCH_TIMEOUT_MS
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.detail ? String(data.detail) : i18n.t("login.verifyFailed"));
+      }
+      const p = new URLSearchParams(window.location.search);
+      p.delete("magic_token");
+      const qs = p.toString();
+      const newUrl = `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash || ""}`;
+      window.history.replaceState({}, "", newUrl);
+      setMagicTokenPending("");
+      completeLogin(data.intake_id);
+    } catch (err) {
+      setMagicVerifyError(
+        err?.message && String(err.message).trim().length > 0
+          ? String(err.message)
+          : i18n.t("login.verifyFailed")
+      );
+    } finally {
+      setMagicVerifyBusy(false);
+    }
+  };
 
   useEffect(() => {
     document.documentElement.setAttribute("dir", "ltr");
@@ -1532,6 +1531,11 @@ function App() {
                 {magicVerifyError}
               </div>
             ) : null}
+            {magicTokenPending ? (
+              <div className="auth-github-success" role="status">
+                Email link detected. Click below to complete sign-in.
+              </div>
+            ) : null}
             {passwordResetNotice ? (
               <div className="auth-github-success" role="status">
                 {passwordResetNotice}
@@ -1608,6 +1612,17 @@ function App() {
             >
               {passwordLoginBusy ? t("login.signingIn") : t("login.passwordLoginButton")}
             </Button>
+            {magicTokenPending ? (
+              <Button
+                type="button"
+                className="auth-github-btn-primary"
+                disabled={magicLinkBusy || passwordLoginBusy || magicVerifyBusy}
+                onClick={() => void verifyPendingMagicLink()}
+                size="lg"
+              >
+                {magicVerifyBusy ? "Verifying link..." : "Complete sign-in from email link"}
+              </Button>
+            ) : null}
             <Button
               type="button"
               className="auth-github-btn-secondary"
