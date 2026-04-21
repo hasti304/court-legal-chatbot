@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist -r https://github.com/hasti304/court-legal-chatbot.git"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",
