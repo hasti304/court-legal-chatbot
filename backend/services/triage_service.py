@@ -380,6 +380,7 @@ def get_step_progress(step: Optional[str]) -> dict:
         "income_check": {"current": 4, "total": 6, "label_key": "progress.incomeLevel"},
         "problem_summary": {"current": 5, "total": 6, "label_key": "progress.problemSummary"},
         "summary_topic_confirm": {"current": 5, "total": 6, "label_key": "progress.problemSummary"},
+        "topic_reconfirm": {"current": 6, "total": 6, "label_key": "progress.yourLocation"},
         "get_zip": {"current": 6, "total": 6, "label_key": "progress.yourLocation"},
         "complete": {"current": 6, "total": 6, "label_key": "progress.resourcesReady"},
         "resource_selected": {"current": 6, "total": 6, "label_key": "progress.resourcesReady"},
@@ -634,6 +635,30 @@ def run_chat_flow(request, referral_map: dict):
     if state.get("step") == "get_zip":
         zip_resolved, zip_from_skip = resolve_five_digit_zip(message)
         if zip_resolved is None:
+            selected_topic = state.get("topic")
+            conflict_topic = infer_topic_conflict_with_selection(raw_message, selected_topic)
+            if conflict_topic:
+                state["reconfirm_inferred_topic"] = conflict_topic
+                state["step"] = "topic_reconfirm"
+                mismatch_payload = json.dumps(
+                    {
+                        "selected_topic": selected_topic,
+                        "inferred_topic": conflict_topic,
+                        "zip_input_excerpt": raw_message[:300],
+                    },
+                    ensure_ascii=False,
+                )
+                log_intake_event(request.intake_id, "zip_topic_mismatch", mismatch_payload)
+                return {
+                    "response_key": "triage.topic.reconfirm",
+                    "response_params": {
+                        "selectedTopic": selected_topic,
+                        "inferredTopic": conflict_topic,
+                    },
+                    "options": ["summary_topic_same", "summary_topic_change"],
+                    "conversation_state": state,
+                    "progress": get_step_progress(state.get("step")),
+                }
             return {
                 "response_key": "triage.zip.invalid",
                 "response_params": {"topic": state.get("topic")},
@@ -692,6 +717,43 @@ def run_chat_flow(request, referral_map: dict):
             "options": ["continue", "restart", "connect"],
             "conversation_state": final_state,
             "progress": get_step_progress(final_state.get("step")),
+        }
+
+    if state.get("step") == "topic_reconfirm":
+        choice = raw_message.strip().lower().replace(" ", "_")
+
+        if choice == "summary_topic_same":
+            log_intake_event(request.intake_id, "zip_topic_alignment", "same")
+            state.pop("reconfirm_inferred_topic", None)
+            state["step"] = "get_zip"
+            return {
+                "response_key": "triage.zip.prompt",
+                "response_params": {},
+                "options": [],
+                "conversation_state": state,
+                "progress": get_step_progress(state.get("step")),
+            }
+
+        if choice == "summary_topic_change":
+            log_intake_event(request.intake_id, "zip_topic_alignment", "different")
+            state.pop("reconfirm_inferred_topic", None)
+            for key in ("topic", "emergency", "in_court", "income_eligible", "income", "problem_summary"):
+                state.pop(key, None)
+            state["step"] = "topic_selection"
+            return {
+                "response_key": "triage.summary.topicChangePrompt",
+                "response_params": {},
+                "options": ["child_support", "education", "housing", "divorce", "custody"],
+                "conversation_state": state,
+                "progress": get_step_progress(state.get("step")),
+            }
+
+        return {
+            "response_key": "triage.topic.reconfirmInvalid",
+            "response_params": {},
+            "options": ["summary_topic_same", "summary_topic_change"],
+            "conversation_state": state,
+            "progress": get_step_progress(state.get("step")),
         }
 
     if state.get("step") == "complete":

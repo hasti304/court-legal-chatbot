@@ -417,6 +417,9 @@ const resources = {
           selected: "You selected {{topicLabel}}. Is this an emergency?",
           redirected:
             "It sounds like you need help with {{topicLabel}} instead. We updated your topic. Is this an emergency?",
+          reconfirm:
+            "This sounds more like {{inferredTopicLabel}} than {{selectedTopicLabel}}. Are you still enquiring about the same topic you selected?",
+          reconfirmInvalid: "Please tap one of the buttons below to continue.",
         },
 
         emergency: {
@@ -902,6 +905,9 @@ const resources = {
           selected: "Seleccionó {{topicLabel}}. ¿Es una emergencia?",
           redirected:
             "Parece que necesita ayuda con {{topicLabel}}. Actualizamos su tema. ¿Es una emergencia?",
+          reconfirm:
+            "Esto suena más a {{inferredTopicLabel}} que a {{selectedTopicLabel}}. ¿Sigue siendo el mismo tema sobre el que preguntó?",
+          reconfirmInvalid: "Por favor use uno de los botones de abajo para continuar.",
         },
 
         emergency: {

@@ -1071,11 +1071,23 @@ def admin_stats(request: Request):
                 LIMIT 20
             """)).mappings().all()
 
+            feedback = conn.execute(text("""
+                SELECT
+                  SUM(CASE WHEN event_value = 'helpful_yes' THEN 1 ELSE 0 END) AS helpful_yes,
+                  SUM(CASE WHEN event_value = 'helpful_no' THEN 1 ELSE 0 END) AS helpful_no
+                FROM intake_events
+                WHERE event_type = 'triage_feedback'
+            """)).mappings().first()
+
         total_sessions = int(overview["total_sessions"] or 0)
         completed_sessions = int(overview["completed_sessions"] or 0)
         ai_used_sessions = int(overview["ai_used_sessions"] or 0)
         emergency_sessions = int(overview["emergency_sessions"] or 0)
         completion_rate = round((completed_sessions / total_sessions) * 100, 2) if total_sessions else 0.0
+        helpful_yes = int((feedback or {}).get("helpful_yes") or 0)
+        helpful_no = int((feedback or {}).get("helpful_no") or 0)
+        feedback_total = helpful_yes + helpful_no
+        helpful_rate = round((helpful_yes / feedback_total) * 100, 2) if feedback_total else 0.0
 
         return JSONResponse(
             {
@@ -1086,6 +1098,10 @@ def admin_stats(request: Request):
                     "completion_rate_percent": completion_rate,
                     "ai_used_sessions": ai_used_sessions,
                     "emergency_sessions": emergency_sessions,
+                    "feedback_total": feedback_total,
+                    "helpful_yes": helpful_yes,
+                    "helpful_no": helpful_no,
+                    "helpful_rate_percent": helpful_rate,
                 },
                 "top_topics": [dict(row) for row in top_topics],
                 "top_zips": [dict(row) for row in top_zips],

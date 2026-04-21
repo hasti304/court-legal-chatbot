@@ -252,6 +252,15 @@ function normalizeFreeTextMessageForStep(message, step) {
     return lowered.replace(/\s+/g, "_");
   }
 
+  if (currentStep === "topic_reconfirm") {
+    if (lowered === "summary_topic_same" || lowered === "summary_topic_change") return lowered;
+    if (/(different|another topic|change topic|wrong topic|not the same|other topic)/i.test(lowered)) {
+      return "summary_topic_change";
+    }
+    if (/(^|\b)(yes|yep|yeah|same|still|correct)\b/i.test(lowered)) return "summary_topic_same";
+    return lowered.replace(/\s+/g, "_");
+  }
+
   return raw;
 }
 
@@ -1017,12 +1026,12 @@ function App() {
     }
   };
 
-  const sendMessage = async (message, isBackAction = false) => {
+  const sendMessage = async (message, isBackAction = false, displayOverride = "") => {
     if (loading) return;
     setChatError("");
     setLoading(true);
 
-    const userMessage = { role: "user", content: message };
+    const userMessage = { role: "user", content: displayOverride || message };
     const nextUserMessages = [...messages, userMessage];
     setMessages((prev) => [...prev, userMessage]);
     setUserInput("");
@@ -1165,7 +1174,18 @@ function App() {
     );
 
     await trackStepAnswer(conversationState?.step, normalizedMessage);
-    sendMessage(normalizedMessage);
+    const shouldPrettyPrintChoice =
+      ["summary_topic_confirm", "topic_reconfirm"].includes(
+        String(conversationState?.step || "").toLowerCase()
+      ) &&
+      ["summary_topic_same", "summary_topic_change"].includes(
+        String(normalizedMessage || "").toLowerCase()
+      );
+    sendMessage(
+      normalizedMessage,
+      false,
+      shouldPrettyPrintChoice ? optionLabel(normalizedMessage) : ""
+    );
   };
 
   const handleOptionClick = async (optionCode) => {
@@ -2605,7 +2625,9 @@ function App() {
               placeholder={
                 conversationState?.step === "problem_summary"
                   ? t("chat.placeholderSummary")
-                  : conversationState?.step === "summary_topic_confirm"
+                  : ["summary_topic_confirm", "topic_reconfirm"].includes(
+                      String(conversationState?.step || "").toLowerCase()
+                    )
                     ? t("chat.placeholderTopicAlign")
                     : t("chat.placeholder")
               }

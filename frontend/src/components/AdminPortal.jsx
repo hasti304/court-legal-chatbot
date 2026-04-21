@@ -755,6 +755,12 @@ export default function AdminPortal() {
                     <div className="label">Emergency flagged</div>
                     <div className="value">{detailed.overview.emergency_sessions ?? 0}</div>
                   </div>
+                  <div className="admin-portal-metric">
+                    <div className="label">Helpful %</div>
+                    <div className="value">
+                      {detailed.overview.helpful_rate_percent ?? 0}%
+                    </div>
+                  </div>
                 </div>
 
                 {Array.isArray(detailed.top_topics) && detailed.top_topics.length > 0 ? (
