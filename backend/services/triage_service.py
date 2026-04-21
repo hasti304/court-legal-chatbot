@@ -389,6 +389,115 @@ def get_step_progress(step: Optional[str]) -> dict:
     return steps_map.get(step, {"current": 1, "total": 6, "label_key": "progress.defaultLabel"})
 
 
+def _score_band(score: int) -> str:
+    safe = max(0, min(int(score), 100))
+    if safe >= 70:
+        return "high"
+    if safe >= 40:
+        return "moderate"
+    return "low"
+
+
+def build_decision_support(state: dict) -> dict:
+    """
+    Produce explainable legal triage scoring for UI display.
+    This is informational support only (not legal advice).
+    """
+    topic = str(state.get("topic") or "general").lower()
+    emergency = str(state.get("emergency") or "no").lower()
+    in_court = bool(state.get("in_court"))
+    income = str(state.get("income") or "yes").lower()
+    summary = str(state.get("problem_summary") or "").strip().lower()
+
+    urgency = 10
+    urgency_reasons: List[str] = []
+    if emergency == "yes":
+        urgency += 55
+        urgency_reasons.append("Emergency indicators were flagged during triage.")
+    elif emergency == "unknown":
+        urgency += 25
+        urgency_reasons.append("Emergency status is unclear, so urgency is raised conservatively.")
+
+    if in_court:
+        urgency += 20
+        urgency_reasons.append("An active court case increases time sensitivity.")
+
+    if any(k in summary for k in ("deadline", "hearing", "court date", "eviction", "notice")):
+        urgency += 10
+        urgency_reasons.append("Your summary mentions deadline-sensitive events.")
+
+    urgency = max(0, min(100, urgency))
+
+    complexity = 20
+    complexity_reasons: List[str] = []
+    if topic in {"custody", "divorce"}:
+        complexity += 25
+        complexity_reasons.append("Family-law issues often involve multiple procedural steps.")
+    elif topic in {"housing", "child_support"}:
+        complexity += 15
+        complexity_reasons.append("This issue type commonly requires structured paperwork and follow-up.")
+    elif topic == "education":
+        complexity += 10
+        complexity_reasons.append("Education matters can involve administrative and legal processes.")
+
+    if in_court:
+        complexity += 20
+        complexity_reasons.append("Court involvement increases procedural complexity.")
+
+    if len(summary) >= 300:
+        complexity += 10
+        complexity_reasons.append("A longer case summary suggests a multi-factor situation.")
+
+    complexity = max(0, min(100, complexity))
+
+    self_help = 70
+    self_help_reasons: List[str] = []
+    if emergency == "yes":
+        self_help -= 35
+        self_help_reasons.append("Emergency conditions reduce self-help suitability.")
+    elif emergency == "unknown":
+        self_help -= 15
+        self_help_reasons.append("Unclear emergency status lowers self-help confidence.")
+
+    if in_court:
+        self_help -= 25
+        self_help_reasons.append("Cases already in court are usually less self-help friendly.")
+
+    if topic in {"custody", "divorce"}:
+        self_help -= 15
+        self_help_reasons.append("Family-law disputes are often better supported with professional guidance.")
+
+    if income == "yes":
+        self_help += 10
+        self_help_reasons.append("You may qualify for legal-aid pathways that improve support options.")
+
+    self_help = max(0, min(100, self_help))
+
+    overall_risk = round((urgency * 0.45) + (complexity * 0.35) + ((100 - self_help) * 0.20))
+    overall_risk = max(0, min(100, overall_risk))
+
+    return {
+        "overall_risk": overall_risk,
+        "overall_band": _score_band(overall_risk),
+        "urgency": {
+            "score": urgency,
+            "band": _score_band(urgency),
+            "reasons": urgency_reasons or ["No major urgency indicators were detected."],
+        },
+        "complexity": {
+            "score": complexity,
+            "band": _score_band(complexity),
+            "reasons": complexity_reasons or ["Complexity appears manageable with guided resources."],
+        },
+        "self_help": {
+            "score": self_help,
+            "band": _score_band(self_help),
+            "reasons": self_help_reasons or ["Self-help pathways appear suitable at this stage."],
+        },
+        "note": "Informational triage support only; not legal advice.",
+    }
+
+
 def run_chat_flow(request, referral_map: dict):
     raw_message = (request.message or "").strip()
     message = raw_message.lower()
@@ -710,10 +819,13 @@ def run_chat_flow(request, referral_map: dict):
             final_state["problem_summary"] = ps
         if state.get("zip_skipped"):
             final_state["zip_skipped"] = True
+        decision_support = build_decision_support(state)
+        final_state["decision_support"] = decision_support
         return {
             "response_key": "triage.results.intro",
             "response_params": {"levelName": level_name, "topic": topic},
             "referrals": referrals,
+            "decision_support": decision_support,
             "options": ["continue", "restart", "connect"],
             "conversation_state": final_state,
             "progress": get_step_progress(final_state.get("step")),

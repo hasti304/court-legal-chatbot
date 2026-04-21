@@ -66,7 +66,7 @@ const resources = {
         resend: "Send another login email",
         backToSignIn: "Back to sign in",
         returningPrompt: "Already have an account?",
-        signInWithEmail: "Sign in with email",
+        signInWithEmail: "Click here to sign in with email",
         newUserPrompt: "First time here?",
         createAccount: "Create an account",
         createAccountTitle: "Create an account",

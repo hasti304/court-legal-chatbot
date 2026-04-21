@@ -16,5 +16,6 @@ class ChatResponse(BaseModel):
     response_params: dict = Field(default_factory=dict)
     options: list = Field(default_factory=list)
     referrals: list = Field(default_factory=list)
+    decision_support: dict = Field(default_factory=dict)
     conversation_state: dict = Field(default_factory=dict)
     progress: dict = Field(default_factory=dict)

@@ -13,6 +13,7 @@ import { getStoredTheme, persistTheme } from "../utils/themeStorage";
 import { getApiBaseUrl } from "../utils/apiBase";
 
 const API_BASE = getApiBaseUrl();
+const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
 
 function initialTabFromHash() {
   try {
@@ -56,6 +57,87 @@ function phoneTelHref(phone) {
   return x ? `tel:${x}` : null;
 }
 
+function humanizeToken(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "—";
+  if (/^\d+$/.test(raw)) return raw;
+  return raw
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function formatActivityEventName(eventType) {
+  const key = String(eventType || "").trim().toLowerCase();
+  const map = {
+    ai_assistant_opened: "AI assistant opened",
+    triage_completed: "Triage completed",
+    referrals_shown: "Referrals shown",
+    triage_level_assigned: "Triage level assigned",
+    zip_entered: "ZIP entered",
+    topic_selected: "Topic selected",
+    problem_summary: "Problem summary",
+    problem_summary_alternate_topic: "Problem summary (alternate topic)",
+    navigator_login: "Navigator login",
+    summary_topic_alignment: "Summary topic alignment",
+    summary_topic_mismatch: "Summary topic mismatch",
+    zip_topic_alignment: "ZIP topic alignment",
+    zip_topic_mismatch: "ZIP topic mismatch",
+    timeline_step_viewed: "Timeline step viewed",
+    timeline_checklist_toggled: "Timeline checklist toggled",
+  };
+  return map[key] || humanizeToken(key);
+}
+
+function formatActivityDetail(eventType, eventValue) {
+  const raw = String(eventValue || "").trim();
+  if (!raw) return "—";
+  const key = String(eventType || "").trim().toLowerCase();
+  if (key === "referrals_shown") {
+    try {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return arr.map((x) => String(x || "").trim()).filter(Boolean).join(", ") || "—";
+    } catch {
+      /* ignore */
+    }
+  }
+  if (key === "summary_topic_mismatch" || key === "zip_topic_mismatch") {
+    try {
+      const obj = JSON.parse(raw);
+      if (obj && typeof obj === "object") {
+        const selected = humanizeToken(obj.selected_topic || "");
+        const inferred = humanizeToken(obj.inferred_topic || "");
+        return `Selected: ${selected} | Inferred: ${inferred}`;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  if (key === "topic_selected") return humanizeToken(raw);
+  return humanizeToken(raw);
+}
+
+function extractIssuesFromEvent(eventType, eventValue) {
+  const key = String(eventType || "").trim().toLowerCase();
+  const raw = String(eventValue || "").trim();
+  if (!raw) return [];
+
+  if (key === "topic_selected" || key === "ai_assistant_opened") {
+    return [humanizeToken(raw)];
+  }
+  if (key === "summary_topic_mismatch" || key === "zip_topic_mismatch") {
+    try {
+      const obj = JSON.parse(raw);
+      const selected = humanizeToken(obj?.selected_topic || "");
+      const inferred = humanizeToken(obj?.inferred_topic || "");
+      return [selected, inferred].filter((x) => x && x !== "—");
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 function getStaffAdminUrl() {
   try {
     const u = new URL(typeof window !== "undefined" ? window.location.href : "http://localhost/");
@@ -64,6 +146,26 @@ function getStaffAdminUrl() {
   } catch {
     return "#/admin";
   }
+}
+
+function formatDeadlineType(code) {
+  const value = String(code || "").trim().toLowerCase();
+  if (!value) return "Deadline";
+  const map = {
+    court_date: "Court date",
+    response_due: "Response due",
+    filing_deadline: "Filing deadline",
+    general_deadline: "General deadline",
+    other: "Deadline",
+  };
+  return map[value] || "Deadline";
+}
+
+function deadlineBadgeMeta(daysLeft) {
+  if (typeof daysLeft !== "number" || Number.isNaN(daysLeft)) return null;
+  if (daysLeft < 0) return { label: `${Math.abs(daysLeft)}d overdue`, tone: "overdue" };
+  if (daysLeft === 0) return { label: "Due today", tone: "today" };
+  return { label: `${daysLeft}d left`, tone: daysLeft <= 3 ? "soon" : "normal" };
 }
 
 export default function AdminPortal() {
@@ -87,6 +189,8 @@ export default function AdminPortal() {
 
   const [basic, setBasic] = useState(null);
   const [detailed, setDetailed] = useState(null);
+  const [healthChecks, setHealthChecks] = useState(null);
+  const [healthBusy, setHealthBusy] = useState(false);
   const [intakes, setIntakes] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [statusBusy, setStatusBusy] = useState({});
@@ -111,6 +215,14 @@ export default function AdminPortal() {
   const [activityEvents, setActivityEvents] = useState([]);
   const [activityBusy, setActivityBusy] = useState(false);
   const [activityError, setActivityError] = useState("");
+  const [activityIssueFilter, setActivityIssueFilter] = useState("all");
+  const [evidenceModal, setEvidenceModal] = useState(null);
+  const [evidenceBusy, setEvidenceBusy] = useState(false);
+  const [evidenceError, setEvidenceError] = useState("");
+  const [evidenceFiles, setEvidenceFiles] = useState([]);
+  const [evidenceTimeline, setEvidenceTimeline] = useState([]);
+  const [issuePickById, setIssuePickById] = useState({});
+  const [summaryPickById, setSummaryPickById] = useState({});
 
   const portalClass = `admin-portal-page${theme === "light" ? " admin-portal-page--light" : ""}`;
   const isDark = theme === "dark";
@@ -135,7 +247,7 @@ export default function AdminPortal() {
     else window.location.hash = "#/admin/intakes";
   };
 
-  const logout = () => {
+  const logout = (reason = "") => {
     clearAdminToken();
     setToken("");
     setBasic(null);
@@ -151,7 +263,12 @@ export default function AdminPortal() {
     setActivityModal(null);
     setActivityEvents([]);
     setActivityError("");
+    setEvidenceModal(null);
+    setEvidenceFiles([]);
+    setEvidenceTimeline([]);
+    setEvidenceError("");
     setLoadError("");
+    if (reason) setLoginError(reason);
   };
 
   const login = async (e) => {
@@ -231,6 +348,29 @@ export default function AdminPortal() {
     }
   }, [authFetch]);
 
+  const runHealthChecks = useCallback(async () => {
+    if (healthBusy) return;
+    setHealthBusy(true);
+    setLoadError("");
+    try {
+      const res = await authFetch("/admin/health-checks");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.detail ? String(data.detail) : `Health checks ${res.status}`);
+      }
+      setHealthChecks(data);
+    } catch (err) {
+      setHealthChecks(null);
+      setLoadError(
+        err?.message && String(err.message).trim().length > 0
+          ? String(err.message)
+          : "Failed to run health checks."
+      );
+    } finally {
+      setHealthBusy(false);
+    }
+  }, [authFetch, healthBusy]);
+
   const loadIntakes = useCallback(async () => {
     setLoadError("");
     setLoading(true);
@@ -258,6 +398,7 @@ export default function AdminPortal() {
     setActivityModal(row);
     setActivityEvents([]);
     setActivityError("");
+    setActivityIssueFilter("all");
     setActivityBusy(true);
     try {
       const res = await authFetch(`/admin/intakes/${encodeURIComponent(row.id)}/events`);
@@ -274,6 +415,54 @@ export default function AdminPortal() {
       );
     } finally {
       setActivityBusy(false);
+    }
+  };
+
+  const openEvidenceModal = async (row) => {
+    setEvidenceModal(row);
+    setEvidenceFiles([]);
+    setEvidenceTimeline([]);
+    setEvidenceError("");
+    setEvidenceBusy(true);
+    try {
+      const res = await authFetch(`/admin/intakes/${encodeURIComponent(row.id)}/evidence`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.detail ? String(data.detail) : `Failed (${res.status})`);
+      }
+      setEvidenceFiles(Array.isArray(data.files) ? data.files : []);
+      setEvidenceTimeline(Array.isArray(data.timeline) ? data.timeline : []);
+    } catch (err) {
+      setEvidenceError(
+        err?.message && String(err.message).trim().length > 0
+          ? String(err.message)
+          : "Could not load evidence."
+      );
+    } finally {
+      setEvidenceBusy(false);
+    }
+  };
+
+  const downloadEvidenceFile = async (fileId, filename) => {
+    try {
+      const res = await authFetch(`/documents/file/${encodeURIComponent(fileId)}`);
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.detail ? String(d.detail) : `Download failed (${res.status})`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename || "evidence-file";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setLoadError(
+        err?.message && String(err.message).trim().length > 0
+          ? String(err.message)
+          : "Could not download evidence file."
+      );
     }
   };
 
@@ -539,6 +728,39 @@ export default function AdminPortal() {
     if (tab === "submissions") loadSubmissions();
   }, [token, tab, loadOverview, loadIntakes, loadSubmissions]);
 
+  useEffect(() => {
+    if (!token) return undefined;
+
+    const activityEvents = [
+      "mousemove",
+      "mousedown",
+      "keydown",
+      "scroll",
+      "touchstart",
+      "click",
+    ];
+
+    let timer = 0;
+    const resetInactivityTimer = () => {
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        logout("You were signed out after 5 minutes of inactivity.");
+      }, INACTIVITY_TIMEOUT_MS);
+    };
+
+    for (const eventName of activityEvents) {
+      window.addEventListener(eventName, resetInactivityTimer, { passive: true });
+    }
+    resetInactivityTimer();
+
+    return () => {
+      if (timer) window.clearTimeout(timer);
+      for (const eventName of activityEvents) {
+        window.removeEventListener(eventName, resetInactivityTimer);
+      }
+    };
+  }, [token]);
+
   const downloadCsv = async () => {
     setLoadError("");
     try {
@@ -562,6 +784,27 @@ export default function AdminPortal() {
       );
     }
   };
+
+  const activityIssueOptions = useMemo(() => {
+    const counts = new Map();
+    for (const ev of activityEvents) {
+      for (const issue of extractIssuesFromEvent(ev?.event_type, ev?.event_value)) {
+        counts.set(issue, (counts.get(issue) || 0) + 1);
+      }
+    }
+    return Array.from(counts.entries()).map(([issue, count]) => ({
+      issue,
+      count,
+      label: `${issue} (${count})`,
+    }));
+  }, [activityEvents]);
+
+  const filteredActivityEvents = useMemo(() => {
+    if (activityIssueFilter === "all") return activityEvents;
+    return activityEvents.filter((ev) =>
+      extractIssuesFromEvent(ev?.event_type, ev?.event_value).includes(activityIssueFilter)
+    );
+  }, [activityEvents, activityIssueFilter]);
 
   if (!token) {
     return (
@@ -667,7 +910,7 @@ export default function AdminPortal() {
         </div>
       </div>
 
-      <div className="admin-portal-shell">
+      <div className="admin-portal-shell" aria-busy={loading || healthBusy ? "true" : "false"}>
         <div className="admin-portal-tabs" role="tablist">
           {[
             ["overview", "Overview"],
@@ -710,6 +953,16 @@ export default function AdminPortal() {
               style={{ marginBottom: 16 }}
             >
               Refresh overview
+            </button>
+            <button
+              type="button"
+              className="admin-portal-btn"
+              onClick={() => void runHealthChecks()}
+              disabled={healthBusy}
+              style={{ marginBottom: 16, marginLeft: 8 }}
+              aria-live="polite"
+            >
+              {healthBusy ? "Running checks…" : "Run health checks"}
             </button>
 
             {basic ? (
@@ -760,6 +1013,30 @@ export default function AdminPortal() {
                     <div className="value">
                       {detailed.overview.helpful_rate_percent ?? 0}%
                     </div>
+                  </div>
+                  <div className="admin-portal-metric">
+                    <div className="label">Timeline step views</div>
+                    <div className="value">{detailed.overview.timeline_step_views ?? 0}</div>
+                  </div>
+                  <div className="admin-portal-metric">
+                    <div className="label">Checklist toggles</div>
+                    <div className="value">{detailed.overview.timeline_checklist_toggles ?? 0}</div>
+                  </div>
+                  <div className="admin-portal-metric">
+                    <div className="label">Evidence files</div>
+                    <div className="value">{detailed.overview.total_evidence_files ?? 0}</div>
+                  </div>
+                  <div className="admin-portal-metric">
+                    <div className="label">Evidence AI summary %</div>
+                    <div className="value">{detailed.overview.ai_summary_rate_percent ?? 0}%</div>
+                  </div>
+                  <div className="admin-portal-metric">
+                    <div className="label">Tracked deadlines</div>
+                    <div className="value">{detailed.overview.total_deadlines ?? 0}</div>
+                  </div>
+                  <div className="admin-portal-metric">
+                    <div className="label">Overdue deadlines</div>
+                    <div className="value">{detailed.overview.overdue_deadlines ?? 0}</div>
                   </div>
                 </div>
 
@@ -841,6 +1118,37 @@ export default function AdminPortal() {
                 ) : null}
               </>
             ) : null}
+
+            {healthChecks ? (
+              <>
+                <div className="admin-portal-caption">Regression health checks</div>
+                <div className="admin-portal-subcaption">
+                  {healthChecks.ok
+                    ? "All critical checks passed."
+                    : `${healthChecks.failed_checks || 0} failed checks, ${healthChecks.warn_checks || 0} warnings.`}
+                </div>
+                <div className="admin-portal-table-wrap">
+                  <table className="admin-portal-table">
+                    <thead>
+                      <tr>
+                        <th>Check</th>
+                        <th>Status</th>
+                        <th>Detail</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(Array.isArray(healthChecks.checks) ? healthChecks.checks : []).map((row, idx) => (
+                        <tr key={`${row.name}-${idx}`}>
+                          <td>{row.name || "—"}</td>
+                          <td>{String(row.status || "").toUpperCase() || "—"}</td>
+                          <td>{row.detail || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            ) : null}
           </div>
         )}
 
@@ -876,7 +1184,9 @@ export default function AdminPortal() {
                     <th>Issue (triage topic)</th>
                     <th>Logins</th>
                     <th>Summary</th>
+                    <th>Deadline</th>
                     <th>Activity</th>
+                    <th>Evidence</th>
                     <th>Created</th>
                     <th>Status</th>
                     <th>Email user</th>
@@ -886,12 +1196,20 @@ export default function AdminPortal() {
                 <tbody>
                   {intakes.length === 0 && !loading ? (
                     <tr>
-                      <td colSpan={13} className="admin-portal-empty-cell">
+                      <td colSpan={15} className="admin-portal-empty-cell">
                         No intake accounts yet.
                       </td>
                     </tr>
                   ) : (
                     intakes.map((row) => {
+                      const issueOptions = Array.isArray(row.issues) && row.issues.length > 0
+                        ? row.issues
+                        : [row.issue || "—"];
+                      const selectedIssue = issuePickById[row.id] || issueOptions[0] || "—";
+                      const summaryOptions = Array.isArray(row.summaries)
+                        ? row.summaries.filter((x) => String(x || "").trim())
+                        : [];
+                      const selectedSummary = summaryPickById[row.id] || summaryOptions[0] || "";
                       const st = String(row.admin_status || "pending").toLowerCase();
                       const displayStatus =
                         statusDraft?.id === row.id ? statusDraft.nextStatus : st;
@@ -924,21 +1242,74 @@ export default function AdminPortal() {
                             })()}
                           </td>
                           <td className="admin-portal-cell-issue" title={row.issue ?? "—"}>
-                            {row.issue ?? "—"}
+                            {issueOptions.length > 1 ? (
+                              <select
+                                className="admin-portal-cell-select"
+                                value={selectedIssue}
+                                onChange={(e) =>
+                                  setIssuePickById((prev) => ({ ...prev, [row.id]: e.target.value }))
+                                }
+                              >
+                                {issueOptions.map((issueValue, idx) => (
+                                  <option key={`${row.id}-issue-${idx}`} value={issueValue}>
+                                    {issueValue}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              selectedIssue
+                            )}
                           </td>
                           <td>{row.login_count != null ? Number(row.login_count) : 0}</td>
                           <td className="admin-portal-cell-summary">
-                            {String(row.problem_summary || "").trim() ? (
-                              <button
-                                type="button"
-                                className="admin-portal-btn admin-portal-btn-compact"
-                                onClick={() => setSummaryModal(row)}
-                              >
-                                View
-                              </button>
+                            {summaryOptions.length > 0 ? (
+                              <div className="admin-portal-summary-inline">
+                                {summaryOptions.length > 1 ? (
+                                  <select
+                                    className="admin-portal-cell-select"
+                                    value={selectedSummary}
+                                    onChange={(e) =>
+                                      setSummaryPickById((prev) => ({ ...prev, [row.id]: e.target.value }))
+                                    }
+                                  >
+                                    {summaryOptions.map((summaryValue, idx) => (
+                                      <option key={`${row.id}-summary-${idx}`} value={summaryValue}>
+                                        {`Summary ${idx + 1}`}
+                                      </option>
+                                    ))}
+                                  </select>
+                                ) : null}
+                                <button
+                                  type="button"
+                                  className="admin-portal-btn admin-portal-btn-compact"
+                                  onClick={() => setSummaryModal({ ...row, problem_summary: selectedSummary })}
+                                >
+                                  View
+                                </button>
+                              </div>
                             ) : (
                               <span className="admin-portal-muted">—</span>
                             )}
+                          </td>
+                          <td className="admin-portal-cell-deadline">
+                            {(() => {
+                              const daysLeft = Number(row.next_deadline_days_left);
+                              const hasDate = String(row.next_deadline_date || "").trim().length > 0;
+                              if (!hasDate) return <span className="admin-portal-muted">—</span>;
+                              const badge = deadlineBadgeMeta(daysLeft);
+                              return (
+                                <div className="admin-portal-deadline-wrap">
+                                  <div className="admin-portal-deadline-type">
+                                    {formatDeadlineType(row.next_deadline_type)}
+                                  </div>
+                                  <div
+                                    className={`admin-portal-deadline-badge admin-portal-deadline-badge--${badge?.tone || "normal"}`}
+                                  >
+                                    {badge?.label || "Tracked"}
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </td>
                           <td>
                             <button
@@ -948,6 +1319,16 @@ export default function AdminPortal() {
                               disabled={loading}
                             >
                               View log
+                            </button>
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="admin-portal-btn admin-portal-btn-compact"
+                              onClick={() => void openEvidenceModal(row)}
+                              disabled={loading}
+                            >
+                              Evidence
                             </button>
                           </td>
                           <td className="admin-portal-cell-date">{formatTimestamp(row.created_at)}</td>
@@ -1142,7 +1523,22 @@ export default function AdminPortal() {
             {activityBusy ? (
               <StatusBanner type="info">Loading…</StatusBanner>
             ) : (
-              <div className="admin-portal-table-wrap" style={{ maxHeight: 360, overflow: "auto" }}>
+              <div className="admin-portal-table-wrap admin-portal-table-wrap-modal">
+                <div className="admin-portal-activity-filters">
+                  <label htmlFor="admin-activity-issue-filter">Issue:</label>
+                  <select
+                    id="admin-activity-issue-filter"
+                    value={activityIssueFilter}
+                    onChange={(e) => setActivityIssueFilter(e.target.value)}
+                  >
+                    <option value="all">All selected issues</option>
+                    {activityIssueOptions.map((item) => (
+                      <option key={item.issue} value={item.issue}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <table className="admin-portal-table">
                   <thead>
                     <tr>
@@ -1152,20 +1548,21 @@ export default function AdminPortal() {
                     </tr>
                   </thead>
                   <tbody>
-                    {activityEvents.length === 0 ? (
+                    {filteredActivityEvents.length === 0 ? (
                       <tr>
                         <td colSpan={3} className="admin-portal-empty-cell">
-                          No events recorded yet.
+                          No events for the selected issue.
                         </td>
                       </tr>
                     ) : (
-                      activityEvents.map((ev, idx) => {
-                        const v = String(ev.event_value || "");
+                      filteredActivityEvents.map((ev, idx) => {
+                        const formattedType = formatActivityEventName(ev.event_type);
+                        const v = formatActivityDetail(ev.event_type, ev.event_value);
                         const short = v.length > 280 ? `${v.slice(0, 280)}…` : v;
                         return (
                           <tr key={`${ev.created_at}-${idx}`}>
                             <td className="admin-portal-cell-date">{formatTimestamp(ev.created_at)}</td>
-                            <td>{ev.event_type ?? "—"}</td>
+                            <td>{formattedType}</td>
                             <td style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{short || "—"}</td>
                           </tr>
                         );
@@ -1180,6 +1577,135 @@ export default function AdminPortal() {
                 type="button"
                 className="admin-portal-btn admin-portal-btn-primary"
                 onClick={() => setActivityModal(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {evidenceModal ? (
+        <div
+          className="admin-portal-modal-backdrop"
+          role="presentation"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setEvidenceModal(null);
+          }}
+        >
+          <div
+            className="admin-portal-modal admin-portal-modal--wide"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="admin-evidence-title"
+          >
+            <h2 id="admin-evidence-title">Evidence organizer</h2>
+            <p className="admin-portal-modal-meta">
+              {[evidenceModal.first_name, evidenceModal.last_name].filter(Boolean).join(" ").trim() ||
+                evidenceModal.email}{" "}
+              · {evidenceModal.email}
+            </p>
+            {evidenceError ? (
+              <StatusBanner type="error" role="alert" style={{ marginBottom: 12 }}>
+                {evidenceError}
+              </StatusBanner>
+            ) : null}
+            {evidenceBusy ? (
+              <StatusBanner type="info">Loading…</StatusBanner>
+            ) : (
+              <>
+                <div className="admin-portal-caption">Uploaded files</div>
+                <div className="admin-portal-table-wrap admin-portal-table-wrap-modal-sm">
+                  <table className="admin-portal-table">
+                    <thead>
+                      <tr>
+                        <th>When</th>
+                        <th>File</th>
+                        <th>Summary</th>
+                        <th>Source</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {evidenceFiles.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="admin-portal-empty-cell">
+                            No uploaded evidence files yet.
+                          </td>
+                        </tr>
+                      ) : (
+                        evidenceFiles.map((f) => (
+                          <tr key={String(f.id)}>
+                            <td className="admin-portal-cell-date">{formatTimestamp(f.uploaded_at)}</td>
+                            <td>{f.name || "—"}</td>
+                            <td style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                              {String(f.summary || "—").slice(0, 220)}
+                            </td>
+                            <td>
+                              <button
+                                type="button"
+                                className="admin-portal-btn admin-portal-btn-compact"
+                                onClick={() => void downloadEvidenceFile(f.id, f.name)}
+                              >
+                                Download
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="admin-portal-caption">Key facts timeline</div>
+                <div className="admin-portal-table-wrap admin-portal-table-wrap-modal-sm">
+                  <table className="admin-portal-table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Fact</th>
+                        <th>Source</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {evidenceTimeline.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} className="admin-portal-empty-cell">
+                            No extracted timeline facts yet.
+                          </td>
+                        </tr>
+                      ) : (
+                        evidenceTimeline.map((item, idx) => (
+                          <tr key={`${item.source}-${item.date}-${idx}`}>
+                            <td>{item.date || "—"}</td>
+                            <td style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{item.fact || "—"}</td>
+                            <td>
+                              <button
+                                type="button"
+                                className="admin-portal-btn admin-portal-btn-compact"
+                                onClick={() => {
+                                  const match = evidenceFiles.find((f) => (f.name || "") === (item.source || ""));
+                                  if (match) void downloadEvidenceFile(match.id, match.name);
+                                }}
+                              >
+                                {item.source || "Source"}
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="admin-portal-subcaption">
+                  Safety notice: AI summaries/timeline are assistive only. Verify all facts with original files.
+                </p>
+              </>
+            )}
+            <div className="admin-portal-modal-actions">
+              <button
+                type="button"
+                className="admin-portal-btn admin-portal-btn-primary"
+                onClick={() => setEvidenceModal(null)}
               >
                 Close
               </button>

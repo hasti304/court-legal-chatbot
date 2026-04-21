@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import base64
 import smtplib
+from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -30,16 +32,40 @@ except ImportError:
     )
 
 
-def send_transactional_email(to_email: str, subject: str, text_body: str, html_body: str) -> bool:
+def send_transactional_email(
+    to_email: str,
+    subject: str,
+    text_body: str,
+    html_body: str,
+    attachment_bytes: bytes | None = None,
+    attachment_filename: str = "",
+    attachment_content_type: str = "application/pdf",
+) -> bool:
     to_email = (to_email or "").strip()
     subject = (subject or "").strip()
     text_body = text_body or ""
     html_body = html_body or ""
     if not to_email or "@" not in to_email or not subject:
         return False
+    include_attachment = bool(attachment_bytes) and bool(attachment_filename)
 
     if RESEND_API_KEY:
         try:
+            payload = {
+                "from": RESEND_FROM,
+                "to": [to_email],
+                "subject": subject,
+                "text": text_body,
+                "html": html_body,
+            }
+            if include_attachment:
+                payload["attachments"] = [
+                    {
+                        "filename": attachment_filename,
+                        "content": base64.b64encode(attachment_bytes).decode("ascii"),
+                        "content_type": attachment_content_type or "application/pdf",
+                    }
+                ]
             with httpx.Client(timeout=25.0) as client:
                 r = client.post(
                     "https://api.resend.com/emails",
@@ -47,13 +73,7 @@ def send_transactional_email(to_email: str, subject: str, text_body: str, html_b
                         "Authorization": f"Bearer {RESEND_API_KEY}",
                         "Content-Type": "application/json",
                     },
-                    json={
-                        "from": RESEND_FROM,
-                        "to": [to_email],
-                        "subject": subject,
-                        "text": text_body,
-                        "html": html_body,
-                    },
+                    json=payload,
                 )
             if r.status_code not in (200, 201):
                 print(
@@ -80,6 +100,10 @@ def send_transactional_email(to_email: str, subject: str, text_body: str, html_b
             msg["To"] = to_email
             msg.attach(MIMEText(text_body, "plain", "utf-8"))
             msg.attach(MIMEText(html_body, "html", "utf-8"))
+            if include_attachment:
+                part = MIMEApplication(attachment_bytes, _subtype="pdf")
+                part.add_header("Content-Disposition", "attachment", filename=attachment_filename)
+                msg.attach(part)
             with smtplib.SMTP(SMTP_HOST, port, timeout=30) as server:
                 server.starttls()
                 if SMTP_USER and SMTP_PASSWORD:

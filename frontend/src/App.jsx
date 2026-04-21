@@ -35,6 +35,8 @@ import {
 } from "./utils/savedChat";
 import { getStoredTheme, persistTheme } from "./utils/themeStorage";
 import TopicResourcesPanel from "./components/TopicResourcesPanel";
+import DocumentGeneratorPanel from "./components/DocumentGeneratorPanel";
+import GuidedCaseTimelinePanel from "./components/GuidedCaseTimelinePanel";
 import ReferralMap from "./components/ReferralMap";
 import LegalGlossary from "./components/LegalGlossary";
 import { Button } from "./components/ui/button";
@@ -52,6 +54,7 @@ const FIRST_VISIT_KEY = "cal_first_visit_done_v1";
 const INTAKE_ID_KEY = "cal_intake_id_v1";
 const INTAKE_SAVED_KEY = "cal_intake_saved_v1";
 const LARGE_TEXT_KEY = "cal_large_text_v1";
+const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
 
 const API_BASE = getApiBaseUrl();
 
@@ -675,11 +678,10 @@ function App() {
     : "site-footer-chat site-footer-chat--light";
 
   const optionLabel = (optionCode) => {
-    if (["child_support", "education", "housing", "divorce", "custody"].includes(optionCode)) {
-      return t(`triage.options.topic_${optionCode}`);
+    const normalized = String(optionCode || "").trim().toLowerCase();
+    if (["child_support", "education", "housing", "divorce", "custody"].includes(normalized)) {
+      return t(`triage.options.topic_${normalized}`);
     }
-
-    const normalized = String(optionCode || "").toLowerCase();
 
     const hardcodedMap = {
       unknown: "I don't know",
@@ -702,7 +704,27 @@ function App() {
     };
 
     const key = map[normalized];
-    return key ? t(key) : String(optionCode);
+    if (key) {
+      const translated = t(key);
+      if (translated && translated !== key) return translated;
+    }
+    return String(optionCode || "")
+      .trim()
+      .replace(/_/g, " ")
+      .replace(/\s+/g, " ");
+  };
+
+  const safeOptionLabel = (optionCode) => {
+    const base = String(optionCode || "").trim();
+    if (!base) return "Option";
+    const translated = optionLabel(base);
+    const clean = String(translated || "").trim();
+    if (!clean) return base.replace(/_/g, " ");
+    // Final guard: never render raw snake_case tokens to user.
+    if (/^[a-z0-9]+(?:_[a-z0-9]+)+$/i.test(clean)) {
+      return clean.replace(/_/g, " ");
+    }
+    return clean;
   };
 
   const renderBotText = (msg) => {
@@ -726,10 +748,12 @@ function App() {
         hydrated.inferredTopicLabel = t(`triage.options.topic_${hydrated.inferredTopic}`);
       }
 
-      return t(msg.response_key, hydrated);
+      const translated = t(msg.response_key, hydrated);
+      if (translated && translated !== msg.response_key) return translated;
     }
 
-    return "";
+    if (typeof msg.content === "string" && msg.content.trim()) return msg.content.trim();
+    return t("triage.fallback.prompt");
   };
 
   const clearSavedIntake = () => {
@@ -946,6 +970,46 @@ function App() {
     clearSavedChatState();
   };
 
+  useEffect(() => {
+    if (!(intakeSaved && intakeId)) return undefined;
+
+    const activityEvents = [
+      "mousemove",
+      "mousedown",
+      "keydown",
+      "scroll",
+      "touchstart",
+      "click",
+    ];
+
+    let timer = 0;
+    const resetInactivityTimer = () => {
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        clearSessionAndStorage();
+        clearSavedIntake();
+        setMagicLinkEmail("");
+        setLoginPassword("");
+        setPasswordLoginError("");
+        setMagicLinkError("");
+        setMagicVerifyError("");
+        setView("login");
+      }, INACTIVITY_TIMEOUT_MS);
+    };
+
+    for (const eventName of activityEvents) {
+      window.addEventListener(eventName, resetInactivityTimer, { passive: true });
+    }
+    resetInactivityTimer();
+
+    return () => {
+      if (timer) window.clearTimeout(timer);
+      for (const eventName of activityEvents) {
+        window.removeEventListener(eventName, resetInactivityTimer);
+      }
+    };
+  }, [intakeSaved, intakeId]);
+
   const quickExit = () => {
     try {
       clearSessionAndStorage();
@@ -1031,7 +1095,13 @@ function App() {
     setChatError("");
     setLoading(true);
 
-    const userMessage = { role: "user", content: displayOverride || message };
+    const userDisplayText = displayOverride
+      ? String(displayOverride)
+          .replace(/_/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+      : message;
+    const userMessage = { role: "user", content: userDisplayText };
     const nextUserMessages = [...messages, userMessage];
     setMessages((prev) => [...prev, userMessage]);
     setUserInput("");
@@ -1082,6 +1152,10 @@ function App() {
         response_params: data.response_params,
         options: data.options || [],
         referrals: data.referrals || [],
+        decision_support:
+          data.decision_support && typeof data.decision_support === "object"
+            ? data.decision_support
+            : null,
       };
 
       setMessages((prev) => [...prev, botMessage]);
@@ -1184,7 +1258,7 @@ function App() {
     sendMessage(
       normalizedMessage,
       false,
-      shouldPrettyPrintChoice ? optionLabel(normalizedMessage) : ""
+      shouldPrettyPrintChoice ? safeOptionLabel(normalizedMessage) : ""
     );
   };
 
@@ -1192,7 +1266,7 @@ function App() {
     if (loading) return;
 
     await trackStepAnswer(conversationState?.step, optionCode);
-    sendMessage(optionCode);
+    sendMessage(optionCode, false, safeOptionLabel(optionCode));
   };
 
   const handleRestart = async () => {
@@ -2381,6 +2455,64 @@ function App() {
 
                   {msg.referrals && msg.referrals.length > 0 && (
                     <div className="referrals">
+                      {msg.decision_support && (
+                        <div className="decision-support-card" role="status" aria-live="polite">
+                          <h4 className="decision-support-title">Decision support snapshot</h4>
+                          <p className="decision-support-disclaimer">
+                            Informational triage support only - not legal advice.
+                          </p>
+                          <div className="decision-support-metrics">
+                            <div className="decision-metric">
+                              <span className="decision-metric-label">Overall risk</span>
+                              <span className="decision-metric-value">
+                                {Number(msg.decision_support?.overall_risk ?? 0)}/100 (
+                                {String(msg.decision_support?.overall_band || "low")})
+                              </span>
+                            </div>
+                            <div className="decision-metric">
+                              <span className="decision-metric-label">Urgency</span>
+                              <span className="decision-metric-value">
+                                {Number(msg.decision_support?.urgency?.score ?? 0)}/100 (
+                                {String(msg.decision_support?.urgency?.band || "low")})
+                              </span>
+                            </div>
+                            <div className="decision-metric">
+                              <span className="decision-metric-label">Complexity</span>
+                              <span className="decision-metric-value">
+                                {Number(msg.decision_support?.complexity?.score ?? 0)}/100 (
+                                {String(msg.decision_support?.complexity?.band || "low")})
+                              </span>
+                            </div>
+                            <div className="decision-metric">
+                              <span className="decision-metric-label">Self-help suitability</span>
+                              <span className="decision-metric-value">
+                                {Number(msg.decision_support?.self_help?.score ?? 0)}/100 (
+                                {String(msg.decision_support?.self_help?.band || "low")})
+                              </span>
+                            </div>
+                          </div>
+                          <div className="decision-support-why">
+                            <p className="decision-support-why-title">Why these scores:</p>
+                            <ul>
+                              {[
+                                ...(Array.isArray(msg.decision_support?.urgency?.reasons)
+                                  ? msg.decision_support.urgency.reasons
+                                  : []),
+                                ...(Array.isArray(msg.decision_support?.complexity?.reasons)
+                                  ? msg.decision_support.complexity.reasons
+                                  : []),
+                                ...(Array.isArray(msg.decision_support?.self_help?.reasons)
+                                  ? msg.decision_support.self_help.reasons
+                                  : []),
+                              ]
+                                .slice(0, 5)
+                                .map((reason, rIdx) => (
+                                  <li key={`${reason}-${rIdx}`}>{String(reason)}</li>
+                                ))}
+                            </ul>
+                          </div>
+                        </div>
+                      )}
                       <h4 className="referrals-title">{t("chat.referralsTitle")}</h4>
                       {msg.referrals.map((ref, i) => (
                         <div key={i} className="referral-card">
@@ -2544,7 +2676,33 @@ function App() {
                           messages.findLastIndex(
                             (m) => m.referrals && m.referrals.length
                           ) && (
+                          <GuidedCaseTimelinePanel
+                            topic={conversationState.topic}
+                            onTrackEvent={(eventType, eventValue) =>
+                              postIntakeEvent(eventType, eventValue)
+                            }
+                          />
+                        )}
+
+                      {conversationState.step === "complete" &&
+                        msg.referrals?.length > 0 &&
+                        idx ===
+                          messages.findLastIndex(
+                            (m) => m.referrals && m.referrals.length
+                          ) && (
                           <TopicResourcesPanel topic={conversationState.topic} />
+                        )}
+
+                      {conversationState.step === "complete" &&
+                        msg.referrals?.length > 0 &&
+                        idx ===
+                          messages.findLastIndex(
+                            (m) => m.referrals && m.referrals.length
+                          ) && (
+                          <DocumentGeneratorPanel
+                            topic={conversationState.topic}
+                            intakeId={intakeId}
+                          />
                         )}
 
                       {conversationState.step === "complete" && (
@@ -2573,7 +2731,7 @@ function App() {
                           onClick={() => handleOptionClick(option)}
                           disabled={loading}
                         >
-                          {optionLabel(option)}
+                          {safeOptionLabel(option)}
                         </button>
                       ))}
                     </div>

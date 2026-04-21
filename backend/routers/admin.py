@@ -9,7 +9,9 @@ try:
     from ..schemas.intake import AdminIntakeCreateRequest
     from ..services.admin_auth_service import try_login
     from ..services.config_service import SUPPORTED_LANGS
+    from ..services.evidence_service import get_evidence_timeline_for_admin
     from ..services.intake_service import (
+        admin_health_checks,
         admin_create_intake,
         admin_delete_intake,
         admin_stats,
@@ -25,7 +27,9 @@ except ImportError:
     from schemas.intake import AdminIntakeCreateRequest  # type: ignore
     from services.admin_auth_service import try_login  # type: ignore
     from services.config_service import SUPPORTED_LANGS  # type: ignore
+    from services.evidence_service import get_evidence_timeline_for_admin  # type: ignore
     from services.intake_service import (  # type: ignore
+        admin_health_checks,
         admin_create_intake,
         admin_delete_intake,
         admin_stats,
@@ -84,6 +88,14 @@ def admin_intake_events_endpoint(
     db: Session = Depends(get_db),
 ):
     return list_intake_events_for_admin(request=request, intake_id=intake_id, db=db)
+
+
+@router.get("/admin/intakes/{intake_id}/evidence")
+def admin_intake_evidence_endpoint(
+    intake_id: str,
+    request: Request,
+):
+    return get_evidence_timeline_for_admin(request=request, intake_id=intake_id)
 
 
 @router.post("/admin/intakes")
@@ -149,3 +161,8 @@ def admin_stats_endpoint(request: Request):
 @router.get("/admin/basic-analytics")
 def basic_analytics_endpoint(request: Request, db: Session = Depends(get_db)):
     return basic_analytics(request=request, db=db)
+
+
+@router.get("/admin/health-checks")
+def admin_health_checks_endpoint(request: Request, db: Session = Depends(get_db)):
+    return admin_health_checks(request=request, db=db)

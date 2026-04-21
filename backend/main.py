@@ -11,6 +11,7 @@ try:
     from .routers.ai import router as ai_router
     from .routers.resources import router as resources_router
     from .routers.auth import router as auth_router
+    from .routers.documents import router as documents_router
 except ImportError:
     from database import init_db
     from services.intake_service import ensure_tables  # type: ignore
@@ -21,6 +22,7 @@ except ImportError:
     from routers.ai import router as ai_router  # type: ignore
     from routers.resources import router as resources_router  # type: ignore
     from routers.auth import router as auth_router  # type: ignore
+    from routers.documents import router as documents_router  # type: ignore
 
 app = FastAPI()
 
@@ -72,3 +74,4 @@ app.include_router(chat_router)
 app.include_router(ai_router)
 app.include_router(resources_router)
 app.include_router(auth_router)
+app.include_router(documents_router)

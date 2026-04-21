@@ -4,8 +4,8 @@ import io
 import json
 import os
 import re
-from datetime import datetime, timezone
-from typing import List, Optional
+from datetime import date, datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -17,13 +17,13 @@ try:
     from ..models import Intake, IntakeSubmission, MagicLinkToken
     from .auth_password_service import hash_password
     from .admin_auth_service import admin_request_authorized
-    from .config_service import ADMIN_EXPORT_KEY, engine
+    from .config_service import ADMIN_EXPORT_KEY, engine, groq_configured
     from .transactional_email import send_transactional_email
 except ImportError:
     from models import Intake, IntakeSubmission, MagicLinkToken  # type: ignore
     from services.auth_password_service import hash_password  # type: ignore
     from services.admin_auth_service import admin_request_authorized  # type: ignore
-    from services.config_service import ADMIN_EXPORT_KEY, engine  # type: ignore
+    from services.config_service import ADMIN_EXPORT_KEY, engine, groq_configured  # type: ignore
     from services.transactional_email import send_transactional_email  # type: ignore
 
 
@@ -70,6 +70,152 @@ def parse_referral_names(event_value: Optional[str]) -> List[str]:
     except Exception:
         pass
     return [x.strip() for x in raw.split("|") if x.strip()]
+
+
+_DEADLINE_MONTHS = {
+    "jan": 1, "january": 1, "feb": 2, "february": 2, "mar": 3, "march": 3,
+    "apr": 4, "april": 4, "may": 5, "jun": 6, "june": 6, "jul": 7, "july": 7,
+    "aug": 8, "august": 8, "sep": 9, "sept": 9, "september": 9, "oct": 10,
+    "october": 10, "nov": 11, "november": 11, "dec": 12, "december": 12,
+}
+
+
+def _classify_deadline_type(context: str) -> str:
+    t = (context or "").lower()
+    if any(k in t for k in ("hearing", "court date", "court appearance", "appear in court", "trial")):
+        return "court_date"
+    if any(k in t for k in ("respond", "response due", "answer due", "reply by")):
+        return "response_due"
+    if any(k in t for k in ("file", "filing", "submit paperwork", "petition due", "motion due")):
+        return "filing_deadline"
+    if "deadline" in t or "due" in t:
+        return "general_deadline"
+    return "other"
+
+
+def _safe_date(year: int, month: int, day: int) -> Optional[date]:
+    try:
+        return date(year, month, day)
+    except ValueError:
+        return None
+
+
+def _extract_date_candidates(text_value: str) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    if not text_value:
+        return out
+    today = datetime.now(timezone.utc).date()
+    low = text_value.lower()
+    for m in re.finditer(r"\b(?:in\s+)?(\d{1,3})\s+days?\b", low):
+        days = int(m.group(1))
+        if 0 <= days <= 365:
+            out.append({"due_date": today + timedelta(days=days), "source_phrase": m.group(0)})
+    if re.search(r"\btomorrow\b", low):
+        out.append({"due_date": today + timedelta(days=1), "source_phrase": "tomorrow"})
+    if re.search(r"\bnext week\b", low):
+        out.append({"due_date": today + timedelta(days=7), "source_phrase": "next week"})
+    for m in re.finditer(r"\b(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?\b", text_value):
+        mm = int(m.group(1)); dd = int(m.group(2)); yy = today.year
+        if m.group(3):
+            yy = int(m.group(3))
+            if yy < 100:
+                yy += 2000
+        d = _safe_date(yy, mm, dd)
+        if d:
+            out.append({"due_date": d, "source_phrase": m.group(0)})
+    month_names = "|".join(sorted(_DEADLINE_MONTHS.keys(), key=len, reverse=True))
+    patt1 = re.compile(rf"\b({month_names})\s+(\d{{1,2}})(?:st|nd|rd|th)?(?:,?\s+(\d{{2,4}}))?\b", re.IGNORECASE)
+    patt2 = re.compile(rf"\b(\d{{1,2}})(?:st|nd|rd|th)?\s+({month_names})(?:,?\s+(\d{{2,4}}))?\b", re.IGNORECASE)
+    for m in patt1.finditer(text_value):
+        year = today.year if not m.group(3) else int(m.group(3)) + (2000 if int(m.group(3)) < 100 else 0)
+        d = _safe_date(year, int(_DEADLINE_MONTHS.get(m.group(1).lower()) or 0), int(m.group(2)))
+        if d:
+            out.append({"due_date": d, "source_phrase": m.group(0)})
+    for m in patt2.finditer(text_value):
+        year = today.year if not m.group(3) else int(m.group(3)) + (2000 if int(m.group(3)) < 100 else 0)
+        d = _safe_date(year, int(_DEADLINE_MONTHS.get(m.group(2).lower()) or 0), int(m.group(1)))
+        if d:
+            out.append({"due_date": d, "source_phrase": m.group(0)})
+    uniq: Dict[str, Dict[str, Any]] = {}
+    for item in out:
+        key = f'{item["due_date"].isoformat()}::{item["source_phrase"].strip().lower()}'
+        uniq[key] = item
+    return list(uniq.values())
+
+
+def _extract_deadlines_from_text(text_value: str, source_type: str) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    for cand in _extract_date_candidates(text_value):
+        phrase = str(cand.get("source_phrase") or "").strip()
+        due = cand.get("due_date")
+        if phrase and isinstance(due, date):
+            out.append(
+                {
+                    "deadline_type": _classify_deadline_type(text_value),
+                    "due_date": due.isoformat(),
+                    "source_phrase": phrase[:255],
+                    "source_type": source_type,
+                    "source_excerpt": text_value[:1000],
+                }
+            )
+    return out
+
+
+def refresh_deadlines_for_intake(conn, intake_id: str) -> None:
+    iid = (intake_id or "").strip()
+    if not iid:
+        return
+    summary_row = conn.execute(
+        text("SELECT problem_summary FROM triage_sessions WHERE intake_id = :iid"),
+        {"iid": iid},
+    ).mappings().first()
+    events = conn.execute(
+        text(
+            """
+            SELECT event_type, event_value
+            FROM intake_events
+            WHERE intake_id = :iid
+              AND event_type IN ('problem_summary', 'problem_summary_alternate_topic')
+            ORDER BY created_at DESC
+            LIMIT 20
+            """
+        ),
+        {"iid": iid},
+    ).mappings().all()
+    raw_texts: List[Dict[str, str]] = []
+    summary_text = str((summary_row or {}).get("problem_summary") or "").strip()
+    if summary_text:
+        raw_texts.append({"source_type": "summary", "text": summary_text})
+    for ev in events:
+        txt = str(ev.get("event_value") or "").strip()
+        if txt:
+            raw_texts.append({"source_type": "chat_event", "text": txt})
+    deadlines: List[Dict[str, Any]] = []
+    for source in raw_texts:
+        deadlines.extend(_extract_deadlines_from_text(source.get("text", ""), source.get("source_type", "summary")))
+    conn.execute(text("DELETE FROM intake_deadlines WHERE intake_id = :iid"), {"iid": iid})
+    for d in deadlines:
+        conn.execute(
+            text(
+                """
+                INSERT INTO intake_deadlines (
+                  id, intake_id, deadline_type, due_date, source_phrase, source_type, source_excerpt, created_at
+                ) VALUES (
+                  :id, :intake_id, :deadline_type, :due_date, :source_phrase, :source_type, :source_excerpt, :created_at
+                )
+                """
+            ),
+            {
+                "id": os.urandom(16).hex(),
+                "intake_id": iid,
+                "deadline_type": d["deadline_type"],
+                "due_date": d["due_date"],
+                "source_phrase": d["source_phrase"],
+                "source_type": d["source_type"],
+                "source_excerpt": d["source_excerpt"],
+                "created_at": utc_now_iso(),
+            },
+        )
 
 
 def require_admin_access(request: Request) -> None:
@@ -150,6 +296,25 @@ def ensure_tables():
     ON triage_sessions (zip_code);
     """
 
+    create_deadlines = """
+    CREATE TABLE IF NOT EXISTS intake_deadlines (
+      id TEXT PRIMARY KEY,
+      intake_id TEXT NOT NULL,
+      deadline_type TEXT NOT NULL,
+      due_date TEXT NOT NULL,
+      source_phrase TEXT,
+      source_type TEXT NOT NULL DEFAULT 'summary',
+      source_excerpt TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (intake_id) REFERENCES intakes(id)
+    );
+    """
+
+    create_deadlines_index = """
+    CREATE INDEX IF NOT EXISTS idx_intake_deadlines_intake_due
+    ON intake_deadlines (intake_id, due_date);
+    """
+
     try:
         with engine.begin() as conn:
             conn.execute(text(create_intakes))
@@ -158,6 +323,8 @@ def ensure_tables():
             conn.execute(text(create_events_index))
             conn.execute(text(create_sessions_topic_index))
             conn.execute(text(create_sessions_zip_index))
+            conn.execute(text(create_deadlines))
+            conn.execute(text(create_deadlines_index))
             _migrate_intakes_admin_status(conn)
             _migrate_intakes_password_hash(conn)
             _migrate_intakes_login_count(conn)
@@ -373,6 +540,7 @@ def update_triage_session_from_event(conn, intake_id: str, event_type: str, even
             """),
             {**base_params, "problem_summary": event_value or None},
         )
+        refresh_deadlines_for_intake(conn, intake_id)
         return
     if event_type == "zip_entered":
         conn.execute(
@@ -480,6 +648,8 @@ def log_intake_event(intake_id: Optional[str], event_type: str, event_value: Opt
                 },
             )
             update_triage_session_from_event(conn=conn, intake_id=intake_id, event_type=event_type, event_value=event_value)
+            if (event_type or "").strip().lower() in {"problem_summary", "problem_summary_alternate_topic"}:
+                refresh_deadlines_for_intake(conn, intake_id)
     except Exception as e:
         print(f"Warning: failed to log intake event '{event_type}': {e}")
 
@@ -553,6 +723,8 @@ def create_intake_event(req):
                 event_type=req.event_type,
                 event_value=req.event_value,
             )
+            if (req.event_type or "").strip().lower() in {"problem_summary", "problem_summary_alternate_topic"}:
+                refresh_deadlines_for_intake(conn, intake_id)
         return {"status": "ok"}
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
@@ -680,7 +852,24 @@ def list_intakes_for_admin(request: Request, db: Session):
               COALESCE(NULLIF(TRIM(i.admin_status), ''), 'pending') AS admin_status,
               COALESCE(i.login_count, 0) AS login_count,
               ts.topic AS issue_topic,
-              ts.problem_summary AS problem_summary
+              ts.problem_summary AS problem_summary,
+              (
+                SELECT MIN(d.due_date)
+                FROM intake_deadlines d
+                WHERE d.intake_id = i.id
+              ) AS next_deadline_date,
+              (
+                SELECT d2.deadline_type
+                FROM intake_deadlines d2
+                WHERE d2.intake_id = i.id
+                ORDER BY d2.due_date ASC
+                LIMIT 1
+              ) AS next_deadline_type,
+              (
+                SELECT COUNT(*)
+                FROM intake_deadlines d3
+                WHERE d3.intake_id = i.id
+              ) AS deadline_count
             FROM intakes i
             LEFT JOIN triage_sessions ts ON ts.intake_id = i.id
             ORDER BY i.created_at DESC
@@ -689,12 +878,65 @@ def list_intakes_for_admin(request: Request, db: Session):
         ),
         {"lim": safe_limit},
     ).mappings().all()
+    intake_ids = [str(r.get("id") or "").strip() for r in rows if str(r.get("id") or "").strip()]
+    intake_id_set = set(intake_ids)
+    intake_events_by_id: Dict[str, List[Dict[str, Any]]] = {}
+    if intake_ids:
+        event_rows = db.execute(
+            text(
+                """
+                SELECT intake_id, event_type, event_value, created_at
+                FROM intake_events
+                WHERE event_type IN (
+                  'topic_selected',
+                  'problem_summary',
+                  'problem_summary_alternate_topic',
+                  'navigator_login'
+                )
+                ORDER BY created_at DESC
+                """
+            )
+        ).mappings().all()
+        for er in event_rows:
+            iid = str(er.get("intake_id") or "").strip()
+            if not iid or iid not in intake_id_set:
+                continue
+            intake_events_by_id.setdefault(iid, []).append(dict(er))
     out = []
     for r in rows:
         d = dict(r)
         topic = d.get("issue_topic")
         d["issue"] = _humanize_topic(topic)
         d["issue_topic"] = topic or None
+        events = intake_events_by_id.get(str(d.get("id") or ""), [])
+        topics: List[str] = []
+        summaries: List[str] = []
+        for ev in events:
+            et = str(ev.get("event_type") or "").strip().lower()
+            evv = str(ev.get("event_value") or "").strip()
+            if et == "topic_selected" and evv:
+                hum = _humanize_topic(evv)
+                if hum not in topics:
+                    topics.append(hum)
+            if et in {"problem_summary", "problem_summary_alternate_topic"} and evv:
+                if evv not in summaries:
+                    summaries.append(evv)
+        if not topics and d.get("issue"):
+            topics = [str(d.get("issue"))]
+        if not summaries and str(d.get("problem_summary") or "").strip():
+            summaries = [str(d.get("problem_summary") or "").strip()]
+        d["issues"] = topics
+        d["summaries"] = summaries
+        next_deadline_date = str(d.get("next_deadline_date") or "").strip()
+        if next_deadline_date:
+            try:
+                due = datetime.fromisoformat(next_deadline_date[:10]).date()
+                today = datetime.now(timezone.utc).date()
+                d["next_deadline_days_left"] = (due - today).days
+            except Exception:
+                d["next_deadline_days_left"] = None
+        else:
+            d["next_deadline_days_left"] = None
         if "consent" in d:
             d["consent"] = bool(d.get("consent"))
         out.append(d)
@@ -896,6 +1138,7 @@ def admin_delete_intake(request: Request, intake_id: str, db: Session) -> dict:
     try:
         db.execute(text("DELETE FROM intake_events WHERE intake_id = :iid"), {"iid": iid})
         db.execute(text("DELETE FROM triage_sessions WHERE intake_id = :iid"), {"iid": iid})
+        db.execute(text("DELETE FROM intake_deadlines WHERE intake_id = :iid"), {"iid": iid})
         if email:
             db.query(MagicLinkToken).filter(MagicLinkToken.email == email).delete(synchronize_session=False)
         db.delete(row)
@@ -1079,6 +1322,50 @@ def admin_stats(request: Request):
                 WHERE event_type = 'triage_feedback'
             """)).mappings().first()
 
+            # Cross-cutting feature analytics (guarded for partially migrated environments).
+            try:
+                timeline_usage = conn.execute(
+                    text(
+                        """
+                        SELECT
+                          SUM(CASE WHEN event_type = 'timeline_step_viewed' THEN 1 ELSE 0 END) AS step_views,
+                          SUM(CASE WHEN event_type = 'timeline_checklist_toggled' THEN 1 ELSE 0 END) AS checklist_toggles
+                        FROM intake_events
+                        """
+                    )
+                ).mappings().first()
+            except Exception:
+                timeline_usage = {"step_views": 0, "checklist_toggles": 0}
+
+            try:
+                deadline_stats = conn.execute(
+                    text(
+                        """
+                        SELECT
+                          COUNT(*) AS total_deadlines,
+                          SUM(CASE WHEN due_date < :today THEN 1 ELSE 0 END) AS overdue_deadlines
+                        FROM intake_deadlines
+                        """
+                    ),
+                    {"today": datetime.now(timezone.utc).date().isoformat()},
+                ).mappings().first()
+            except Exception:
+                deadline_stats = {"total_deadlines": 0, "overdue_deadlines": 0}
+
+            try:
+                evidence_stats = conn.execute(
+                    text(
+                        """
+                        SELECT
+                          COUNT(*) AS total_evidence_files,
+                          SUM(CASE WHEN COALESCE(TRIM(ai_summary), '') <> '' THEN 1 ELSE 0 END) AS ai_summary_ready
+                        FROM evidence_files
+                        """
+                    )
+                ).mappings().first()
+            except Exception:
+                evidence_stats = {"total_evidence_files": 0, "ai_summary_ready": 0}
+
         total_sessions = int(overview["total_sessions"] or 0)
         completed_sessions = int(overview["completed_sessions"] or 0)
         ai_used_sessions = int(overview["ai_used_sessions"] or 0)
@@ -1088,6 +1375,13 @@ def admin_stats(request: Request):
         helpful_no = int((feedback or {}).get("helpful_no") or 0)
         feedback_total = helpful_yes + helpful_no
         helpful_rate = round((helpful_yes / feedback_total) * 100, 2) if feedback_total else 0.0
+        timeline_step_views = int((timeline_usage or {}).get("step_views") or 0)
+        timeline_checklist_toggles = int((timeline_usage or {}).get("checklist_toggles") or 0)
+        total_deadlines = int((deadline_stats or {}).get("total_deadlines") or 0)
+        overdue_deadlines = int((deadline_stats or {}).get("overdue_deadlines") or 0)
+        total_evidence_files = int((evidence_stats or {}).get("total_evidence_files") or 0)
+        ai_summary_ready = int((evidence_stats or {}).get("ai_summary_ready") or 0)
+        ai_summary_rate = round((ai_summary_ready / total_evidence_files) * 100, 2) if total_evidence_files else 0.0
 
         return JSONResponse(
             {
@@ -1102,6 +1396,13 @@ def admin_stats(request: Request):
                     "helpful_yes": helpful_yes,
                     "helpful_no": helpful_no,
                     "helpful_rate_percent": helpful_rate,
+                    "timeline_step_views": timeline_step_views,
+                    "timeline_checklist_toggles": timeline_checklist_toggles,
+                    "total_deadlines": total_deadlines,
+                    "overdue_deadlines": overdue_deadlines,
+                    "total_evidence_files": total_evidence_files,
+                    "ai_summary_ready": ai_summary_ready,
+                    "ai_summary_rate_percent": ai_summary_rate,
                 },
                 "top_topics": [dict(row) for row in top_topics],
                 "top_zips": [dict(row) for row in top_zips],
@@ -1142,3 +1443,89 @@ def basic_analytics(request: Request, db: Session):
         }
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+def admin_health_checks(request: Request, db: Session) -> dict:
+    """Quick regression-oriented health checks for core app flows."""
+    require_admin_access(request)
+    ensure_tables()
+    checks = []
+
+    # Check 1: database connectivity.
+    try:
+        total_intakes = int(db.query(func.count(Intake.id)).scalar() or 0)
+        checks.append(
+            {
+                "name": "Database connectivity",
+                "status": "pass",
+                "detail": f"Connected. Intakes count: {total_intakes}.",
+            }
+        )
+    except Exception as e:
+        checks.append({"name": "Database connectivity", "status": "fail", "detail": str(e)})
+
+    # Check 2: critical tables for new roadmap tasks.
+    required_tables = ["triage_sessions", "intake_deadlines", "evidence_files"]
+    missing = []
+    try:
+        for tname in required_tables:
+            row = db.execute(text(f"SELECT 1 FROM {tname} LIMIT 1")).first()
+            _ = row  # intentionally unused; just validates table queryability
+        checks.append(
+            {
+                "name": "Core feature tables",
+                "status": "pass",
+                "detail": "Deadline, triage, and evidence tables available.",
+            }
+        )
+    except Exception:
+        # isolate exact table availability with sqlite/postgres-safe checks
+        for tname in required_tables:
+            try:
+                db.execute(text(f"SELECT 1 FROM {tname} LIMIT 1")).first()
+            except Exception:
+                missing.append(tname)
+        checks.append(
+            {
+                "name": "Core feature tables",
+                "status": "fail" if missing else "pass",
+                "detail": f"Missing or inaccessible tables: {', '.join(missing)}" if missing else "All tables accessible.",
+            }
+        )
+
+    # Check 3: uploads directory write access.
+    try:
+        from pathlib import Path
+
+        upload_root = Path(__file__).resolve().parents[1] / "uploads" / "documents"
+        upload_root.mkdir(parents=True, exist_ok=True)
+        probe = upload_root / f".probe_{os.urandom(6).hex()}"
+        probe.write_text("ok", encoding="utf-8")
+        probe.unlink(missing_ok=True)
+        checks.append(
+            {
+                "name": "Upload storage writable",
+                "status": "pass",
+                "detail": str(upload_root),
+            }
+        )
+    except Exception as e:
+        checks.append({"name": "Upload storage writable", "status": "fail", "detail": str(e)})
+
+    # Check 4: optional AI provider status.
+    checks.append(
+        {
+            "name": "AI summarization provider",
+            "status": "pass" if groq_configured else "warn",
+            "detail": "Configured" if groq_configured else "Not configured (fallback summaries active).",
+        }
+    )
+
+    failed = sum(1 for c in checks if c["status"] == "fail")
+    warned = sum(1 for c in checks if c["status"] == "warn")
+    return {
+        "ok": failed == 0,
+        "failed_checks": failed,
+        "warn_checks": warned,
+        "checks": checks,
+    }
