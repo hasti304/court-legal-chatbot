@@ -746,7 +746,9 @@ body.discreet-mode .chat-input:focus {
 }
 
 .auth-github-page--light {
-  background: linear-gradient(180deg, #eaf0f8 0%, #f4f7fb 100%);
+  background:
+    radial-gradient(circle at top, rgba(37, 99, 235, 0.12), transparent 42%),
+    linear-gradient(180deg, #eaf0f8 0%, #f4f7fb 100%);
   color: var(--text-primary);
 }
 
@@ -790,12 +792,12 @@ body.discreet-mode .chat-input:focus {
 .auth-github-page--light .auth-github-card {
   background: var(--bg-surface);
   border-color: var(--border-light);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.12);
 }
 
 .auth-github-page--light .auth-github-btn-secondary {
   border-color: var(--border-medium);
-  background: var(--bg-soft);
+  background: #f8fafc;
   color: var(--text-primary);
 }
 
@@ -806,6 +808,11 @@ body.discreet-mode .chat-input:focus {
 
 .auth-github-page--light .auth-github-btn-ghost {
   color: var(--text-secondary);
+  background: #f1f5f9;
+}
+
+.auth-github-page--light .auth-github-btn-ghost:hover:not(:disabled) {
+  background: #e2e8f0;
 }
 
 .auth-github-page--light .auth-github-or {
@@ -846,6 +853,22 @@ body.discreet-mode .chat-input:focus {
   border-color: var(--border-medium);
   background: var(--bg-soft);
   color: var(--text-primary);
+}
+
+.auth-github-page--light .auth-split-aside-kicker {
+  color: var(--text-muted);
+}
+
+.auth-github-page--light .auth-split-aside-headline {
+  color: var(--text-primary);
+}
+
+.auth-github-page--light .auth-split-aside-body {
+  color: var(--text-secondary);
+}
+
+.auth-github-page--light .auth-split-aside-list {
+  color: var(--text-secondary);
 }
 
 .site-footer.site-footer-chat.site-footer-chat--light {
@@ -2395,7 +2418,7 @@ a:focus-visible,
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  padding: calc(12px + env(safe-area-inset-top, 0px)) 20px
+  padding: calc(18px + env(safe-area-inset-top, 0px)) 20px
     calc(24px + env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
 }
@@ -2425,7 +2448,7 @@ a:focus-visible,
 .auth-github-main {
   flex: 1;
   width: 100%;
-  max-width: 340px;
+  max-width: 420px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -2433,12 +2456,131 @@ a:focus-visible,
   text-align: center;
 }
 
+.auth-github-main--split {
+  max-width: min(1040px, 100%);
+}
+
+.auth-split-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  width: 100%;
+  flex: 1;
+}
+
+@media (min-width: 900px) {
+  .auth-split-inner {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 48px;
+  }
+}
+
+.auth-split-aside {
+  width: 100%;
+  max-width: 440px;
+  text-align: center;
+}
+
+@media (min-width: 900px) {
+  .auth-split-aside {
+    flex: 1 1 42%;
+    max-width: 400px;
+    text-align: left;
+  }
+}
+
+.auth-split-aside-brand {
+  margin-bottom: 4px;
+}
+
+.auth-split-aside-brand .brand-block {
+  display: flex;
+  justify-content: center;
+}
+
+@media (min-width: 900px) {
+  .auth-split-aside-brand .brand-block {
+    justify-content: flex-start;
+  }
+}
+
+.auth-split-aside-brand .app-logo {
+  max-width: 88px;
+  height: auto;
+}
+
+.auth-split-aside-kicker {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #8b949e;
+  margin: 0 0 10px;
+}
+
+.auth-split-aside-headline {
+  font-size: 1.28rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  color: #f0f6fc;
+  margin: 0 0 12px;
+}
+
+.auth-split-aside-body {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: #8b949e;
+  margin: 0 0 16px;
+}
+
+.auth-split-aside-list {
+  list-style: disc;
+  padding-left: 1.2rem;
+  margin: 0;
+  text-align: left;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #c9d1d9;
+}
+
+.auth-split-aside-list li {
+  margin-bottom: 8px;
+}
+
+.auth-split-aside-list li:last-child {
+  margin-bottom: 0;
+}
+
+.auth-split-form-col {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: center;
+}
+
+@media (min-width: 900px) {
+  .auth-split-form-col {
+    flex: 1 1 52%;
+    text-align: left;
+  }
+
+  .auth-split-form-col--intake {
+    max-width: min(520px, 100%);
+  }
+}
+
 .auth-github-logo-wrap {
   margin-bottom: 20px;
 }
 
 .auth-github-logo-wrap .app-logo {
-  max-width: 72px;
+  max-width: 84px;
   height: auto;
   display: block;
   margin: 0 auto;
@@ -2446,8 +2588,8 @@ a:focus-visible,
 }
 
 .auth-github-title {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 1.62rem;
+  font-weight: 700;
   letter-spacing: -0.02em;
   margin: 0 0 8px;
   line-height: 1.25;
@@ -2455,25 +2597,26 @@ a:focus-visible,
 
 .auth-github-sub {
   margin: 0 0 20px;
-  font-size: 0.92rem;
+  font-size: 0.96rem;
   color: #8b949e;
-  line-height: 1.45;
+  line-height: 1.55;
 }
 
 .auth-github-returning {
   margin: 0 0 16px;
-  font-size: 0.9rem;
+  font-size: 0.94rem;
   color: #8b949e;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 .auth-github-card {
   background: #161b22;
   border: 1px solid #30363d;
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: 14px;
+  padding: 18px;
   text-align: left;
   margin-bottom: 16px;
+  box-shadow: 0 14px 32px rgba(2, 6, 23, 0.28);
 }
 
 .auth-github-card--plain {
@@ -2485,7 +2628,7 @@ a:focus-visible,
 
 .auth-github-label {
   display: block;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 600;
   margin-bottom: 8px;
   color: #f0f6fc;
@@ -2494,9 +2637,9 @@ a:focus-visible,
 .auth-github-input {
   width: 100%;
   box-sizing: border-box;
-  padding: 10px 12px;
-  font-size: 0.95rem;
-  border-radius: 6px;
+  padding: 12px 13px;
+  font-size: 0.97rem;
+  border-radius: 10px;
   border: 1px solid #30363d;
   background: #0d1117;
   color: #f0f6fc;
@@ -2515,6 +2658,9 @@ a:focus-visible,
 }
 
 .auth-password-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid #30363d;
   background: #161b22;
   color: #c9d1d9;
@@ -2524,6 +2670,12 @@ a:focus-visible,
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
+}
+
+.auth-password-toggle--icon {
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0;
 }
 
 .auth-password-toggle:hover:not(:disabled) {
@@ -2566,11 +2718,11 @@ a:focus-visible,
 .auth-github-btn-primary {
   width: 100%;
   box-sizing: border-box;
-  padding: 10px 16px;
+  padding: 12px 16px;
   font-size: 0.95rem;
   font-weight: 600;
   border: none;
-  border-radius: 6px;
+  border-radius: 10px;
   background: #238636;
   color: #fff;
   cursor: pointer;
@@ -2590,10 +2742,10 @@ a:focus-visible,
   width: 100%;
   box-sizing: border-box;
   margin-top: 10px;
-  padding: 10px 16px;
+  padding: 12px 16px;
   font-size: 0.95rem;
   font-weight: 600;
-  border-radius: 6px;
+  border-radius: 10px;
   border: 1px solid #30363d;
   background: #21262d;
   color: #f0f6fc;
@@ -2610,11 +2762,11 @@ a:focus-visible,
   width: 100%;
   box-sizing: border-box;
   margin-top: 10px;
-  padding: 8px 12px;
-  font-size: 0.88rem;
+  padding: 10px 12px;
+  font-size: 0.9rem;
   font-weight: 600;
   border: none;
-  border-radius: 6px;
+  border-radius: 10px;
   background: transparent;
   color: #8b949e;
   cursor: pointer;

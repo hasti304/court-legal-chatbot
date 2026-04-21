@@ -81,6 +81,13 @@ def login_with_password(payload, db: Session) -> dict:
     if not verify_password(password, intake.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
 
+    try:
+        from .intake_service import record_navigator_sign_in
+    except ImportError:
+        from services.intake_service import record_navigator_sign_in  # type: ignore
+
+    record_navigator_sign_in(intake.id, db)
+
     return {"intake_id": intake.id, "email": intake.email}
 
 

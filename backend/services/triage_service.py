@@ -180,6 +180,7 @@ def infer_topic_from_text(message: str) -> Optional[str]:
             "suspension", "expulsion", "bullying", "education", "classroom",
             "kindergarten", "district", "university", "college", "homework",
             "principal", "superintendent",
+            "admission", "admissions", "enroll", "enrollment", "registrar",
         ],
         "child_support": [
             "child support", "support payment", "support order", "pay support",
@@ -205,6 +206,14 @@ def infer_topic_from_text(message: str) -> Optional[str]:
             elif keyword in text_value:
                 return topic
     return None
+
+
+def infer_topic_conflict_with_selection(summary: str, selected_topic: Optional[str]) -> Optional[str]:
+    """If the narrative clearly matches a different issue bucket than the selected topic, return that topic code."""
+    inferred = infer_topic_from_text(summary)
+    if not inferred or not selected_topic or inferred == selected_topic:
+        return None
+    return inferred
 
 
 def try_redirect_topic_from_free_text(
@@ -370,6 +379,7 @@ def get_step_progress(step: Optional[str]) -> dict:
         "court_status": {"current": 3, "total": 6, "label_key": "progress.courtStatus"},
         "income_check": {"current": 4, "total": 6, "label_key": "progress.incomeLevel"},
         "problem_summary": {"current": 5, "total": 6, "label_key": "progress.problemSummary"},
+        "summary_topic_confirm": {"current": 5, "total": 6, "label_key": "progress.problemSummary"},
         "get_zip": {"current": 6, "total": 6, "label_key": "progress.yourLocation"},
         "complete": {"current": 6, "total": 6, "label_key": "progress.resourcesReady"},
         "resource_selected": {"current": 6, "total": 6, "label_key": "progress.resourcesReady"},
@@ -540,6 +550,33 @@ def run_chat_flow(request, referral_map: dict):
             }
         if len(summary) > 4000:
             summary = summary[:4000]
+
+        selected_topic = state.get("topic")
+        conflict_topic = infer_topic_conflict_with_selection(summary, selected_topic)
+        if conflict_topic:
+            state["problem_summary"] = summary
+            state["summary_inferred_topic"] = conflict_topic
+            state["step"] = "summary_topic_confirm"
+            mismatch_payload = json.dumps(
+                {
+                    "selected_topic": selected_topic,
+                    "inferred_topic": conflict_topic,
+                    "summary_excerpt": summary[:500],
+                },
+                ensure_ascii=False,
+            )
+            log_intake_event(request.intake_id, "summary_topic_mismatch", mismatch_payload)
+            return {
+                "response_key": "triage.summary.topicMismatch",
+                "response_params": {
+                    "selectedTopic": selected_topic,
+                    "inferredTopic": conflict_topic,
+                },
+                "options": ["summary_topic_same", "summary_topic_change"],
+                "conversation_state": state,
+                "progress": get_step_progress(state.get("step")),
+            }
+
         state["problem_summary"] = summary
         log_intake_event(request.intake_id, "problem_summary", summary)
         state["step"] = "get_zip"
@@ -547,6 +584,49 @@ def run_chat_flow(request, referral_map: dict):
             "response_key": "triage.zip.prompt",
             "response_params": {},
             "options": [],
+            "conversation_state": state,
+            "progress": get_step_progress(state.get("step")),
+        }
+
+    if state.get("step") == "summary_topic_confirm":
+        choice = raw_message.strip().lower().replace(" ", "_")
+        summary_text = (state.get("problem_summary") or "").strip()
+
+        if choice == "summary_topic_same":
+            log_intake_event(request.intake_id, "summary_topic_alignment", "same")
+            if summary_text:
+                log_intake_event(request.intake_id, "problem_summary", summary_text)
+            state.pop("summary_inferred_topic", None)
+            state["step"] = "get_zip"
+            return {
+                "response_key": "triage.zip.prompt",
+                "response_params": {},
+                "options": [],
+                "conversation_state": state,
+                "progress": get_step_progress(state.get("step")),
+            }
+
+        if choice == "summary_topic_change":
+            log_intake_event(request.intake_id, "summary_topic_alignment", "different")
+            if summary_text:
+                log_intake_event(request.intake_id, "problem_summary_alternate_topic", summary_text)
+            state.pop("problem_summary", None)
+            state.pop("summary_inferred_topic", None)
+            for key in ("topic", "emergency", "in_court", "income_eligible", "income"):
+                state.pop(key, None)
+            state["step"] = "topic_selection"
+            return {
+                "response_key": "triage.summary.topicChangePrompt",
+                "response_params": {},
+                "options": ["child_support", "education", "housing", "divorce", "custody"],
+                "conversation_state": state,
+                "progress": get_step_progress(state.get("step")),
+            }
+
+        return {
+            "response_key": "triage.summary.topicMismatchInvalid",
+            "response_params": {},
+            "options": ["summary_topic_same", "summary_topic_change"],
             "conversation_state": state,
             "progress": get_step_progress(state.get("step")),
         }

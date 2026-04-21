@@ -41,5 +41,6 @@ logs/
 # =========================
 # Local / Sensitive Data
 # =========================
+backend/app.db
 backend/intakes.csv
 *.csv

@@ -160,6 +160,7 @@ def ensure_tables():
             conn.execute(text(create_sessions_zip_index))
             _migrate_intakes_admin_status(conn)
             _migrate_intakes_password_hash(conn)
+            _migrate_intakes_login_count(conn)
             _migrate_triage_sessions_problem_summary(conn)
     except SQLAlchemyError as e:
         print(f"Warning: ensure_tables failed: {e}")
@@ -206,6 +207,27 @@ def _migrate_triage_sessions_problem_summary(conn) -> None:
                 pass
     except Exception as e:
         print(f"Warning: triage_sessions problem_summary migration skipped: {e}")
+
+
+def _migrate_intakes_login_count(conn) -> None:
+    """Track successful navigator sign-ins (password or magic link) for admin reporting."""
+    try:
+        dialect = conn.engine.dialect.name
+    except Exception:
+        dialect = ""
+    try:
+        if dialect == "sqlite":
+            cols = {r[1] for r in conn.execute(text("PRAGMA table_info(intakes)")).fetchall()}
+            if "login_count" in cols:
+                return
+            conn.execute(text("ALTER TABLE intakes ADD COLUMN login_count INTEGER NOT NULL DEFAULT 0"))
+        else:
+            try:
+                conn.execute(text("ALTER TABLE intakes ADD COLUMN login_count INTEGER NOT NULL DEFAULT 0"))
+            except Exception:
+                pass
+    except Exception as e:
+        print(f"Warning: intakes login_count migration skipped: {e}")
 
 
 def _migrate_intakes_password_hash(conn) -> None:
@@ -588,6 +610,55 @@ def _humanize_topic(topic: Optional[str]) -> str:
     return str(topic).replace("_", " ").strip().title()
 
 
+def record_navigator_sign_in(intake_id: str, db: Session) -> None:
+    """Increment login_count and append a navigator_login row to intake_events."""
+    iid = (intake_id or "").strip()
+    if not iid:
+        return
+    row = db.query(Intake).filter(Intake.id == iid).first()
+    if not row:
+        return
+    try:
+        n = int(getattr(row, "login_count", 0) or 0)
+    except (TypeError, ValueError):
+        n = 0
+    row.login_count = n + 1
+    db.add(row)
+    try:
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        return
+    log_intake_event(iid, "navigator_login", "")
+
+
+def list_intake_events_for_admin(request: Request, intake_id: str, db: Session) -> dict:
+    """Chronicle of triage topics, logins, and mismatch events for one intake."""
+    require_admin_access(request)
+    ensure_tables()
+    iid = (intake_id or "").strip()
+    if len(iid) < 8:
+        raise HTTPException(status_code=400, detail="Invalid intake id")
+    exists = db.query(Intake.id).filter(Intake.id == iid).first()
+    if not exists:
+        raise HTTPException(status_code=404, detail="Intake not found")
+    if not engine:
+        raise HTTPException(status_code=503, detail="Database not configured")
+    rows = db.execute(
+        text(
+            """
+            SELECT event_type, event_value, created_at
+            FROM intake_events
+            WHERE intake_id = :iid
+            ORDER BY created_at DESC
+            LIMIT 400
+            """
+        ),
+        {"iid": iid},
+    ).mappings().all()
+    return {"intake_id": iid, "events": [dict(r) for r in rows]}
+
+
 def list_intakes_for_admin(request: Request, db: Session):
     """Navigator intakes with triage topic and admin review status."""
     require_admin_access(request)
@@ -607,6 +678,7 @@ def list_intakes_for_admin(request: Request, db: Session):
               CAST(i.consent AS INTEGER) AS consent,
               i.created_at,
               COALESCE(NULLIF(TRIM(i.admin_status), ''), 'pending') AS admin_status,
+              COALESCE(i.login_count, 0) AS login_count,
               ts.topic AS issue_topic,
               ts.problem_summary AS problem_summary
             FROM intakes i
@@ -880,6 +952,7 @@ def export_intakes_csv(request: Request):
                   i.consent,
                   i.created_at,
                   COALESCE(NULLIF(TRIM(i.admin_status), ''), 'pending') AS admin_status,
+                  COALESCE(i.login_count, 0) AS login_count,
                   COALESCE(ts.topic, '') AS triage_topic,
                   COALESCE(ts.problem_summary, '') AS problem_summary,
                   {topics_expr}
@@ -903,6 +976,7 @@ def export_intakes_csv(request: Request):
             "consent",
             "created_at",
             "admin_status",
+            "login_count",
             "triage_topic",
             "problem_summary",
             "topics_selected",

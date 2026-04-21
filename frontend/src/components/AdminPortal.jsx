@@ -107,6 +107,10 @@ export default function AdminPortal() {
   const [deleteDraft, setDeleteDraft] = useState(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [summaryModal, setSummaryModal] = useState(null);
+  const [activityModal, setActivityModal] = useState(null);
+  const [activityEvents, setActivityEvents] = useState([]);
+  const [activityBusy, setActivityBusy] = useState(false);
+  const [activityError, setActivityError] = useState("");
 
   const portalClass = `admin-portal-page${theme === "light" ? " admin-portal-page--light" : ""}`;
   const isDark = theme === "dark";
@@ -144,6 +148,9 @@ export default function AdminPortal() {
     setCreateModalOpen(false);
     setDeleteDraft(null);
     setSummaryModal(null);
+    setActivityModal(null);
+    setActivityEvents([]);
+    setActivityError("");
     setLoadError("");
   };
 
@@ -246,6 +253,29 @@ export default function AdminPortal() {
       setLoading(false);
     }
   }, [authFetch]);
+
+  const openActivityModal = async (row) => {
+    setActivityModal(row);
+    setActivityEvents([]);
+    setActivityError("");
+    setActivityBusy(true);
+    try {
+      const res = await authFetch(`/admin/intakes/${encodeURIComponent(row.id)}/events`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.detail ? String(data.detail) : `Failed (${res.status})`);
+      }
+      setActivityEvents(Array.isArray(data.events) ? data.events : []);
+    } catch (err) {
+      setActivityError(
+        err?.message && String(err.message).trim().length > 0
+          ? String(err.message)
+          : "Could not load activity."
+      );
+    } finally {
+      setActivityBusy(false);
+    }
+  };
 
   const submitIntakeStatusUpdate = async (intakeId, status, { sendNotification, note }) => {
     if (statusBusy[intakeId]) return false;
@@ -838,7 +868,9 @@ export default function AdminPortal() {
                     <th>ZIP</th>
                     <th>Phone</th>
                     <th>Issue (triage topic)</th>
+                    <th>Logins</th>
                     <th>Summary</th>
+                    <th>Activity</th>
                     <th>Created</th>
                     <th>Status</th>
                     <th>Email user</th>
@@ -848,7 +880,7 @@ export default function AdminPortal() {
                 <tbody>
                   {intakes.length === 0 && !loading ? (
                     <tr>
-                      <td colSpan={11} className="admin-portal-empty-cell">
+                      <td colSpan={13} className="admin-portal-empty-cell">
                         No intake accounts yet.
                       </td>
                     </tr>
@@ -872,7 +904,7 @@ export default function AdminPortal() {
                           <td className="admin-portal-cell-email" title={row.email ?? "—"}>
                             {row.email ?? "—"}
                           </td>
-                          <td className="admin-portal-cell-zip">{row.zip ?? "—"}</td>
+                          <td className="admin-portal-cell-zip">{row.zip?.trim() ? row.zip : "—"}</td>
                           <td className="admin-portal-cell-phone">
                             {(() => {
                               const label = formatPhoneDigits(row.phone);
@@ -888,6 +920,7 @@ export default function AdminPortal() {
                           <td className="admin-portal-cell-issue" title={row.issue ?? "—"}>
                             {row.issue ?? "—"}
                           </td>
+                          <td>{row.login_count != null ? Number(row.login_count) : 0}</td>
                           <td className="admin-portal-cell-summary">
                             {String(row.problem_summary || "").trim() ? (
                               <button
@@ -900,6 +933,16 @@ export default function AdminPortal() {
                             ) : (
                               <span className="admin-portal-muted">—</span>
                             )}
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="admin-portal-btn admin-portal-btn-compact"
+                              onClick={() => void openActivityModal(row)}
+                              disabled={loading}
+                            >
+                              View log
+                            </button>
                           </td>
                           <td className="admin-portal-cell-date">{formatTimestamp(row.created_at)}</td>
                           <td>
@@ -1059,6 +1102,80 @@ export default function AdminPortal() {
                 disabled={modalBusy}
               >
                 {modalBusy ? "Saving…" : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {activityModal ? (
+        <div
+          className="admin-portal-modal-backdrop"
+          role="presentation"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setActivityModal(null);
+          }}
+        >
+          <div
+            className="admin-portal-modal admin-portal-modal--wide"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="admin-activity-title"
+          >
+            <h2 id="admin-activity-title">Navigator activity</h2>
+            <p className="admin-portal-modal-meta">
+              {[activityModal.first_name, activityModal.last_name].filter(Boolean).join(" ").trim() ||
+                activityModal.email}{" "}
+              · {activityModal.email}
+            </p>
+            {activityError ? (
+              <StatusBanner type="error" role="alert" style={{ marginBottom: 12 }}>
+                {activityError}
+              </StatusBanner>
+            ) : null}
+            {activityBusy ? (
+              <StatusBanner type="info">Loading…</StatusBanner>
+            ) : (
+              <div className="admin-portal-table-wrap" style={{ maxHeight: 360, overflow: "auto" }}>
+                <table className="admin-portal-table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Event</th>
+                      <th>Detail</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activityEvents.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="admin-portal-empty-cell">
+                          No events recorded yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      activityEvents.map((ev, idx) => {
+                        const v = String(ev.event_value || "");
+                        const short = v.length > 280 ? `${v.slice(0, 280)}…` : v;
+                        return (
+                          <tr key={`${ev.created_at}-${idx}`}>
+                            <td className="admin-portal-cell-date">{formatTimestamp(ev.created_at)}</td>
+                            <td>{ev.event_type ?? "—"}</td>
+                            <td style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{short || "—"}</td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div className="admin-portal-modal-actions">
+              <button
+                type="button"
+                className="admin-portal-btn admin-portal-btn-primary"
+                onClick={() => setActivityModal(null)}
+              >
+                Close
               </button>
             </div>
           </div>

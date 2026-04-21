@@ -80,6 +80,17 @@ const resources = {
         verifyFailed: "This sign-in link is invalid or has expired. Request a new one.",
         devLinkLabel: "Development only — open this link to sign in:",
         resetDevLinkLabel: "Development only — open this link to reset your password:",
+        authAside: {
+          ariaLabel: "About this portal",
+          kicker: "Chicago Advocate Legal, NFP",
+          headline: "Illinois legal information and referrals",
+          body:
+            "A professional, secure entry point to our resource navigator. We provide general legal information and referrals—not legal advice, and no attorney–client relationship is created.",
+          item1: "Guided intake aligned with your situation and Illinois resources",
+          item2: "Clear referrals and next steps based on your answers",
+          item3: "Optional AI assistant for general court and forms questions",
+          item4: "Privacy-minded tools including Quick Exit when you need to leave fast",
+        },
       },
 
       intake: {
@@ -117,7 +128,7 @@ const resources = {
       privacy: {
         title: "Privacy Notice",
         body:
-          "We collect your name, email, phone number, ZIP code, and the issue area you select to help route you to appropriate resources. We do not share your information with third parties except as required by law or to provide requested services. You may request deletion of your data by contacting the organization listed in the app.",
+          "We collect your name, email, phone number, and the issue area you select to help route you to appropriate resources. We may ask for your ZIP code when you use the navigator to show nearby options. We do not share your information with third parties except as required by law or to provide requested services. You may request deletion of your data by contacting the organization listed in the app.",
         back: "Back",
       },
 
@@ -280,6 +291,8 @@ const resources = {
         placeholder: "Type your message here...",
         placeholderSummary:
           "Briefly describe your situation in your own words (about 2–4 sentences). This helps staff understand your needs.",
+        placeholderTopicAlign:
+          "Tap a button above, or type yes if it is still the same topic, or no if you need a different topic.",
         backTitle: "Go Back",
         restartTitle: "Restart",
         sendTitle: "Send message",
@@ -388,6 +401,8 @@ const resources = {
           restart: "Restart",
           connect: "Connect with Chicago Advocate Legal, NFP",
           continueToLegalResources: "Continue to Legal Resources",
+          summaryTopicSame: "Yes — same topic I selected",
+          summaryTopicChange: "No — I need a different topic",
           topic_child_support: "Child Support",
           topic_education: "Education",
           topic_housing: "Housing",
@@ -429,6 +444,11 @@ const resources = {
             "In a few sentences, what is going on and what kind of help are you looking for? This summary is shared with our staff so they can assist you—not with the public.",
           invalid:
             "Please add a bit more detail (at least 15 characters) so staff can understand your situation.",
+          topicMismatch:
+            "Your notes sound more like {{inferredTopicLabel}} than {{selectedTopicLabel}}. Are you still enquiring about the same topic you selected?",
+          topicMismatchInvalid: "Please tap one of the buttons below to continue.",
+          topicChangePrompt:
+            "No problem — pick the legal issue that best matches what you need help with now.",
         },
 
         zip: {
@@ -545,6 +565,17 @@ const resources = {
         verifyFailed: "Este enlace no es válido o caducó. Solicite uno nuevo.",
         devLinkLabel: "Solo desarrollo — abra este enlace para iniciar sesión:",
         resetDevLinkLabel: "Solo desarrollo — abra este enlace para restablecer su contraseña:",
+        authAside: {
+          ariaLabel: "Acerca de este portal",
+          kicker: "Chicago Advocate Legal, NFP",
+          headline: "Información legal y referencias en Illinois",
+          body:
+            "Un punto de entrada profesional y seguro a nuestro navegador de recursos. Ofrecemos información legal general y referencias—no asesoría legal ni relación abogado–cliente.",
+          item1: "Registro guiado según su situación y recursos en Illinois",
+          item2: "Referencias claras y próximos pasos según sus respuestas",
+          item3: "Asistente de IA opcional para preguntas generales sobre cortes y formularios",
+          item4: "Herramientas pensadas en la privacidad, incluida Salida rápida",
+        },
       },
 
       intake: {
@@ -582,7 +613,7 @@ const resources = {
       privacy: {
         title: "Aviso de privacidad",
         body:
-          "Recopilamos su nombre, correo electrónico, número de teléfono, código postal (ZIP) y el tema legal seleccionado para ayudar a dirigirle a recursos adecuados. No compartimos su información con terceros excepto cuando la ley lo requiera o para brindar los servicios solicitados. Puede solicitar la eliminación de sus datos contactando a la organización indicada en la app.",
+          "Recopilamos su nombre, correo electrónico, número de teléfono y el tema legal seleccionado para ayudar a dirigirle a recursos adecuados. Podemos pedir su código postal (ZIP) cuando use el navegador para mostrar opciones cercanas. No compartimos su información con terceros excepto cuando la ley lo requiera o para brindar los servicios solicitados. Puede solicitar la eliminación de sus datos contactando a la organización indicada en la app.",
         back: "Volver",
       },
 
@@ -745,6 +776,8 @@ const resources = {
         placeholder: "Escriba su mensaje aquí...",
         placeholderSummary:
           "Describa brevemente su situación con sus propias palabras (aprox. 2–4 oraciones). Esto ayuda al personal a entender sus necesidades.",
+        placeholderTopicAlign:
+          "Toque un botón de arriba, o escriba sí si sigue siendo el mismo tema, o no si necesita otro tema.",
         backTitle: "Volver",
         restartTitle: "Reiniciar",
         sendTitle: "Enviar",
@@ -853,6 +886,8 @@ const resources = {
           restart: "Reiniciar",
           connect: "Conectarme con Chicago Advocate Legal, NFP",
           continueToLegalResources: "Continuar a recursos legales",
+          summaryTopicSame: "Sí — el mismo tema que elegí",
+          summaryTopicChange: "No — necesito otro tema",
           topic_child_support: "Manutención infantil",
           topic_education: "Educación",
           topic_housing: "Vivienda",
@@ -894,6 +929,11 @@ const resources = {
             "En unas pocas oraciones, ¿qué está pasando y qué tipo de ayuda busca? Este resumen lo verá nuestro personal para poder ayudarle—no es público.",
           invalid:
             "Por favor agregue un poco más de detalle (al menos 15 caracteres) para que el personal entienda su situación.",
+          topicMismatch:
+            "Sus notas suenan más a {{inferredTopicLabel}} que a {{selectedTopicLabel}}. ¿Sigue siendo el mismo tema sobre el que preguntó?",
+          topicMismatchInvalid: "Por favor use uno de los botones de abajo para continuar.",
+          topicChangePrompt:
+            "De acuerdo — elija el asunto legal que mejor coincida con lo que necesita ahora.",
         },
 
         zip: {

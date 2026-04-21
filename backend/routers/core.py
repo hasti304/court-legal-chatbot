@@ -11,7 +11,12 @@ try:
     )
     from ..services.intake_service import engine
 except ImportError:
-    from services.config_service import REFERRAL_MAP_PATH, TRIAGE_QUESTIONS_PATH, groq_configured  # type: ignore
+    from services.config_service import (  # type: ignore
+        REFERRAL_MAP_PATH,
+        REFERRAL_OFFICE_GEO_PATH,
+        TRIAGE_QUESTIONS_PATH,
+        groq_configured,
+    )
     from services.intake_service import engine  # type: ignore
 
 router = APIRouter()
@@ -42,6 +47,7 @@ def read_root():
             "/admin/login",
             "/admin/intakes",
             "/admin/intakes/{intake_id}",
+            "/admin/intakes/{intake_id}/events",
             "/admin/intakes/{intake_id}/status",
             "/admin/intakes/{intake_id}/email",
             "/admin/intakes.csv",

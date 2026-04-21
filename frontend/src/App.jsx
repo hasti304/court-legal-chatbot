@@ -37,7 +37,11 @@ import { getStoredTheme, persistTheme } from "./utils/themeStorage";
 import TopicResourcesPanel from "./components/TopicResourcesPanel";
 import ReferralMap from "./components/ReferralMap";
 import LegalGlossary from "./components/LegalGlossary";
+import { Button } from "./components/ui/button";
+import { Input } from "./components/ui/input";
+import { Label } from "./components/ui/label";
 import calLogo from "./assets/cal_logo.png";
+import { Eye, EyeOff } from "lucide-react";
 
 import { useTranslation } from "react-i18next";
 import i18n, { setAppLanguage, getNormalizedLanguage } from "./i18n";
@@ -67,10 +71,6 @@ function normalizePhoneDigits(phone) {
 function isValidUSPhone(phone) {
   const digits = normalizePhoneDigits(phone);
   return digits.length === 10;
-}
-
-function isValidZip(zip) {
-  return /^\d{5}$/.test(String(zip || "").trim());
 }
 
 const DEFAULT_FETCH_TIMEOUT_MS = 8000;
@@ -243,6 +243,15 @@ function normalizeFreeTextMessageForStep(message, step) {
     if (/(no|do not qualify|don't qualify)/i.test(raw)) return "no";
   }
 
+  if (currentStep === "summary_topic_confirm") {
+    if (lowered === "summary_topic_same" || lowered === "summary_topic_change") return lowered;
+    if (/(different|another topic|change topic|wrong topic|not the same|other topic)/i.test(lowered)) {
+      return "summary_topic_change";
+    }
+    if (/(^|\b)(yes|yep|yeah|same|still|correct)\b/i.test(lowered)) return "summary_topic_same";
+    return lowered.replace(/\s+/g, "_");
+  }
+
   return raw;
 }
 
@@ -281,7 +290,6 @@ function App() {
   const [intakeEmail, setIntakeEmail] = useState("");
   const [intakePassword, setIntakePassword] = useState("");
   const [intakePhone, setIntakePhone] = useState("");
-  const [intakeZip, setIntakeZip] = useState("");
   const [intakeConsent, setIntakeConsent] = useState(false);
 
   const [intakeError, setIntakeError] = useState("");
@@ -579,8 +587,13 @@ function App() {
     }
   }, [messages, speechEnabled]);
 
-  const LanguagePicker = ({ variant = "light" }) => {
+  const LanguagePicker = ({ variant = "light", labelOnDarkBackground = false }) => {
     const isDark = variant === "dark";
+    const labelColor = labelOnDarkBackground
+      ? "#f0f6fc"
+      : isDark
+        ? "#ffffff"
+        : "#1f2937";
     const style = {
       display: "flex",
       alignItems: "center",
@@ -588,7 +601,7 @@ function App() {
       justifyContent: "center",
       marginTop: isDark ? 0 : "14px",
       marginBottom: isDark ? 0 : "6px",
-      color: isDark ? "white" : "#1f2937",
+      color: labelColor,
       fontWeight: 700,
       fontSize: "0.95rem",
       flexWrap: "wrap",
@@ -675,6 +688,8 @@ function App() {
       restart: "triage.options.restart",
       connect: "triage.options.connect",
       continue_to_legal_resources: "triage.options.continueToLegalResources",
+      summary_topic_same: "triage.options.summaryTopicSame",
+      summary_topic_change: "triage.options.summaryTopicChange",
     };
 
     const key = map[normalized];
@@ -693,6 +708,13 @@ function App() {
 
       if (hydrated.topic && !hydrated.topicLabel) {
         hydrated.topicLabel = t(`triage.options.topic_${hydrated.topic}`);
+      }
+
+      if (hydrated.selectedTopic && !hydrated.selectedTopicLabel) {
+        hydrated.selectedTopicLabel = t(`triage.options.topic_${hydrated.selectedTopic}`);
+      }
+      if (hydrated.inferredTopic && !hydrated.inferredTopicLabel) {
+        hydrated.inferredTopicLabel = t(`triage.options.topic_${hydrated.inferredTopic}`);
       }
 
       return t(msg.response_key, hydrated);
@@ -1207,10 +1229,6 @@ function App() {
       setIntakeError(t("intake.invalidPhone"));
       return;
     }
-    if (!isValidZip(intakeZip)) {
-      setIntakeError(t("intake.invalidZip"));
-      return;
-    }
     if (String(intakePassword || "").trim().length < 8) {
       setIntakeError(t("login.passwordTooShort"));
       return;
@@ -1228,7 +1246,7 @@ function App() {
           email: intakeEmail.trim().toLowerCase(),
           password: intakePassword,
           phone: intakePhone.trim(),
-          zip: intakeZip.trim(),
+          zip: "",
           language: normalizedLang,
           consent: true,
         },
@@ -1275,6 +1293,21 @@ function App() {
         className="app-logo"
       />
     </div>
+  );
+
+  const renderAuthAside = () => (
+    <aside className="auth-split-aside" aria-label={t("login.authAside.ariaLabel")}>
+      <div className="auth-split-aside-brand">{renderHeaderLogo()}</div>
+      <p className="auth-split-aside-kicker">{t("login.authAside.kicker")}</p>
+      <h2 className="auth-split-aside-headline">{t("login.authAside.headline")}</h2>
+      <p className="auth-split-aside-body">{t("login.authAside.body")}</p>
+      <ul className="auth-split-aside-list">
+        <li>{t("login.authAside.item1")}</li>
+        <li>{t("login.authAside.item2")}</li>
+        <li>{t("login.authAside.item3")}</li>
+        <li>{t("login.authAside.item4")}</li>
+      </ul>
+    </aside>
   );
 
   const topicCards = [
@@ -1377,8 +1410,10 @@ function App() {
           <LanguagePicker variant={lpVariant} />
         </div>
 
-        <main className="auth-github-main" id="main-content">
-          <div className="auth-github-logo-wrap">{renderHeaderLogo()}</div>
+        <main className="auth-github-main auth-github-main--split" id="main-content">
+          <div className="auth-split-inner">
+            {renderAuthAside()}
+            <div className="auth-split-form-col">
           <h1 className="auth-github-title">{t("login.heading")}</h1>
           <p className="auth-github-sub">{t("login.lead")}</p>
 
@@ -1404,10 +1439,10 @@ function App() {
               </div>
             ) : null}
 
-            <label className="auth-github-label" htmlFor="auth-signin-email">
+            <Label className="auth-github-label" htmlFor="auth-signin-email">
               {t("login.emailLabel")}
-            </label>
-            <input
+            </Label>
+            <Input
               id="auth-signin-email"
               className="auth-github-input"
               type="email"
@@ -1422,11 +1457,11 @@ function App() {
               }}
               disabled={magicLinkBusy || passwordLoginBusy}
             />
-            <label className="auth-github-label" htmlFor="auth-signin-password">
+            <Label className="auth-github-label" htmlFor="auth-signin-password">
               {t("login.passwordLabel")}
-            </label>
+            </Label>
             <div className="auth-password-wrap">
-              <input
+              <Input
                 id="auth-signin-password"
                 className="auth-github-input auth-github-input--in-password-wrap"
                 type={showLoginPassword ? "text" : "password"}
@@ -1438,15 +1473,17 @@ function App() {
                 }}
                 disabled={magicLinkBusy || passwordLoginBusy}
               />
-              <button
+              <Button
                 type="button"
                 className="auth-password-toggle"
+                size="icon"
                 onClick={() => setShowLoginPassword((s) => !s)}
                 disabled={magicLinkBusy || passwordLoginBusy}
                 aria-label={showLoginPassword ? t("login.hidePassword") : t("login.showPassword")}
+                variant="outline"
               >
-                {showLoginPassword ? t("login.hide") : t("login.show")}
-              </button>
+                {showLoginPassword ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
+              </Button>
             </div>
             {loginPassword ? (
               <p className={`auth-password-strength auth-password-strength--${passwordStrengthKey(loginPassword)}`}>
@@ -1454,14 +1491,15 @@ function App() {
               </p>
             ) : null}
 
-            <button
+            <Button
               type="submit"
               className="auth-github-btn-primary"
               disabled={magicLinkBusy || passwordLoginBusy}
+              size="lg"
             >
               {passwordLoginBusy ? t("login.signingIn") : t("login.passwordLoginButton")}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               className="auth-github-btn-secondary"
               disabled={magicLinkBusy || passwordLoginBusy}
@@ -1472,22 +1510,26 @@ function App() {
                 setForgotDevLink("");
                 setView("forgotPassword");
               }}
+              variant="secondary"
+              size="lg"
             >
               {t("login.forgotPassword")}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               className="auth-github-btn-ghost"
               disabled={magicLinkBusy || passwordLoginBusy}
               onClick={() => sendMagicLinkRequest(magicLinkEmail)}
+              variant="ghost"
+              size="lg"
             >
               {magicLinkBusy ? t("login.sending") : t("login.emailLoginButton")}
-            </button>
+            </Button>
           </form>
 
           <p className="auth-github-foot">
             {t("login.newUserPrompt")}{" "}
-            <button
+            <Button
               type="button"
               className="auth-github-text-link"
               onClick={() => {
@@ -1495,17 +1537,21 @@ function App() {
                 setMagicVerifyError("");
                 setView("intake");
               }}
+              variant="link"
             >
               {t("login.createAccount")}
-            </button>
+            </Button>
           </p>
-          <button
+          <Button
             type="button"
             className="auth-github-text-link auth-github-foot-solo"
             onClick={() => setView("privacy")}
+            variant="link"
           >
             {t("intake.privacyLink")}
-          </button>
+          </Button>
+            </div>
+          </div>
         </main>
 
         <SiteFooter
@@ -1527,8 +1573,10 @@ function App() {
           <LanguagePicker variant={lpVariant} />
         </div>
 
-        <main className="auth-github-main" id="main-content">
-          <div className="auth-github-logo-wrap">{renderHeaderLogo()}</div>
+        <main className="auth-github-main auth-github-main--split" id="main-content">
+          <div className="auth-split-inner">
+            {renderAuthAside()}
+            <div className="auth-split-form-col">
           <h1 className="auth-github-title">{t("login.checkTitle")}</h1>
           <p className="auth-github-sub">
             {t("login.checkBody", { email: magicLinkSentTo || "—" })}
@@ -1544,15 +1592,16 @@ function App() {
           ) : null}
 
           <div className="auth-github-card auth-github-card--plain">
-            <button
+            <Button
               type="button"
               className="auth-github-btn-primary"
               disabled={magicLinkBusy}
               onClick={() => sendMagicLinkRequest(magicLinkSentTo)}
+              size="lg"
             >
               {magicLinkBusy ? t("login.sending") : t("login.resend")}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               className="auth-github-btn-secondary"
               onClick={() => {
@@ -1560,18 +1609,23 @@ function App() {
                 setMagicDevLink("");
                 setView("login");
               }}
+              variant="secondary"
+              size="lg"
             >
               {t("login.backToSignIn")}
-            </button>
+            </Button>
           </div>
 
-          <button
+          <Button
             type="button"
             className="auth-github-text-link auth-github-foot-solo"
             onClick={() => setView("privacy")}
+            variant="link"
           >
             {t("intake.privacyLink")}
-          </button>
+          </Button>
+            </div>
+          </div>
         </main>
 
         <SiteFooter
@@ -1592,8 +1646,10 @@ function App() {
           <ThemeToggle />
           <LanguagePicker variant={lpVariant} />
         </div>
-        <main className="auth-github-main" id="main-content">
-          <div className="auth-github-logo-wrap">{renderHeaderLogo()}</div>
+        <main className="auth-github-main auth-github-main--split" id="main-content">
+          <div className="auth-split-inner">
+            {renderAuthAside()}
+            <div className="auth-split-form-col">
           <h1 className="auth-github-title">{t("login.forgotTitle")}</h1>
           <p className="auth-github-sub">{t("login.forgotBody")}</p>
           <form className="auth-github-card" onSubmit={handleForgotPasswordSubmit}>
@@ -1615,10 +1671,10 @@ function App() {
                 </a>
               </div>
             ) : null}
-            <label className="auth-github-label" htmlFor="auth-forgot-email">
+            <Label className="auth-github-label" htmlFor="auth-forgot-email">
               {t("login.emailLabel")}
-            </label>
-            <input
+            </Label>
+            <Input
               id="auth-forgot-email"
               className="auth-github-input"
               type="email"
@@ -1630,18 +1686,22 @@ function App() {
               }}
               disabled={forgotBusy}
             />
-            <button type="submit" className="auth-github-btn-primary" disabled={forgotBusy}>
+            <Button type="submit" className="auth-github-btn-primary" disabled={forgotBusy} size="lg">
               {forgotBusy ? t("login.sending") : t("login.sendReset")}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               className="auth-github-btn-secondary"
               onClick={() => setView("login")}
               disabled={forgotBusy}
+              variant="secondary"
+              size="lg"
             >
               {t("login.backToSignIn")}
-            </button>
+            </Button>
           </form>
+            </div>
+          </div>
         </main>
         <SiteFooter
           className={footerAuthClass}
@@ -1661,8 +1721,10 @@ function App() {
           <ThemeToggle />
           <LanguagePicker variant={lpVariant} />
         </div>
-        <main className="auth-github-main" id="main-content">
-          <div className="auth-github-logo-wrap">{renderHeaderLogo()}</div>
+        <main className="auth-github-main auth-github-main--split" id="main-content">
+          <div className="auth-split-inner">
+            {renderAuthAside()}
+            <div className="auth-split-form-col">
           <h1 className="auth-github-title">{t("login.resetTitle")}</h1>
           <p className="auth-github-sub">{t("login.resetBody")}</p>
           <form className="auth-github-card" onSubmit={handleResetPasswordSubmit}>
@@ -1671,11 +1733,11 @@ function App() {
                 {resetError}
               </div>
             ) : null}
-            <label className="auth-github-label" htmlFor="auth-reset-password-1">
+            <Label className="auth-github-label" htmlFor="auth-reset-password-1">
               {t("login.newPassword")}
-            </label>
+            </Label>
             <div className="auth-password-wrap">
-              <input
+              <Input
                 id="auth-reset-password-1"
                 className="auth-github-input auth-github-input--in-password-wrap"
                 type={showResetPassword1 ? "text" : "password"}
@@ -1687,26 +1749,28 @@ function App() {
                 }}
                 disabled={resetBusy}
               />
-              <button
+              <Button
                 type="button"
                 className="auth-password-toggle"
+                size="icon"
                 onClick={() => setShowResetPassword1((s) => !s)}
                 disabled={resetBusy}
                 aria-label={showResetPassword1 ? t("login.hidePassword") : t("login.showPassword")}
+                variant="outline"
               >
-                {showResetPassword1 ? t("login.hide") : t("login.show")}
-              </button>
+                {showResetPassword1 ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
+              </Button>
             </div>
             {resetPassword1 ? (
               <p className={`auth-password-strength auth-password-strength--${passwordStrengthKey(resetPassword1)}`}>
                 {t(`login.passwordStrength.${passwordStrengthKey(resetPassword1)}`)}
               </p>
             ) : null}
-            <label className="auth-github-label" htmlFor="auth-reset-password-2">
+            <Label className="auth-github-label" htmlFor="auth-reset-password-2">
               {t("login.confirmPassword")}
-            </label>
+            </Label>
             <div className="auth-password-wrap">
-              <input
+              <Input
                 id="auth-reset-password-2"
                 className="auth-github-input auth-github-input--in-password-wrap"
                 type={showResetPassword2 ? "text" : "password"}
@@ -1718,28 +1782,34 @@ function App() {
                 }}
                 disabled={resetBusy}
               />
-              <button
+              <Button
                 type="button"
                 className="auth-password-toggle"
+                size="icon"
                 onClick={() => setShowResetPassword2((s) => !s)}
                 disabled={resetBusy}
                 aria-label={showResetPassword2 ? t("login.hidePassword") : t("login.showPassword")}
+                variant="outline"
               >
-                {showResetPassword2 ? t("login.hide") : t("login.show")}
-              </button>
+                {showResetPassword2 ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
+              </Button>
             </div>
-            <button type="submit" className="auth-github-btn-primary" disabled={resetBusy}>
+            <Button type="submit" className="auth-github-btn-primary" disabled={resetBusy} size="lg">
               {resetBusy ? t("login.savingPassword") : t("login.resetPasswordButton")}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               className="auth-github-btn-secondary"
               onClick={() => setView("login")}
               disabled={resetBusy}
+              variant="secondary"
+              size="lg"
             >
               {t("login.backToSignIn")}
-            </button>
+            </Button>
           </form>
+            </div>
+          </div>
         </main>
         <SiteFooter
           className={footerAuthClass}
@@ -1762,8 +1832,10 @@ function App() {
           <LanguagePicker variant={lpVariant} />
         </div>
 
-        <main className="auth-github-main" id="main-content">
-          <div className="auth-github-logo-wrap">{renderHeaderLogo()}</div>
+        <main className="auth-github-main auth-github-main--split" id="main-content">
+          <div className="auth-split-inner">
+            {renderAuthAside()}
+            <div className="auth-split-form-col">
           <h1 className="auth-github-title">{t("login.welcomeBackTitle")}</h1>
           <p className="auth-github-sub">{t("login.welcomeBackBody")}</p>
 
@@ -1812,6 +1884,8 @@ function App() {
           >
             {t("intake.privacyLink")}
           </button>
+            </div>
+          </div>
         </main>
 
         <SiteFooter
@@ -1833,8 +1907,10 @@ function App() {
           <LanguagePicker variant={lpVariant} />
         </div>
 
-        <main className="auth-github-main" id="main-content">
-          <div className="auth-github-logo-wrap">{renderHeaderLogo()}</div>
+        <main className="auth-github-main auth-github-main--split" id="main-content">
+          <div className="auth-split-inner">
+            {renderAuthAside()}
+            <div className="auth-split-form-col auth-split-form-col--intake">
           <h1 className="auth-github-title">{t("login.createAccountTitle")}</h1>
           <p className="auth-github-sub">{t("intake.subtitle")}</p>
 
@@ -1905,12 +1981,12 @@ function App() {
                 />
                 <button
                   type="button"
-                  className="auth-password-toggle"
+                  className="auth-password-toggle auth-password-toggle--icon"
                   onClick={() => setShowIntakePassword((s) => !s)}
                   disabled={loading}
                   aria-label={showIntakePassword ? t("login.hidePassword") : t("login.showPassword")}
                 >
-                  {showIntakePassword ? t("login.hide") : t("login.show")}
+                  {showIntakePassword ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
                 </button>
               </div>
               {intakePassword ? (
@@ -1918,14 +1994,6 @@ function App() {
                   {t(`login.passwordStrength.${passwordStrengthKey(intakePassword)}`)}
                 </p>
               ) : null}
-              <input
-                className="auth-github-input"
-                type="text"
-                value={intakeZip}
-                onChange={(e) => setIntakeZip(e.target.value)}
-                placeholder={t("intake.zip")}
-                disabled={loading}
-              />
 
               <label className="consent-label auth-github-consent">
                 <input
@@ -1961,6 +2029,8 @@ function App() {
               </button>
             </div>
           </form>
+            </div>
+          </div>
         </main>
 
         <SiteFooter
@@ -2180,7 +2250,7 @@ function App() {
               {largeText ? t("accessibility.largeTextOff") : t("accessibility.largeText")}
             </button>
             <ThemeToggle />
-            <LanguagePicker variant={lpVariant} />
+            <LanguagePicker variant={lpVariant} labelOnDarkBackground />
           </div>
         </div>
       </div>
@@ -2535,7 +2605,9 @@ function App() {
               placeholder={
                 conversationState?.step === "problem_summary"
                   ? t("chat.placeholderSummary")
-                  : t("chat.placeholder")
+                  : conversationState?.step === "summary_topic_confirm"
+                    ? t("chat.placeholderTopicAlign")
+                    : t("chat.placeholder")
               }
               disabled={loading}
               className="chat-input"

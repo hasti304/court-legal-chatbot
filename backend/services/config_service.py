@@ -33,6 +33,12 @@ MAGIC_LINK_DEV_RETURN_TOKEN = os.getenv("MAGIC_LINK_DEV_RETURN_TOKEN", "").strip
     "true",
     "yes",
 )
+RESET_PASSWORD_DEV_RETURN_TOKEN = os.getenv("RESET_PASSWORD_DEV_RETURN_TOKEN", "").strip().lower() in (
+    "1",
+    "true",
+    "yes",
+)
+RESET_PASSWORD_TTL_MINUTES = int(os.getenv("RESET_PASSWORD_TTL_MINUTES", "30") or "30")
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
 RESEND_FROM = os.getenv("RESEND_FROM", "CAL Login <onboarding@resend.dev>").strip()

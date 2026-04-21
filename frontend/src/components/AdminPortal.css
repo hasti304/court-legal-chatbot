@@ -504,6 +504,10 @@
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
 }
 
+.admin-portal-modal--wide {
+  width: min(100%, 720px);
+}
+
 .admin-portal-modal h2 {
   margin: 0 0 10px;
   font-size: 1.1rem;

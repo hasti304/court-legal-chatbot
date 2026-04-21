@@ -198,6 +198,13 @@ def verify_magic_link(payload, db: Session) -> dict:
         db.add(row)
         db.commit()
 
+        try:
+            from ..services.intake_service import record_navigator_sign_in
+        except ImportError:
+            from services.intake_service import record_navigator_sign_in  # type: ignore
+
+        record_navigator_sign_in(intake.id, db)
+
         return {"intake_id": intake.id, "email": intake.email}
     except HTTPException:
         raise

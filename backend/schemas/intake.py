@@ -10,7 +10,7 @@ class IntakeStartRequest(BaseModel):
     last_name: str = Field(min_length=1, max_length=100)
     email: str = Field(min_length=5, max_length=255)
     phone: str = Field(min_length=10, max_length=30)
-    zip: str = Field(min_length=5, max_length=5, pattern=r"^\d{5}$")
+    zip: str = Field(default="", max_length=5)
     language: Optional[str] = "en"
     consent: bool
     password: Optional[str] = Field(default=None, min_length=8, max_length=255)
@@ -37,6 +37,16 @@ class IntakeStartRequest(BaseModel):
         cleaned = (value or "").strip()
         if len(re.sub(r"[^0-9]", "", cleaned)) < 10:
             raise ValueError("Valid phone is required")
+        return cleaned
+
+    @field_validator("zip")
+    @classmethod
+    def validate_zip_optional(cls, value: str) -> str:
+        cleaned = (value or "").strip()
+        if not cleaned:
+            return ""
+        if not re.fullmatch(r"\d{5}", cleaned):
+            raise ValueError("ZIP must be exactly 5 digits")
         return cleaned
 
     @field_validator("password")

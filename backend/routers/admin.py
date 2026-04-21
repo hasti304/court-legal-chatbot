@@ -15,6 +15,7 @@ try:
         admin_stats,
         basic_analytics,
         export_intakes_csv,
+        list_intake_events_for_admin,
         list_intakes_for_admin,
         send_intake_staff_email,
         set_intake_admin_status,
@@ -30,6 +31,7 @@ except ImportError:
         admin_stats,
         basic_analytics,
         export_intakes_csv,
+        list_intake_events_for_admin,
         list_intakes_for_admin,
         send_intake_staff_email,
         set_intake_admin_status,
@@ -73,6 +75,15 @@ def admin_login_endpoint(body: AdminLoginBody):
 @router.get("/admin/intakes")
 def admin_intakes_list_endpoint(request: Request, db: Session = Depends(get_db)):
     return list_intakes_for_admin(request=request, db=db)
+
+
+@router.get("/admin/intakes/{intake_id}/events")
+def admin_intake_events_endpoint(
+    intake_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    return list_intake_events_for_admin(request=request, intake_id=intake_id, db=db)
 
 
 @router.post("/admin/intakes")
