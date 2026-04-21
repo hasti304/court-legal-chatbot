@@ -5,6 +5,8 @@ import path from "node:path";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
+  const deployTarget = String(env.VITE_DEPLOY_TARGET || "").toLowerCase();
+  const appBase = deployTarget === "gh-pages" ? "/court-legal-chatbot/" : "/";
   const apiBase = String(env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
   let apiOrigin = "";
   if (apiBase) {
@@ -21,8 +23,8 @@ export default defineConfig(({ mode }) => {
   );
 
   return {
-    // GitHub Pages project site: app is served from /court-legal-chatbot/ (see package.json "homepage").
-    base: mode === "production" ? "/court-legal-chatbot/" : "/",
+    // Render and most hosts serve at "/". For GitHub Pages, set VITE_DEPLOY_TARGET=gh-pages.
+    base: appBase,
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
