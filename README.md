@@ -12,7 +12,7 @@ Built with a production-style architecture (`React + FastAPI + SQLAlchemy`) and 
 
 ---
 
-## Live Demo (Recruiter Quick Check)
+## Live Demo (Quick Check)
 
 - **Try the app:** [court-legal-chatbot-frontend.onrender.com](https://court-legal-chatbot-frontend.onrender.com)
 - **API endpoint:** [court-legal-chatbot-1.onrender.com](https://court-legal-chatbot-1.onrender.com)
