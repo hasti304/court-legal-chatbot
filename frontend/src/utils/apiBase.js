@@ -29,5 +29,7 @@ export function getApiBaseUrl() {
     return normalize(raw);
   }
   if (import.meta.env.DEV) return "";
-  return normalize("https://court-legal-chatbot-1.onrender.com");
+  const fallback = "https://court-legal-chatbot-1.onrender.com";
+  // If anything still points at the old Render hostname, normalize it (defense in depth).
+  return normalize(fallback);
 }
