@@ -844,7 +844,15 @@ function App() {
       if (!res.ok) {
         throw new Error(data?.detail ? String(data.detail) : t("login.requestFailed"));
       }
-      setForgotNotice(t("login.forgotNotice"));
+      if (data && data.email_sent === false) {
+        const hint =
+          typeof data.delivery_hint === "string" && data.delivery_hint.trim()
+            ? ` ${data.delivery_hint.trim()}`
+            : "";
+        setForgotError(`Reset email could not be delivered.${hint}`);
+      } else {
+        setForgotNotice(t("login.forgotNotice"));
+      }
       setForgotDevLink(typeof data?.dev_reset_link === "string" ? data.dev_reset_link : "");
     } catch (err) {
       setForgotError(
@@ -945,6 +953,13 @@ function App() {
         }
         setMagicLinkError(msg);
         return false;
+      }
+      if (data && data.email_sent === false) {
+        const hint =
+          typeof data.delivery_hint === "string" && data.delivery_hint.trim()
+            ? ` ${data.delivery_hint.trim()}`
+            : "";
+        setMagicLinkError(`Sign-in email could not be delivered.${hint}`);
       }
       setMagicLinkSentTo(email);
       setMagicDevLink(typeof data?.dev_magic_link === "string" ? data.dev_magic_link : "");

@@ -19,6 +19,7 @@ try:
     )
     from .magic_link_service import find_intake_for_email, hash_token
     from .transactional_email import send_transactional_email
+    from .transactional_email import email_provider_configured, email_provider_hint
 except ImportError:
     from models.intake import Intake  # type: ignore
     from models.password_reset import PasswordResetToken  # type: ignore
@@ -29,6 +30,7 @@ except ImportError:
     )
     from services.magic_link_service import find_intake_for_email, hash_token  # type: ignore
     from services.transactional_email import send_transactional_email  # type: ignore
+    from services.transactional_email import email_provider_configured, email_provider_hint  # type: ignore
 
 
 def utc_now() -> datetime:
@@ -95,7 +97,7 @@ def request_password_reset(payload, db: Session) -> dict:
     email = str(payload.email).strip().lower()
     intake = find_intake_for_email(db, email)
     if not intake:
-        return {"status": "sent"}
+        return {"status": "sent", "email_sent": True}
 
     plain = secrets.token_urlsafe(32)
     token_hash = hash_token(plain)
@@ -135,7 +137,14 @@ def request_password_reset(payload, db: Session) -> dict:
     if not sent:
         print(f"Password reset link for {email}: {reset_url}")
 
-    result: dict = {"status": "sent"}
+    result: dict = {"status": "sent", "email_sent": bool(sent)}
+    if not sent:
+        if not email_provider_configured():
+            result["delivery_hint"] = email_provider_hint()
+        else:
+            result["delivery_hint"] = (
+                "Email provider is configured, but sending failed. Check backend logs for provider errors."
+            )
     if RESET_PASSWORD_DEV_RETURN_TOKEN:
         result["dev_reset_link"] = reset_url
     return result

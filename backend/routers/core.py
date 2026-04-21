@@ -40,6 +40,7 @@ def read_root():
             "/auth/password/login",
             "/auth/password/forgot",
             "/auth/password/reset",
+            "/auth/config-status",
             "/documents/email",
             "/resources",
             "/resources/{resource_id}",

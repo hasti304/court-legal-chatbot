@@ -32,6 +32,18 @@ except ImportError:
     )
 
 
+def email_provider_configured() -> bool:
+    return bool(RESEND_API_KEY) or bool(SMTP_HOST and SMTP_FROM)
+
+
+def email_provider_hint() -> str:
+    if RESEND_API_KEY:
+        return "Resend API is configured."
+    if SMTP_HOST and SMTP_FROM:
+        return "SMTP is configured."
+    return "No email provider configured. Set RESEND_API_KEY or SMTP_HOST + SMTP_FROM."
+
+
 def send_transactional_email(
     to_email: str,
     subject: str,

@@ -27,6 +27,7 @@ try:
         SMTP_PORT,
         SMTP_USER,
     )
+    from .transactional_email import email_provider_configured, email_provider_hint
 except ImportError:
     from models.intake import Intake  # type: ignore
     from models.magic_link import MagicLinkToken  # type: ignore
@@ -42,6 +43,7 @@ except ImportError:
         SMTP_PORT,
         SMTP_USER,
     )
+    from services.transactional_email import email_provider_configured, email_provider_hint  # type: ignore
 
 
 def utc_now() -> datetime:
@@ -134,7 +136,8 @@ def request_magic_link(payload, db: Session) -> dict:
     email = str(payload.email).strip().lower()
     intake = find_intake_for_email(db, email)
     if not intake:
-        return {"status": "sent"}
+        # Keep anti-enumeration behavior while still returning a generic delivery status.
+        return {"status": "sent", "email_sent": True}
 
     plain = secrets.token_urlsafe(32)
     token_hash = hash_token(plain)
@@ -160,7 +163,14 @@ def request_magic_link(payload, db: Session) -> dict:
     if not sent:
         print(f"Magic link for {email} (configure RESEND_API_KEY or SMTP): {magic_url}")
 
-    result: dict = {"status": "sent"}
+    result: dict = {"status": "sent", "email_sent": bool(sent)}
+    if not sent:
+        if not email_provider_configured():
+            result["delivery_hint"] = email_provider_hint()
+        else:
+            result["delivery_hint"] = (
+                "Email provider is configured, but sending failed. Check backend logs for provider errors."
+            )
     if MAGIC_LINK_DEV_RETURN_TOKEN:
         result["dev_magic_link"] = magic_url
     return result
