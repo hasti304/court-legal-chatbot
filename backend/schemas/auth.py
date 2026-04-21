@@ -20,6 +20,8 @@ class MagicLinkRequestResponse(BaseModel):
     """Same core shape to avoid email enumeration; optional dev-only field."""
 
     status: str = "sent"
+    email_sent: bool = True
+    delivery_hint: Optional[str] = None
     dev_magic_link: Optional[str] = None
 
 
@@ -66,6 +68,8 @@ class PasswordForgotBody(BaseModel):
 
 class PasswordForgotResponse(BaseModel):
     status: str = "sent"
+    email_sent: bool = True
+    delivery_hint: Optional[str] = None
     dev_reset_link: Optional[str] = None
 
 

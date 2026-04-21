@@ -10,17 +10,17 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/cal_logo.png",
+      "src": "cal_logo.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/cal_logo.png",
+      "src": "cal_logo.png",
       "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "src": "/cal_logo.png",
+      "src": "cal_logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

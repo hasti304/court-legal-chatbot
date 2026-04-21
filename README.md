@@ -4,155 +4,158 @@
 ![Deployment](https://img.shields.io/badge/Deploy-Render-8b5cf6)
 
 # CAL Legal Chatbot
-### AI-Powered Legal Triage Platform
 
-An end-to-end legal intake and guidance platform that helps users describe legal problems in plain language, triages urgency, and routes them to relevant legal resources.
+AI-assisted legal intake and triage platform that helps users describe legal issues in plain language, detect urgency, and find relevant legal resources.
 
-Built with a production-style architecture (`React + FastAPI + SQLAlchemy`) and focused on practical access-to-justice outcomes.
+This project is built as a production-style full-stack system (`React + FastAPI + SQLAlchemy`) with an emphasis on access to justice, usability, and safety boundaries.
 
----
+## Live Links
 
-## Live Demo (Recruiter Quick Check)
+- App: [court-legal-chatbot-frontend.onrender.com](https://court-legal-chatbot-frontend.onrender.com)
+- API: [court-legal-chatbot-1.onrender.com](https://court-legal-chatbot-1.onrender.com)
+- Repository: [github.com/hasti304/court-legal-chatbot](https://github.com/hasti304/court-legal-chatbot)
 
-- **Try the app:** [court-legal-chatbot-frontend.onrender.com](https://court-legal-chatbot-frontend.onrender.com)
-- **API endpoint:** [court-legal-chatbot-1.onrender.com](https://court-legal-chatbot-1.onrender.com)
-- **Source code:** [github.com/hasti304/court-legal-chatbot](https://github.com/hasti304/court-legal-chatbot)
+Render free-tier services may take a few seconds to wake up on first request.
 
-> Note: Render free instances may take a few seconds to wake up on first request.
+## Key Capabilities
 
----
+- Guided legal triage flow across multiple issue categories
+- AI-assisted issue classification from user free-text input
+- Urgency-aware branching (`Yes / No / I don't know`) for safer routing
+- Resource matching with contextual legal organization referrals
+- Authentication flows (magic link + admin JWT patterns)
+- Document and admin endpoints for operational workflows
+- Responsive, accessibility-oriented user experience
 
-## Why This Project Stands Out
+## Architecture Overview
 
-- Solves a real public-impact problem: legal support is often hard to access and navigate
-- Uses AI for meaningful triage, not just generic chat responses
-- Balances usability with safety through legal disclaimers and emergency-aware flow
-- Demonstrates full-stack delivery: UI, API design, persistence, auth, and deployment
-- Includes admin and document workflows, showing product depth beyond an MVP chatbot
-
----
-
-## Core Features
-
-- **Guided Legal Triage:** Structured intake flow across multiple legal categories
-- **AI Issue Detection:** Free-text input is classified into actionable legal issue types
-- **Urgency Handling:** Emergency-aware branching (`Yes / No / I don't know`)
-- **Resource Matching:** Curated legal organizations with contact details and context
-- **Secure Access Patterns:** Authentication and magic-link email support
-- **Admin Capabilities:** Admin-facing workflows for operational visibility
-- **Document Support:** Endpoints and schema design for document-related user flows
-- **Accessibility-First UX:** Responsive interface with read-aloud support
-
----
+1. User submits legal concern through guided prompts or free text
+2. Backend intake and triage services evaluate issue type and urgency
+3. AI layer assists with intent understanding and category mapping
+4. API returns tailored legal resources and recommended next steps
+5. User can continue, restart, or follow referral actions
 
 ## Tech Stack
 
 ### Frontend
+
 - React 18 + Vite
 - Chakra UI + Emotion
 - i18next (internationalization)
-- jsPDF (document generation)
-- Leaflet / React-Leaflet (location/map-based UI capabilities)
+- jsPDF
+- Leaflet / React-Leaflet
 
 ### Backend
+
 - FastAPI + Uvicorn
 - Pydantic
 - SQLAlchemy
 - PostgreSQL support (`psycopg2-binary`)
-- JWT authentication + bcrypt
-- Multipart handling + HTTP integrations
+- JWT auth + bcrypt
+- Multipart + HTTP integrations
 
-### AI / Integrations
-- Groq API integration for intent understanding and triage assistance
-- Transactional email pipeline for magic-link authentication flows
+### AI and Integrations
 
-### Deployment
-- Render-hosted services
-- Frontend static build + hosted API
+- Groq API for triage support and intent understanding
+- Email pipeline for magic-link authentication flows
 
----
+## Repository Structure
 
-## System Design Snapshot
-
-1. User enters legal concern via guided prompts or plain text
-2. Backend triage service evaluates issue type and urgency
-3. AI layer assists with intent detection and category mapping
-4. API returns tailored legal resource recommendations
-5. User can continue, restart flow, or move to next steps safely
-
----
+- `frontend/`: React application
+- `backend/`: FastAPI application, services, routers, and data
+- `docs/`: project documentation and notes
+- `models/`: model/data artifacts
+- `scripts/`: helper scripts
 
 ## Local Development
 
-### 1) Clone Repository
+### Prerequisites
+
+- Python 3.10+
+- Node.js 18+
+- npm
+
+### 1) Clone
+
 ```bash
 git clone https://github.com/hasti304/court-legal-chatbot.git
 cd court-legal-chatbot
 ```
 
-### 2) Run Backend (FastAPI)
+### 2) Backend Setup
+
 ```bash
 cd backend
 python -m venv venv
 ```
 
 Windows:
+
 ```bash
 venv\Scripts\activate
 ```
 
-Mac/Linux:
+macOS/Linux:
+
 ```bash
 source venv/bin/activate
 ```
 
-Install dependencies and start server:
+Install dependencies and run API:
+
 ```bash
 pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-Backend default: `http://127.0.0.1:8000`
+Backend runs at `http://127.0.0.1:8000` by default.
 
-### 3) Run Frontend (React)
+### 3) Frontend Setup
+
+In a new terminal:
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Frontend default: `http://localhost:5173`
+Frontend runs at `http://localhost:5173` by default.
 
----
+## Environment Variables (Backend)
 
-## Product & Safety Principles
+Set these in `backend/.env` (or your host environment):
 
-- Privacy-first interaction design
-- Clear legal-information-only boundaries
-- No claim of attorney-client relationship
-- Built to reduce friction for users unfamiliar with legal terminology
+- `DATABASE_URL`
+- `GROQ_API_KEY`
+- `GROQ_MODEL` (optional override)
+- `ADMIN_EMAIL`
+- `ADMIN_JWT_SECRET`
+- `ADMIN_EXPORT_KEY` (legacy admin key flow)
+- `FRONTEND_BASE_URL`
+- `MAGIC_LINK_TTL_MINUTES`
+- `MAGIC_LINK_DEV_RETURN_TOKEN` (local/dev only)
+- `RESET_PASSWORD_DEV_RETURN_TOKEN` (local/dev only)
+- `RESEND_API_KEY` and `RESEND_FROM` (recommended email path)
+- or SMTP fallback: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`
 
----
+If outbound email is not configured, magic-link URLs are printed in backend logs for local testing.
 
-## Legal Disclaimer
+## Deployment
 
-This project provides general legal information only and is **not** legal advice.  
-It does not replace a licensed attorney.
+The project is configured for Render-hosted deployment with separate frontend and backend services.
 
-If someone is facing an emergency, legal deadline, or case-specific legal risk, they should contact a qualified legal professional immediately.
+- Frontend: static build and hosting
+- Backend: FastAPI API service
 
----
+## Safety and Legal Boundary
 
-## Roadmap
+This software provides general legal information and triage support only. It is not legal advice and does not create an attorney-client relationship.
 
-- Stronger case-type classification and confidence scoring
-- Expanded legal resource coverage beyond current regions
-- Improved analytics for triage outcomes and product quality
-- Enhanced accessibility and multilingual support
-
----
+Users with urgent legal deadlines, emergencies, or case-specific risk should contact a qualified legal professional immediately.
 
 ## Author
 
-**Hasti P Panchal**  
-Focused on building practical, high-impact software at the intersection of AI, accessibility, and public-interest technology.
+**Hasti P Panchal**
+
+Building practical software at the intersection of AI, accessibility, and public-interest technology.

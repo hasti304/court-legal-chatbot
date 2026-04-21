@@ -21,6 +21,8 @@ try:
         request_password_reset,
         reset_password,
     )
+    from ..services.admin_auth_service import admin_login_configured
+    from ..services.transactional_email import email_provider_configured, email_provider_hint
 except ImportError:
     from database import get_db  # type: ignore
     from schemas.auth import (  # type: ignore
@@ -41,6 +43,8 @@ except ImportError:
         request_password_reset,
         reset_password,
     )
+    from services.admin_auth_service import admin_login_configured  # type: ignore
+    from services.transactional_email import email_provider_configured, email_provider_hint  # type: ignore
 
 router = APIRouter()
 
@@ -68,3 +72,12 @@ def password_forgot(payload: PasswordForgotBody, db: Session = Depends(get_db)):
 @router.post("/auth/password/reset", response_model=PasswordResetResponse)
 def password_reset(payload: PasswordResetBody, db: Session = Depends(get_db)):
     return reset_password(payload=payload, db=db)
+
+
+@router.get("/auth/config-status")
+def auth_config_status():
+    return {
+        "admin_login_configured": bool(admin_login_configured()),
+        "email_provider_configured": bool(email_provider_configured()),
+        "email_provider_hint": email_provider_hint(),
+    }
