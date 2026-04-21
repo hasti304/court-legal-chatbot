@@ -14,6 +14,8 @@ venv/
 # Env files
 .env
 .env.*
+# Allow committed Vite mode file for GitHub Pages builds (no secrets).
+!.env.gh-pages
 
 # =========================
 # Node / Frontend
