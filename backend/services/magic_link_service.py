@@ -19,6 +19,7 @@ try:
         FRONTEND_BASE_URL,
         MAGIC_LINK_DEV_RETURN_TOKEN,
         MAGIC_LINK_TTL_MINUTES,
+        dev_auth_links_in_response_allowed,
         RESEND_API_KEY,
         RESEND_FROM,
         SMTP_FROM,
@@ -35,6 +36,7 @@ except ImportError:
         FRONTEND_BASE_URL,
         MAGIC_LINK_DEV_RETURN_TOKEN,
         MAGIC_LINK_TTL_MINUTES,
+        dev_auth_links_in_response_allowed,
         RESEND_API_KEY,
         RESEND_FROM,
         SMTP_FROM,
@@ -171,7 +173,7 @@ def request_magic_link(payload, db: Session) -> dict:
             result["delivery_hint"] = (
                 "Email provider is configured, but sending failed. Check backend logs for provider errors."
             )
-    if MAGIC_LINK_DEV_RETURN_TOKEN:
+    if MAGIC_LINK_DEV_RETURN_TOKEN and dev_auth_links_in_response_allowed():
         result["dev_magic_link"] = magic_url
     return result
 

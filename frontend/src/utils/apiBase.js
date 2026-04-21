@@ -29,7 +29,7 @@ export function getApiBaseUrl() {
   if (typeof window !== "undefined" && import.meta.env.PROD) {
     const host = window.location.hostname || "";
     const path = window.location.pathname || "";
-    if (host.endsWith(".github.io") && path.includes("/court-legal-chatbot")) {
+    if (host.endsWith(".github.io") && /court-legal-chatbot/i.test(path)) {
       return fixPinnedLegacyHost(CANON_PUBLIC_API);
     }
   }
