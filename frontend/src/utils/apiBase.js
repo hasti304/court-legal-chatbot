@@ -31,8 +31,8 @@ export function getApiBaseUrl() {
     }
   };
 
-  // GitHub Pages for this repo: always use the live API (do not rely only on import.meta.env.PROD).
-  if (typeof window !== "undefined" && !import.meta.env.DEV) {
+   // GitHub Pages for this repo: always use the live API (do not rely only on import.meta.env.PROD).
+   if (typeof window !== "undefined" && !import.meta.env.DEV) {
     const host = window.location.hostname || "";
     const path = window.location.pathname || "";
     if (host.endsWith(".github.io") && /court-legal-chatbot/i.test(path)) {
