@@ -10,6 +10,12 @@ function fixPinnedLegacyHost(url) {
   return s.replace(/\/+$/, "");
 }
 
+/** Use on every absolute request URL before fetch() (cached bundles / stale env). */
+export function rewriteLegacyRenderFetchUrl(url) {
+  if (typeof url !== "string") return url;
+  return fixPinnedLegacyHost(url);
+}
+
 export function getApiBaseUrl() {
   const normalize = (value) => {
     const input = String(value || "").trim();
@@ -25,8 +31,8 @@ export function getApiBaseUrl() {
     }
   };
 
-  // GitHub Pages for this repo: always use the live API (survives old SW / wrong baked VITE_API_BASE_URL).
-  if (typeof window !== "undefined" && import.meta.env.PROD) {
+  // GitHub Pages for this repo: always use the live API (do not rely only on import.meta.env.PROD).
+  if (typeof window !== "undefined" && !import.meta.env.DEV) {
     const host = window.location.hostname || "";
     const path = window.location.pathname || "";
     if (host.endsWith(".github.io") && /court-legal-chatbot/i.test(path)) {

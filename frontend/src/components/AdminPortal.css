@@ -223,6 +223,44 @@
   box-shadow: 0 0 0 3px rgba(47, 109, 182, 0.24);
 }
 
+.admin-portal-password-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.admin-portal-input--with-toggle {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-portal-password-toggle {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-height: 42px;
+  box-sizing: border-box;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid var(--admin-border-dark);
+  background: #0f1d2f;
+  color: #c9d1d9;
+  cursor: pointer;
+}
+
+.admin-portal-password-toggle:hover {
+  border-color: #5c93d0;
+  color: #e6edf3;
+}
+
+.admin-portal-password-toggle:focus-visible {
+  outline: none;
+  border-color: #5c93d0;
+  box-shadow: 0 0 0 3px rgba(47, 109, 182, 0.24);
+}
+
 .admin-portal-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -793,6 +831,17 @@
 .admin-portal-page--light .admin-portal-modal select {
   background: #fff;
   border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.admin-portal-page--light .admin-portal-password-toggle {
+  background: #fff;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.admin-portal-page--light .admin-portal-password-toggle:hover {
+  border-color: #94a3b8;
   color: #0f172a;
 }
 

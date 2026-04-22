@@ -3,8 +3,6 @@ import StatusBanner from "./StatusBanner";
 import "./AdminSubmissionsDashboard.css";
 import { getApiBaseUrl } from "../utils/apiBase";
 
-const API_BASE = getApiBaseUrl();
-
 const ADMIN_KEY_STORAGE = "cal_admin_key_v1";
 
 function formatTimestamp(iso) {
@@ -23,7 +21,10 @@ function formatTimestamp(iso) {
 
 const AdminSubmissionsDashboard = () => {
   const apiUrl = useMemo(
-    () => (path) => `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`,
+    () => (path) => {
+      const base = getApiBaseUrl();
+      return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+    },
     []
   );
 

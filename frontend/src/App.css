@@ -2848,6 +2848,20 @@ a:focus-visible,
   line-height: 1.55;
 }
 
+.auth-github-intake-role-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 18px;
+}
+
+.auth-github-intake-role-row .auth-github-intake-role-btn {
+  flex: 1;
+  min-width: 132px;
+  margin-top: 0;
+  width: auto;
+}
+
 .auth-github-returning {
   margin: 0 0 16px;
   font-size: 0.94rem;
