@@ -83,13 +83,13 @@ def auth_config_status():
     has_pwd_hash = bool((os.getenv("ADMIN_PASSWORD_HASH") or "").strip())
     allow_plain = os.getenv("ADMIN_ALLOW_PLAIN_PASSWORD", "").strip().lower() in ("1", "true", "yes")
     has_plain_pwd = bool((os.getenv("ADMIN_PASSWORD") or "").strip())
-    admin_password_ok = has_pwd_hash or (allow_plain and has_plain_pwd)
+    admin_password_ok = has_pwd_hash or has_plain_pwd
     admin_jwt_ok = bool((ADMIN_JWT_SECRET or "").strip() or (ADMIN_EXPORT_KEY or "").strip())
 
     hints: list[str] = []
     if not admin_password_ok:
         hints.append(
-            "Set ADMIN_PASSWORD_HASH (bcrypt), or for local dev only ADMIN_ALLOW_PLAIN_PASSWORD=true plus ADMIN_PASSWORD."
+            "Set ADMIN_PASSWORD_HASH (bcrypt), or set ADMIN_PASSWORD."
         )
     if not admin_jwt_ok:
         hints.append("Set ADMIN_JWT_SECRET (or legacy ADMIN_EXPORT_KEY) so staff login can issue a token.")

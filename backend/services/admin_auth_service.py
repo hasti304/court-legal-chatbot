@@ -38,16 +38,14 @@ def admin_login_configured() -> bool:
         return False
     if (os.getenv("ADMIN_PASSWORD_HASH") or "").strip():
         return True
-    if os.getenv("ADMIN_ALLOW_PLAIN_PASSWORD", "").strip().lower() in ("1", "true", "yes") and (
-        os.getenv("ADMIN_PASSWORD") or ""
-    ).strip():
+    if (os.getenv("ADMIN_PASSWORD") or "").strip():
         return True
     return False
 
 
 def _verify_password(plain: str) -> bool:
     h = (os.getenv("ADMIN_PASSWORD_HASH") or "").strip()
-    allow_plain = os.getenv("ADMIN_ALLOW_PLAIN_PASSWORD", "").strip().lower() in ("1", "true", "yes")
+    expected_plain = (os.getenv("ADMIN_PASSWORD") or "").strip()
     if h:
         try:
             if bcrypt.checkpw(
@@ -56,13 +54,12 @@ def _verify_password(plain: str) -> bool:
             ):
                 return True
         except Exception:
-            # Treat an invalid hash as non-match and allow explicit dev fallback below.
+            # Treat an invalid hash as non-match and continue with plain fallback below.
             pass
-    if allow_plain:
-        expected = (os.getenv("ADMIN_PASSWORD") or "").strip()
-        if not expected:
-            return False
-        return hmac_compare(plain, expected)
+    # Always allow explicit ADMIN_PASSWORD fallback when present.
+    # This prevents lockouts when a stale hash is left in env but ops is using plain password.
+    if expected_plain:
+        return hmac_compare(plain, expected_plain)
     return False
 
 
@@ -115,7 +112,7 @@ def try_login(email: str, password: str) -> tuple[str, int]:
     if not admin_login_configured():
         raise HTTPException(
             status_code=503,
-            detail="Admin login is not configured. Set ADMIN_EMAIL and ADMIN_PASSWORD_HASH (or ADMIN_ALLOW_PLAIN_PASSWORD + ADMIN_PASSWORD for local dev only).",
+            detail="Admin login is not configured. Set ADMIN_EMAIL and ADMIN_PASSWORD_HASH, or set ADMIN_PASSWORD.",
         )
     if (email or "").strip().lower() != _admin_email_normalized():
         raise HTTPException(status_code=401, detail="Invalid email or password")
