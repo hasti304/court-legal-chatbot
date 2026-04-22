@@ -9,3 +9,4 @@ httpx==0.28.1
 python-multipart==0.0.9
 bcrypt==4.2.1
 PyJWT==2.9.0
+redis==6.0.0

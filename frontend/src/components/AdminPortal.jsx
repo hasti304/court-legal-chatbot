@@ -250,7 +250,18 @@ export default function AdminPortal() {
     else window.location.hash = "#/admin/intakes";
   };
 
-  const logout = (reason = "") => {
+  const logout = async (reason = "") => {
+    const existingToken = getAdminToken();
+    if (existingToken) {
+      try {
+        await fetch(apiUrl("/admin/logout"), {
+          method: "POST",
+          headers: { Authorization: `Bearer ${existingToken}` },
+        });
+      } catch {
+        /* best effort */
+      }
+    }
     clearAdminToken();
     setToken("");
     setBasic(null);
@@ -778,7 +789,7 @@ export default function AdminPortal() {
     const resetInactivityTimer = () => {
       if (timer) window.clearTimeout(timer);
       timer = window.setTimeout(() => {
-        logout("You were signed out after 5 minutes of inactivity.");
+        void logout("You were signed out after 5 minutes of inactivity.");
       }, INACTIVITY_TIMEOUT_MS);
     };
 
@@ -949,7 +960,7 @@ export default function AdminPortal() {
             {isDark ? <FaSun size={15} aria-hidden /> : <FaMoon size={15} aria-hidden />}
           </button>
           <div className="admin-portal-actions">
-            <button type="button" className="admin-portal-btn" onClick={logout}>
+            <button type="button" className="admin-portal-btn" onClick={() => void logout()}>
               Sign out
             </button>
             <a className="admin-portal-link" href="#/">

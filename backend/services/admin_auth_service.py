@@ -3,12 +3,22 @@
 from __future__ import annotations
 
 import os
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 import bcrypt
 import jwt
 from fastapi import HTTPException
+
+try:
+    from redis import Redis
+    from redis.exceptions import RedisError
+except Exception:  # pragma: no cover - optional dependency fallback
+    Redis = None  # type: ignore
+
+    class RedisError(Exception):
+        pass
 
 try:
     from .config_service import ADMIN_EMAIL, ADMIN_EXPORT_KEY, ADMIN_JWT_EXPIRE_MINUTES, ADMIN_JWT_SECRET
@@ -23,6 +33,63 @@ except ImportError:
 
 def _admin_email_normalized() -> str:
     return (ADMIN_EMAIL or "").strip()
+
+
+_REDIS_CLIENT: Optional[Redis] = None
+_REDIS_INIT_ATTEMPTED = False
+_SESSION_KEY = "cal:admin:session_version"
+_LOCAL_SESSION_VERSION = secrets.token_hex(16)
+
+
+def _redis_client() -> Optional[Redis]:
+    global _REDIS_CLIENT, _REDIS_INIT_ATTEMPTED
+    if _REDIS_CLIENT is not None:
+        return _REDIS_CLIENT
+    if _REDIS_INIT_ATTEMPTED:
+        return None
+    _REDIS_INIT_ATTEMPTED = True
+    url = (os.getenv("REDIS_URL") or "").strip()
+    if not url:
+        return None
+    if Redis is None:
+        return None
+    try:
+        client = Redis.from_url(url, decode_responses=True, socket_timeout=2, socket_connect_timeout=2)
+        client.ping()
+        _REDIS_CLIENT = client
+        return _REDIS_CLIENT
+    except Exception:
+        return None
+
+
+def _read_session_version() -> str:
+    client = _redis_client()
+    if client is None:
+        return _LOCAL_SESSION_VERSION
+    try:
+        value = (client.get(_SESSION_KEY) or "").strip()
+        if value:
+            return value
+        new_value = secrets.token_hex(16)
+        client.set(_SESSION_KEY, new_value)
+        return new_value
+    except RedisError:
+        return _LOCAL_SESSION_VERSION
+
+
+def _rotate_session_version() -> str:
+    global _LOCAL_SESSION_VERSION
+    new_value = secrets.token_hex(16)
+    client = _redis_client()
+    if client is None:
+        _LOCAL_SESSION_VERSION = new_value
+        return _LOCAL_SESSION_VERSION
+    try:
+        client.set(_SESSION_KEY, new_value)
+        return new_value
+    except RedisError:
+        _LOCAL_SESSION_VERSION = new_value
+        return _LOCAL_SESSION_VERSION
 
 
 def _jwt_secret() -> str:
@@ -79,6 +146,7 @@ def issue_admin_token(email: str) -> tuple[str, int]:
     payload: dict[str, Any] = {
         "sub": email.strip().lower(),
         "role": "admin",
+        "sv": _read_session_version(),
         "iat": int(now.timestamp()),
         "exp": int(exp.timestamp()),
     }
@@ -105,7 +173,14 @@ def admin_request_authorized(request) -> bool:
     if not payload or payload.get("role") != "admin":
         return False
     sub = (payload.get("sub") or "").strip().lower()
-    return bool(sub) and sub == _admin_email_normalized()
+    token_session_version = str(payload.get("sv") or "").strip()
+    if not token_session_version:
+        return False
+    return bool(sub) and sub == _admin_email_normalized() and token_session_version == _read_session_version()
+
+
+def logout_admin_session() -> None:
+    _rotate_session_version()
 
 
 def try_login(email: str, password: str) -> tuple[str, int]:

@@ -844,9 +844,45 @@ def list_intakes_for_admin(request: Request, db: Session):
     require_admin_access(request)
     ensure_tables()
     safe_limit = 500
+    bind = db.get_bind()
+    dialect_name = getattr(getattr(bind, "dialect", None), "name", "") if bind is not None else ""
+
+    def _column_exists(table_name: str, column_name: str) -> bool:
+        try:
+            if dialect_name == "sqlite":
+                cols = db.execute(text(f"PRAGMA table_info({table_name})")).fetchall()
+                return any(str(c[1]) == column_name for c in cols)
+            row = db.execute(
+                text(
+                    """
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_name = :table_name
+                      AND column_name = :column_name
+                    LIMIT 1
+                    """
+                ),
+                {"table_name": table_name, "column_name": column_name},
+            ).first()
+            return row is not None
+        except Exception:
+            return False
+
+    has_admin_status = _column_exists("intakes", "admin_status")
+    has_login_count = _column_exists("intakes", "login_count")
+    has_problem_summary = _column_exists("triage_sessions", "problem_summary")
+
+    admin_status_expr = (
+        "COALESCE(NULLIF(TRIM(i.admin_status), ''), 'pending') AS admin_status"
+        if has_admin_status
+        else "'pending' AS admin_status"
+    )
+    login_count_expr = "COALESCE(i.login_count, 0) AS login_count" if has_login_count else "0 AS login_count"
+    problem_summary_expr = "ts.problem_summary AS problem_summary" if has_problem_summary else "NULL AS problem_summary"
+
     rows = db.execute(
         text(
-            """
+            f"""
             SELECT
               i.id,
               i.first_name,
@@ -857,10 +893,10 @@ def list_intakes_for_admin(request: Request, db: Session):
               i.language,
               CAST(i.consent AS INTEGER) AS consent,
               i.created_at,
-              COALESCE(NULLIF(TRIM(i.admin_status), ''), 'pending') AS admin_status,
-              COALESCE(i.login_count, 0) AS login_count,
+              {admin_status_expr},
+              {login_count_expr},
               ts.topic AS issue_topic,
-              ts.problem_summary AS problem_summary,
+              {problem_summary_expr},
               (
                 SELECT MIN(d.due_date)
                 FROM intake_deadlines d
