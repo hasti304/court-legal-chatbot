@@ -16,15 +16,23 @@ from sqlalchemy.orm import Session
 try:
     from ..models import Intake, IntakeSubmission, MagicLinkToken
     from .auth_password_service import hash_password
-    from .admin_auth_service import admin_request_authorized
-    from .config_service import ADMIN_EXPORT_KEY, engine, groq_configured
-    from .transactional_email import send_transactional_email
+    from .admin_auth_service import admin_login_configured, admin_request_authorized
+    from .config_service import ADMIN_EMAIL, ADMIN_EXPORT_KEY, ADMIN_JWT_SECRET, engine, groq_configured
+    from .transactional_email import (
+        email_provider_configured,
+        email_provider_hint,
+        send_transactional_email,
+    )
 except ImportError:
     from models import Intake, IntakeSubmission, MagicLinkToken  # type: ignore
     from services.auth_password_service import hash_password  # type: ignore
-    from services.admin_auth_service import admin_request_authorized  # type: ignore
-    from services.config_service import ADMIN_EXPORT_KEY, engine, groq_configured  # type: ignore
-    from services.transactional_email import send_transactional_email  # type: ignore
+    from services.admin_auth_service import admin_login_configured, admin_request_authorized  # type: ignore
+    from services.config_service import ADMIN_EMAIL, ADMIN_EXPORT_KEY, ADMIN_JWT_SECRET, engine, groq_configured  # type: ignore
+    from services.transactional_email import (  # type: ignore
+        email_provider_configured,
+        email_provider_hint,
+        send_transactional_email,
+    )
 
 
 def normalize_language(lang: Optional[str], supported_langs: set[str]) -> str:
@@ -1464,6 +1472,20 @@ def admin_health_checks(request: Request, db: Session) -> dict:
     except Exception as e:
         checks.append({"name": "Database connectivity", "status": "fail", "detail": str(e)})
 
+    # Check 1b: basic DB read for sessions/events to catch partial migration issues.
+    try:
+        sessions = int(db.execute(text("SELECT COUNT(*) FROM triage_sessions")).scalar() or 0)
+        events = int(db.execute(text("SELECT COUNT(*) FROM intake_events")).scalar() or 0)
+        checks.append(
+            {
+                "name": "Session/event analytics tables",
+                "status": "pass",
+                "detail": f"Triage sessions: {sessions}. Intake events: {events}.",
+            }
+        )
+    except Exception as e:
+        checks.append({"name": "Session/event analytics tables", "status": "fail", "detail": str(e)})
+
     # Check 2: critical tables for new roadmap tasks.
     required_tables = ["triage_sessions", "intake_deadlines", "evidence_files"]
     missing = []
@@ -1520,6 +1542,43 @@ def admin_health_checks(request: Request, db: Session) -> dict:
             "detail": "Configured" if groq_configured else "Not configured (fallback summaries active).",
         }
     )
+
+    # Check 5: transactional email provider (required for magic-link and staff email notifications).
+    email_ok = bool(email_provider_configured())
+    checks.append(
+        {
+            "name": "Transactional email provider",
+            "status": "pass" if email_ok else "warn",
+            "detail": email_provider_hint() if email_ok else "Not configured; sign-in links/notifications may fail.",
+        }
+    )
+
+    # Check 6: admin auth configuration sanity.
+    has_admin_email = bool((ADMIN_EMAIL or "").strip())
+    has_admin_jwt = bool((ADMIN_JWT_SECRET or "").strip() or (ADMIN_EXPORT_KEY or "").strip())
+    if has_admin_email and has_admin_jwt and admin_login_configured():
+        checks.append(
+            {
+                "name": "Admin auth configuration",
+                "status": "pass",
+                "detail": "Admin email, password source, and JWT secret are configured.",
+            }
+        )
+    else:
+        missing_bits = []
+        if not has_admin_email:
+            missing_bits.append("ADMIN_EMAIL")
+        if not has_admin_jwt:
+            missing_bits.append("ADMIN_JWT_SECRET (or ADMIN_EXPORT_KEY)")
+        if not admin_login_configured():
+            missing_bits.append("admin password source")
+        checks.append(
+            {
+                "name": "Admin auth configuration",
+                "status": "fail",
+                "detail": f"Missing/invalid: {', '.join(missing_bits)}",
+            }
+        )
 
     failed = sum(1 for c in checks if c["status"] == "fail")
     warned = sum(1 for c in checks if c["status"] == "warn")

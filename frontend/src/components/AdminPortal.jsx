@@ -724,6 +724,37 @@ export default function AdminPortal() {
     }
   }, [authFetch]);
 
+  const createTestSubmission = async () => {
+    setLoadError("");
+    try {
+      const stamp = new Date().toISOString();
+      const payload = {
+        name: "Test User",
+        email: "test.submission+admin@chicagoadvocatelegal.com",
+        phone: "3125550100",
+        zip_code: "60601",
+        issue_type: "Housing",
+        message: `Admin test submission created at ${stamp}`,
+      };
+      const res = await authFetch("/intake/submissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.detail ? String(data.detail) : `Create test submission failed (${res.status})`);
+      }
+      await loadSubmissions();
+    } catch (err) {
+      setLoadError(
+        err?.message && String(err.message).trim().length > 0
+          ? String(err.message)
+          : "Failed to create test submission."
+      );
+    }
+  };
+
   useEffect(() => {
     if (!token) return;
     if (tab === "overview") loadOverview();
@@ -1403,6 +1434,15 @@ export default function AdminPortal() {
               style={{ marginBottom: 16 }}
             >
               Refresh submissions
+            </button>
+            <button
+              type="button"
+              className="admin-portal-btn"
+              onClick={() => void createTestSubmission()}
+              disabled={loading}
+              style={{ marginBottom: 16, marginLeft: 8 }}
+            >
+              Add test submission
             </button>
             <div className="admin-portal-table-wrap">
               <table className="admin-portal-table">
