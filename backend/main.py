@@ -1,7 +1,4 @@
-import json
 import os
-import time
-import uuid
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,24 +29,6 @@ except ImportError:
     from routers.documents import router as documents_router  # type: ignore
 
 app = FastAPI()
-
-_DEBUG_LOG_PATH = "debug-c1e03b.log"
-
-
-def _append_debug_log(hypothesis_id: str, location: str, message: str, data: dict) -> None:
-    payload = {
-        "sessionId": "c1e03b",
-        "runId": "initial",
-        "hypothesisId": hypothesis_id,
-        "id": f"log_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}",
-        "timestamp": int(time.time() * 1000),
-        "location": location,
-        "message": message,
-        "data": data,
-    }
-    with open(_DEBUG_LOG_PATH, "a", encoding="utf-8") as f:
-        f.write(json.dumps(payload, ensure_ascii=True) + "\n")
-
 
 @app.on_event("startup")
 def startup_event():
@@ -108,71 +87,11 @@ app.add_middleware(
 
 @app.middleware("http")
 async def debug_cors_middleware(request, call_next):
-    # region agent log
-    _append_debug_log(
-        "H1",
-        "backend/main.py:debug_cors_middleware:request",
-        "Incoming request observed",
-        {
-            "method": request.method,
-            "path": request.url.path,
-            "origin": request.headers.get("origin"),
-            "has_access_control_request_method": bool(request.headers.get("access-control-request-method")),
-        },
-    )
-    # endregion
     try:
         response = await call_next(request)
-    except Exception as exc:
-        # region agent log
-        _append_debug_log(
-            "H4",
-            "backend/main.py:debug_cors_middleware:exception",
-            "Unhandled exception before response",
-            {
-                "method": request.method,
-                "path": request.url.path,
-                "origin": request.headers.get("origin"),
-                "error_type": type(exc).__name__,
-                "error_text": str(exc),
-            },
-        )
-        # endregion
+    except Exception:
         raise
-
-    # region agent log
-    _append_debug_log(
-        "H2",
-        "backend/main.py:debug_cors_middleware:response",
-        "Response emitted",
-        {
-            "method": request.method,
-            "path": request.url.path,
-            "origin": request.headers.get("origin"),
-            "status_code": response.status_code,
-            "acao": response.headers.get("access-control-allow-origin"),
-            "acac": response.headers.get("access-control-allow-credentials"),
-        },
-    )
-    # endregion
-
-    if request.method == "OPTIONS":
-        # region agent log
-        _append_debug_log(
-            "H3",
-            "backend/main.py:debug_cors_middleware:preflight",
-            "Preflight response details",
-            {
-                "path": request.url.path,
-                "origin": request.headers.get("origin"),
-                "acr_method": request.headers.get("access-control-request-method"),
-                "status_code": response.status_code,
-                "acao": response.headers.get("access-control-allow-origin"),
-                "acam": response.headers.get("access-control-allow-methods"),
-                "acah": response.headers.get("access-control-allow-headers"),
-            },
-        )
-        # endregion
+    return response
 app.include_router(core_router)
 app.include_router(intake_router)
 app.include_router(admin_router)

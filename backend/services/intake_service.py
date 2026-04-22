@@ -4,8 +4,6 @@ import io
 import json
 import os
 import re
-import time
-import uuid
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
@@ -51,24 +49,6 @@ def normalize_language(lang: Optional[str], supported_langs: set[str]) -> str:
 
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
-
-
-_DEBUG_LOG_PATH = "debug-c1e03b.log"
-
-
-def _append_debug_log(hypothesis_id: str, location: str, message: str, data: dict) -> None:
-    payload = {
-        "sessionId": "c1e03b",
-        "runId": "initial",
-        "hypothesisId": hypothesis_id,
-        "id": f"log_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}",
-        "timestamp": int(time.time() * 1000),
-        "location": location,
-        "message": message,
-        "data": data,
-    }
-    with open(_DEBUG_LOG_PATH, "a", encoding="utf-8") as f:
-        f.write(json.dumps(payload, ensure_ascii=True) + "\n")
 
 
 def normalize_us_phone(phone: str) -> str:
@@ -968,15 +948,6 @@ def list_intakes_for_admin(request: Request, db: Session):
     )
     triage_join = "LEFT JOIN triage_sessions ts ON ts.intake_id = i.id" if has_triage_sessions else ""
 
-    # region agent log
-    _append_debug_log(
-        "H5",
-        "backend/services/intake_service.py:list_intakes_for_admin:start",
-        "Admin intakes list start",
-        {"safe_limit": safe_limit},
-    )
-    # endregion
-
     try:
         rows = db.execute(
             text(
@@ -1006,15 +977,7 @@ def list_intakes_for_admin(request: Request, db: Session):
             ),
             {"lim": safe_limit},
         ).mappings().all()
-    except Exception as exc:
-        # region agent log
-        _append_debug_log(
-            "H7",
-            "backend/services/intake_service.py:list_intakes_for_admin:primary_query_fallback",
-            "Primary admin intakes query failed; using minimal fallback",
-            {"error_type": type(exc).__name__, "error_text": str(exc)},
-        )
-        # endregion
+    except Exception:
         # Fallback keeps admin UI operational when optional roadmap tables are absent/inaccessible.
         fallback_rows = (
             db.query(Intake)
@@ -1043,14 +1006,6 @@ def list_intakes_for_admin(request: Request, db: Session):
             }
             for r in fallback_rows
         ]
-    # region agent log
-    _append_debug_log(
-        "H5",
-        "backend/services/intake_service.py:list_intakes_for_admin:rows",
-        "Primary intake rows fetched",
-        {"rows_count": len(rows)},
-    )
-    # endregion
     intake_ids = [str(r.get("id") or "").strip() for r in rows if str(r.get("id") or "").strip()]
     intake_id_set = set(intake_ids)
     intake_events_by_id: Dict[str, List[Dict[str, Any]]] = {}
@@ -1085,24 +1040,8 @@ def list_intakes_for_admin(request: Request, db: Session):
                     if not iid or iid not in intake_id_set:
                         continue
                     intake_events_by_id.setdefault(iid, []).append(dict(er))
-            # region agent log
-            _append_debug_log(
-                "H6",
-                "backend/services/intake_service.py:list_intakes_for_admin:events",
-                "Scoped intake event rows fetched",
-                {"intake_count": len(intake_ids), "event_rows_count": total_event_rows, "chunk_count": len(chunks)},
-            )
-            # endregion
         except Exception:
             intake_events_by_id = {}
-            # region agent log
-            _append_debug_log(
-                "H6",
-                "backend/services/intake_service.py:list_intakes_for_admin:event_query_exception",
-                "Event enrichment query failed and was skipped",
-                {"intake_count": len(intake_ids)},
-            )
-            # endregion
     out = []
     for r in rows:
         d = dict(r)

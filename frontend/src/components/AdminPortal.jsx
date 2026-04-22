@@ -965,23 +965,42 @@ export default function AdminPortal() {
 
   return (
     <div className={portalClass}>
-      <div className="admin-portal-header">
-        <div>
-          <h1>Staff admin</h1>
-          <p>Case list, triage topic, and review status. Analytics and export are available from the other tabs.</p>
-        </div>
-        <div className="admin-portal-toolbar">
-          <button
-            type="button"
-            className="admin-portal-theme-toggle"
-            onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
-            aria-pressed={isDark}
-            title={isDark ? t("theme.useLight") : t("theme.useDark")}
-            aria-label={isDark ? t("theme.useLight") : t("theme.useDark")}
-          >
-            {isDark ? <FaSun size={15} aria-hidden /> : <FaMoon size={15} aria-hidden />}
-          </button>
-          <div className="admin-portal-actions">
+      <div className="admin-portal-layout" aria-busy={loading || healthBusy ? "true" : "false"}>
+        <aside className="admin-portal-sidebar" aria-label="Admin navigation">
+          <div>
+            <h1>Staff admin</h1>
+            <p>Case list, triage topic, and review status. Analytics and export are available from the other tabs.</p>
+          </div>
+          <div className="admin-portal-sidebar-tabs" role="tablist">
+            {[
+              ["overview", "Overview"],
+              ["intakes", "Intakes"],
+              ["submissions", "Submissions"],
+              ["export", "Export CSV"],
+            ].map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={tab === id}
+                className={`admin-portal-tab${tab === id ? " active" : ""}`}
+                onClick={() => setTabAndHash(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="admin-portal-sidebar-actions">
+            <button
+              type="button"
+              className="admin-portal-theme-toggle"
+              onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
+              aria-pressed={isDark}
+              title={isDark ? t("theme.useLight") : t("theme.useDark")}
+              aria-label={isDark ? t("theme.useLight") : t("theme.useDark")}
+            >
+              {isDark ? <FaSun size={15} aria-hidden /> : <FaMoon size={15} aria-hidden />}
+            </button>
             <button type="button" className="admin-portal-btn" onClick={() => void logout()}>
               Sign out
             </button>
@@ -989,29 +1008,9 @@ export default function AdminPortal() {
               ← Back to app
             </a>
           </div>
-        </div>
-      </div>
+        </aside>
 
-      <div className="admin-portal-shell" aria-busy={loading || healthBusy ? "true" : "false"}>
-        <div className="admin-portal-tabs" role="tablist">
-          {[
-            ["overview", "Overview"],
-            ["intakes", "Intakes"],
-            ["submissions", "Submissions"],
-            ["export", "Export CSV"],
-          ].map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={tab === id}
-              className={`admin-portal-tab${tab === id ? " active" : ""}`}
-              onClick={() => setTabAndHash(id)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <div className="admin-portal-shell">
 
         {loadError ? (
           <StatusBanner type="error" role="alert" style={{ marginBottom: 14 }}>
@@ -1344,34 +1343,32 @@ export default function AdminPortal() {
                           </td>
                           <td>{row.login_count != null ? Number(row.login_count) : 0}</td>
                           <td className="admin-portal-cell-summary">
-                            {summaryOptions.length > 0 ? (
-                              <div className="admin-portal-summary-inline">
-                                {summaryOptions.length > 1 ? (
-                                  <select
-                                    className="admin-portal-cell-select"
-                                    value={selectedSummary}
-                                    onChange={(e) =>
-                                      setSummaryPickById((prev) => ({ ...prev, [row.id]: e.target.value }))
-                                    }
-                                  >
-                                    {summaryOptions.map((summaryValue, idx) => (
-                                      <option key={`${row.id}-summary-${idx}`} value={summaryValue}>
-                                        {`Summary ${idx + 1}`}
-                                      </option>
-                                    ))}
-                                  </select>
-                                ) : null}
-                                <button
-                                  type="button"
-                                  className="admin-portal-btn admin-portal-btn-compact"
-                                  onClick={() => setSummaryModal({ ...row, problem_summary: selectedSummary })}
+                            <div className="admin-portal-summary-inline">
+                              {summaryOptions.length > 1 ? (
+                                <select
+                                  className="admin-portal-cell-select"
+                                  value={selectedSummary}
+                                  onChange={(e) =>
+                                    setSummaryPickById((prev) => ({ ...prev, [row.id]: e.target.value }))
+                                  }
                                 >
-                                  View
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="admin-portal-muted">—</span>
-                            )}
+                                  {summaryOptions.map((summaryValue, idx) => (
+                                    <option key={`${row.id}-summary-${idx}`} value={summaryValue}>
+                                      {`Summary ${idx + 1}`}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : null}
+                              <button
+                                type="button"
+                                className="admin-portal-btn admin-portal-btn-compact"
+                                onClick={() => setSummaryModal({ ...row, problem_summary: selectedSummary })}
+                                disabled={!selectedSummary}
+                                title={selectedSummary ? "View user summary" : "No summary available"}
+                              >
+                                View
+                              </button>
+                            </div>
                           </td>
                           <td className="admin-portal-cell-deadline">
                             {(() => {
@@ -1529,6 +1526,7 @@ export default function AdminPortal() {
             </button>
           </div>
         )}
+        </div>
       </div>
 
       {statusDraft ? (

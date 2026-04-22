@@ -15,11 +15,15 @@ export default function SiteFooter({
   return (
     <footer className={`site-footer ${className}`.trim()} role="contentinfo">
       <div className="site-footer-inner">
-        <p className="site-footer-org">{t("site.footerOrg")}</p>
-        <p className="site-footer-disclaimer">{t("site.footerDisclaimer")}</p>
-        <p className="site-footer-contact">
-          {t("site.footerContactLabel")}{" "}
-          <a href={`mailto:${supportEmail}`}>{supportEmail}</a>
+        <p className="site-footer-inline">
+          <span className="site-footer-org">{t("site.footerOrg")}</span>
+          <span className="site-footer-inline-sep"> - </span>
+          <span className="site-footer-disclaimer">{t("site.footerDisclaimer")}</span>
+          <span className="site-footer-inline-sep"> - </span>
+          <span className="site-footer-contact">
+            {t("site.footerContactLabel")}{" "}
+            <a href={`mailto:${supportEmail}`}>{supportEmail}</a>
+          </span>
         </p>
         {typeof onPrivacyClick === "function" && (
           <p className="site-footer-privacy">

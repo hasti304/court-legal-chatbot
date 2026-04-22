@@ -2544,6 +2544,32 @@ function App() {
       )}
 
       <div className="chat-container">
+        {intakeSaved && intakeId ? (
+          <aside className="client-session-panel" aria-label="Client session controls">
+            <h3>Client panel</h3>
+            <p>Use this panel to manage your session and quickly navigate.</p>
+            <button
+              type="button"
+              className="btn btn-toolbar btn-panel-home"
+              onClick={() => setView("cover")}
+            >
+              Home
+            </button>
+            <button
+              type="button"
+              className="btn btn-toolbar btn-panel-signout"
+              onClick={() => {
+                clearSavedIntake();
+                setShowChat(false);
+                setView("login");
+              }}
+            >
+              Sign out
+            </button>
+          </aside>
+        ) : null}
+
+        <div className="chat-workspace">
         <div className="safety-toolbar">
           <button
             type="button"
@@ -2986,6 +3012,7 @@ function App() {
           </p>
         </div>
         </main>
+        </div>
 
         <SiteFooter
           supportEmail={SUPPORT_EMAIL}
