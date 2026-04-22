@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -45,17 +47,26 @@ def startup_event():
             "For local testing only, set MAGIC_LINK_DEV_RETURN_TOKEN=true to return the link in the API JSON."
         )
 
+def _split_csv_env(name: str) -> list[str]:
+    raw = os.getenv(name, "")
+    return [item.strip().rstrip("/") for item in raw.split(",") if item.strip()]
+
+
 ALLOWED_ORIGINS = [
     "https://court-legal-chatbot-frontend.onrender.com",
     "https://hasti304.github.io",
     "http://localhost:3000",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    *_split_csv_env("CORS_ALLOWED_ORIGINS"),
 ]
 
-# Browsers treat http://localhost:PORT and http://127.0.0.1:PORT as different origins.
-# Regex covers any dev port on localhost / 127.0.0.1 so Vite + API mismatches still get CORS headers.
-_CORS_ORIGIN_REGEX = r"https://.*\.onrender\.com|http://(localhost|127\.0\.0\.1)(:\d+)?$"
+# Browsers treat localhost and 127.0.0.1 as different origins; Authorization header triggers preflight.
+# Keep regex strict and explicit so Render frontend deployments always receive ACAO headers.
+_CORS_ORIGIN_REGEX = (
+    os.getenv("CORS_ALLOWED_ORIGIN_REGEX", "").strip()
+    or r"^https://([a-z0-9-]+)\.onrender\.com$|^http://(localhost|127\.0\.0\.1)(:\d+)?$"
+)
 
 app.add_middleware(
     CORSMiddleware,
