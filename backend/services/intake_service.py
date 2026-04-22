@@ -977,34 +977,72 @@ def list_intakes_for_admin(request: Request, db: Session):
     )
     # endregion
 
-    rows = db.execute(
-        text(
-            f"""
-            SELECT
-              i.id,
-              i.first_name,
-              i.last_name,
-              i.email,
-              i.phone,
-              i.zip,
-              i.language,
-              {consent_expr},
-              i.created_at,
-              {admin_status_expr},
-              {login_count_expr},
-              {issue_topic_expr},
-              {problem_summary_expr},
-              {next_deadline_date_expr}
-              {next_deadline_type_expr}
-              {deadline_count_expr}
-            FROM intakes i
-            {triage_join}
-            ORDER BY i.created_at DESC
-            LIMIT :lim
-            """
-        ),
-        {"lim": safe_limit},
-    ).mappings().all()
+    try:
+        rows = db.execute(
+            text(
+                f"""
+                SELECT
+                  i.id,
+                  i.first_name,
+                  i.last_name,
+                  i.email,
+                  i.phone,
+                  i.zip,
+                  i.language,
+                  {consent_expr},
+                  i.created_at,
+                  {admin_status_expr},
+                  {login_count_expr},
+                  {issue_topic_expr},
+                  {problem_summary_expr},
+                  {next_deadline_date_expr}
+                  {next_deadline_type_expr}
+                  {deadline_count_expr}
+                FROM intakes i
+                {triage_join}
+                ORDER BY i.created_at DESC
+                LIMIT :lim
+                """
+            ),
+            {"lim": safe_limit},
+        ).mappings().all()
+    except Exception as exc:
+        # region agent log
+        _append_debug_log(
+            "H7",
+            "backend/services/intake_service.py:list_intakes_for_admin:primary_query_fallback",
+            "Primary admin intakes query failed; using minimal fallback",
+            {"error_type": type(exc).__name__, "error_text": str(exc)},
+        )
+        # endregion
+        # Fallback keeps admin UI operational when optional roadmap tables are absent/inaccessible.
+        fallback_rows = (
+            db.query(Intake)
+            .order_by(Intake.created_at.desc())
+            .limit(safe_limit)
+            .all()
+        )
+        rows = [
+            {
+                "id": r.id,
+                "first_name": r.first_name,
+                "last_name": r.last_name,
+                "email": r.email,
+                "phone": r.phone,
+                "zip": r.zip,
+                "language": r.language,
+                "consent": bool(getattr(r, "consent", False)),
+                "created_at": r.created_at,
+                "admin_status": (str(getattr(r, "admin_status", "") or "").strip() or "pending"),
+                "login_count": int(getattr(r, "login_count", 0) or 0),
+                "issue_topic": None,
+                "problem_summary": None,
+                "next_deadline_date": None,
+                "next_deadline_type": None,
+                "deadline_count": 0,
+            }
+            for r in fallback_rows
+        ]
     # region agent log
     _append_debug_log(
         "H5",

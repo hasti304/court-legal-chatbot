@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 try:
     from .database import init_db
     from .services.intake_service import ensure_tables
+    from .services.evidence_service import ensure_evidence_tables
     from .routers.core import router as core_router
     from .routers.intake import router as intake_router
     from .routers.admin import router as admin_router
@@ -20,6 +21,7 @@ try:
 except ImportError:
     from database import init_db
     from services.intake_service import ensure_tables  # type: ignore
+    from services.evidence_service import ensure_evidence_tables  # type: ignore
     from routers.core import router as core_router  # type: ignore
     from routers.intake import router as intake_router  # type: ignore
     from routers.admin import router as admin_router  # type: ignore
@@ -53,6 +55,7 @@ def _append_debug_log(hypothesis_id: str, location: str, message: str, data: dic
 def startup_event():
     init_db()
     ensure_tables()
+    ensure_evidence_tables()
     try:
         from .services import config_service as _cfg
     except ImportError:
