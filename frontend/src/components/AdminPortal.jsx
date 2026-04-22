@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { FaMoon, FaSun, FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaMoon, FaSun } from "react-icons/fa";
+import { Eye, EyeOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import StatusBanner from "./StatusBanner";
 import "./AdminPortal.css";
@@ -249,7 +250,18 @@ export default function AdminPortal() {
     else window.location.hash = "#/admin/intakes";
   };
 
-  const logout = (reason = "") => {
+  const logout = async (reason = "") => {
+    const existingToken = getAdminToken();
+    if (existingToken) {
+      try {
+        await fetch(apiUrl("/admin/logout"), {
+          method: "POST",
+          headers: { Authorization: `Bearer ${existingToken}` },
+        });
+      } catch {
+        /* best effort */
+      }
+    }
     clearAdminToken();
     setToken("");
     setBasic(null);
@@ -314,7 +326,22 @@ export default function AdminPortal() {
         ...(options.headers || {}),
         ...adminAuthHeaders(),
       };
-      return fetch(apiUrl(path), { ...options, headers });
+      try {
+        return await fetch(apiUrl(path), { ...options, headers });
+      } catch (err) {
+        const msg = String(err?.message || "").toLowerCase();
+        const isNetworkFailure =
+          err instanceof TypeError ||
+          msg.includes("failed to fetch") ||
+          msg.includes("networkerror") ||
+          msg.includes("load failed");
+        if (isNetworkFailure) {
+          throw new Error(
+            "Cannot reach the API right now (possible cold start or temporary outage). Please wait a few seconds and try again."
+          );
+        }
+        throw err;
+      }
     },
     [apiUrl]
   );
@@ -386,15 +413,22 @@ export default function AdminPortal() {
       setIntakes(Array.isArray(data) ? data : []);
     } catch (err) {
       setIntakes([]);
-      setLoadError(
+      let detail = "";
+      try {
+        const health = await fetch(apiUrl("/health"));
+        if (health.ok) detail = "API is up, but admin endpoint failed. Try signing out/in again.";
+      } catch {
+        detail = "API health check is unreachable from this browser origin.";
+      }
+      const baseMessage =
         err?.message && String(err.message).trim().length > 0
           ? String(err.message)
-          : "Failed to load intakes."
-      );
+          : "Failed to load intakes.";
+      setLoadError(detail ? `${baseMessage} ${detail}` : baseMessage);
     } finally {
       setLoading(false);
     }
-  }, [authFetch]);
+  }, [apiUrl, authFetch]);
 
   const openActivityModal = async (row) => {
     setActivityModal(row);
@@ -723,6 +757,37 @@ export default function AdminPortal() {
     }
   }, [authFetch]);
 
+  const createTestSubmission = async () => {
+    setLoadError("");
+    try {
+      const stamp = new Date().toISOString();
+      const payload = {
+        name: "Test User",
+        email: "test.submission+admin@chicagoadvocatelegal.com",
+        phone: "3125550100",
+        zip_code: "60601",
+        issue_type: "Housing",
+        message: `Admin test submission created at ${stamp}`,
+      };
+      const res = await authFetch("/intake/submissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.detail ? String(data.detail) : `Create test submission failed (${res.status})`);
+      }
+      await loadSubmissions();
+    } catch (err) {
+      setLoadError(
+        err?.message && String(err.message).trim().length > 0
+          ? String(err.message)
+          : "Failed to create test submission."
+      );
+    }
+  };
+
   useEffect(() => {
     if (!token) return;
     if (tab === "overview") loadOverview();
@@ -746,7 +811,7 @@ export default function AdminPortal() {
     const resetInactivityTimer = () => {
       if (timer) window.clearTimeout(timer);
       timer = window.setTimeout(() => {
-        logout("You were signed out after 5 minutes of inactivity.");
+        void logout("You were signed out after 5 minutes of inactivity.");
       }, INACTIVITY_TIMEOUT_MS);
     };
 
@@ -876,7 +941,11 @@ export default function AdminPortal() {
                   aria-label={showStaffPassword ? t("login.hidePassword") : t("login.showPassword")}
                   title={showStaffPassword ? t("login.hidePassword") : t("login.showPassword")}
                 >
-                  {showStaffPassword ? <FaEyeSlash size={16} aria-hidden /> : <FaEye size={16} aria-hidden />}
+                  {showStaffPassword ? (
+                    <EyeOff className="admin-eye-icon" size={16} aria-hidden />
+                  ) : (
+                    <Eye className="admin-eye-icon" size={16} aria-hidden />
+                  )}
                 </button>
               </div>
             </div>
@@ -896,53 +965,52 @@ export default function AdminPortal() {
 
   return (
     <div className={portalClass}>
-      <div className="admin-portal-header">
-        <div>
-          <h1>Staff admin</h1>
-          <p>Case list, triage topic, and review status. Analytics and export are available from the other tabs.</p>
-        </div>
-        <div className="admin-portal-toolbar">
-          <button
-            type="button"
-            className="admin-portal-theme-toggle"
-            onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
-            aria-pressed={isDark}
-            title={isDark ? t("theme.useLight") : t("theme.useDark")}
-            aria-label={isDark ? t("theme.useLight") : t("theme.useDark")}
-          >
-            {isDark ? <FaSun size={15} aria-hidden /> : <FaMoon size={15} aria-hidden />}
-          </button>
-          <div className="admin-portal-actions">
-            <button type="button" className="admin-portal-btn" onClick={logout}>
+      <div className="admin-portal-layout" aria-busy={loading || healthBusy ? "true" : "false"}>
+        <aside className="admin-portal-sidebar" aria-label="Admin navigation">
+          <div>
+            <h1>Staff admin</h1>
+            <p>Case list, triage topic, and review status. Analytics and export are available from the other tabs.</p>
+          </div>
+          <div className="admin-portal-sidebar-tabs" role="tablist">
+            {[
+              ["overview", "Overview"],
+              ["intakes", "Intakes"],
+              ["submissions", "Submissions"],
+              ["export", "Export CSV"],
+            ].map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={tab === id}
+                className={`admin-portal-tab${tab === id ? " active" : ""}`}
+                onClick={() => setTabAndHash(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="admin-portal-sidebar-actions">
+            <button
+              type="button"
+              className="admin-portal-theme-toggle"
+              onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
+              aria-pressed={isDark}
+              title={isDark ? t("theme.useLight") : t("theme.useDark")}
+              aria-label={isDark ? t("theme.useLight") : t("theme.useDark")}
+            >
+              {isDark ? <FaSun size={15} aria-hidden /> : <FaMoon size={15} aria-hidden />}
+            </button>
+            <button type="button" className="admin-portal-btn" onClick={() => void logout()}>
               Sign out
             </button>
             <a className="admin-portal-link" href="#/">
               ← Back to app
             </a>
           </div>
-        </div>
-      </div>
+        </aside>
 
-      <div className="admin-portal-shell" aria-busy={loading || healthBusy ? "true" : "false"}>
-        <div className="admin-portal-tabs" role="tablist">
-          {[
-            ["overview", "Overview"],
-            ["intakes", "Intakes"],
-            ["submissions", "Submissions"],
-            ["export", "Export CSV"],
-          ].map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={tab === id}
-              className={`admin-portal-tab${tab === id ? " active" : ""}`}
-              onClick={() => setTabAndHash(id)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <div className="admin-portal-shell">
 
         {loadError ? (
           <StatusBanner type="error" role="alert" style={{ marginBottom: 14 }}>
@@ -1275,34 +1343,32 @@ export default function AdminPortal() {
                           </td>
                           <td>{row.login_count != null ? Number(row.login_count) : 0}</td>
                           <td className="admin-portal-cell-summary">
-                            {summaryOptions.length > 0 ? (
-                              <div className="admin-portal-summary-inline">
-                                {summaryOptions.length > 1 ? (
-                                  <select
-                                    className="admin-portal-cell-select"
-                                    value={selectedSummary}
-                                    onChange={(e) =>
-                                      setSummaryPickById((prev) => ({ ...prev, [row.id]: e.target.value }))
-                                    }
-                                  >
-                                    {summaryOptions.map((summaryValue, idx) => (
-                                      <option key={`${row.id}-summary-${idx}`} value={summaryValue}>
-                                        {`Summary ${idx + 1}`}
-                                      </option>
-                                    ))}
-                                  </select>
-                                ) : null}
-                                <button
-                                  type="button"
-                                  className="admin-portal-btn admin-portal-btn-compact"
-                                  onClick={() => setSummaryModal({ ...row, problem_summary: selectedSummary })}
+                            <div className="admin-portal-summary-inline">
+                              {summaryOptions.length > 1 ? (
+                                <select
+                                  className="admin-portal-cell-select"
+                                  value={selectedSummary}
+                                  onChange={(e) =>
+                                    setSummaryPickById((prev) => ({ ...prev, [row.id]: e.target.value }))
+                                  }
                                 >
-                                  View
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="admin-portal-muted">—</span>
-                            )}
+                                  {summaryOptions.map((summaryValue, idx) => (
+                                    <option key={`${row.id}-summary-${idx}`} value={summaryValue}>
+                                      {`Summary ${idx + 1}`}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : null}
+                              <button
+                                type="button"
+                                className="admin-portal-btn admin-portal-btn-compact"
+                                onClick={() => setSummaryModal({ ...row, problem_summary: selectedSummary })}
+                                disabled={!selectedSummary}
+                                title={selectedSummary ? "View user summary" : "No summary available"}
+                              >
+                                View
+                              </button>
+                            </div>
                           </td>
                           <td className="admin-portal-cell-deadline">
                             {(() => {
@@ -1399,6 +1465,15 @@ export default function AdminPortal() {
             >
               Refresh submissions
             </button>
+            <button
+              type="button"
+              className="admin-portal-btn"
+              onClick={() => void createTestSubmission()}
+              disabled={loading}
+              style={{ marginBottom: 16, marginLeft: 8 }}
+            >
+              Add test submission
+            </button>
             <div className="admin-portal-table-wrap">
               <table className="admin-portal-table">
                 <thead>
@@ -1451,6 +1526,7 @@ export default function AdminPortal() {
             </button>
           </div>
         )}
+        </div>
       </div>
 
       {statusDraft ? (

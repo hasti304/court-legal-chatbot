@@ -1,9 +1,12 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 try:
     from .database import init_db
     from .services.intake_service import ensure_tables
+    from .services.evidence_service import ensure_evidence_tables
     from .routers.core import router as core_router
     from .routers.intake import router as intake_router
     from .routers.admin import router as admin_router
@@ -15,6 +18,7 @@ try:
 except ImportError:
     from database import init_db
     from services.intake_service import ensure_tables  # type: ignore
+    from services.evidence_service import ensure_evidence_tables  # type: ignore
     from routers.core import router as core_router  # type: ignore
     from routers.intake import router as intake_router  # type: ignore
     from routers.admin import router as admin_router  # type: ignore
@@ -26,11 +30,11 @@ except ImportError:
 
 app = FastAPI()
 
-
 @app.on_event("startup")
 def startup_event():
     init_db()
     ensure_tables()
+    ensure_evidence_tables()
     try:
         from .services import config_service as _cfg
     except ImportError:
@@ -45,17 +49,29 @@ def startup_event():
             "For local testing only, set MAGIC_LINK_DEV_RETURN_TOKEN=true to return the link in the API JSON."
         )
 
-ALLOWED_ORIGINS = [
+def _split_csv_env(name: str) -> list[str]:
+    raw = os.getenv(name, "")
+    return [item.strip().rstrip("/") for item in raw.split(",") if item.strip()]
+
+
+_BASE_ALLOWED_ORIGINS = [
     "https://court-legal-chatbot-frontend.onrender.com",
     "https://hasti304.github.io",
     "http://localhost:3000",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
+ALLOWED_ORIGINS = list(dict.fromkeys([*_BASE_ALLOWED_ORIGINS, *_split_csv_env("CORS_ALLOWED_ORIGINS")]))
 
-# Browsers treat http://localhost:PORT and http://127.0.0.1:PORT as different origins.
-# Regex covers any dev port on localhost / 127.0.0.1 so Vite + API mismatches still get CORS headers.
-_CORS_ORIGIN_REGEX = r"https://.*\.onrender\.com|http://(localhost|127\.0\.0\.1)(:\d+)?$"
+# Browsers treat localhost and 127.0.0.1 as different origins; Authorization header triggers preflight.
+# Keep regex strict and explicit so Render frontend deployments always receive ACAO headers.
+_DEFAULT_CORS_ORIGIN_REGEX = r"^https://([a-z0-9-]+)\.onrender\.com$|^http://(localhost|127\.0\.0\.1)(:\d+)?$"
+_custom_cors_regex = os.getenv("CORS_ALLOWED_ORIGIN_REGEX", "").strip()
+_CORS_ORIGIN_REGEX = (
+    f"(?:{_DEFAULT_CORS_ORIGIN_REGEX})|(?:{_custom_cors_regex})"
+    if _custom_cors_regex
+    else _DEFAULT_CORS_ORIGIN_REGEX
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -67,6 +83,15 @@ app.add_middleware(
     expose_headers=["*"],
     max_age=86400,
 )
+
+
+@app.middleware("http")
+async def debug_cors_middleware(request, call_next):
+    try:
+        response = await call_next(request)
+    except Exception:
+        raise
+    return response
 app.include_router(core_router)
 app.include_router(intake_router)
 app.include_router(admin_router)

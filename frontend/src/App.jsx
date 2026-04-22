@@ -1678,7 +1678,11 @@ function App() {
                 aria-label={showLoginPassword ? t("login.hidePassword") : t("login.showPassword")}
                 variant="outline"
               >
-                {showLoginPassword ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
+                {showLoginPassword ? (
+                  <EyeOff className="size-4 auth-eye-icon" aria-hidden />
+                ) : (
+                  <Eye className="size-4 auth-eye-icon" aria-hidden />
+                )}
               </Button>
             </div>
             {loginPassword ? (
@@ -1965,7 +1969,11 @@ function App() {
                 aria-label={showResetPassword1 ? t("login.hidePassword") : t("login.showPassword")}
                 variant="outline"
               >
-                {showResetPassword1 ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
+                {showResetPassword1 ? (
+                  <EyeOff className="size-4 auth-eye-icon" aria-hidden />
+                ) : (
+                  <Eye className="size-4 auth-eye-icon" aria-hidden />
+                )}
               </Button>
             </div>
             {resetPassword1 ? (
@@ -1998,7 +2006,11 @@ function App() {
                 aria-label={showResetPassword2 ? t("login.hidePassword") : t("login.showPassword")}
                 variant="outline"
               >
-                {showResetPassword2 ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
+                {showResetPassword2 ? (
+                  <EyeOff className="size-4 auth-eye-icon" aria-hidden />
+                ) : (
+                  <Eye className="size-4 auth-eye-icon" aria-hidden />
+                )}
               </Button>
             </div>
             <Button type="submit" className="auth-github-btn-primary" disabled={resetBusy} size="lg">
@@ -2218,7 +2230,11 @@ function App() {
                   disabled={loading}
                   aria-label={showIntakePassword ? t("login.hidePassword") : t("login.showPassword")}
                 >
-                  {showIntakePassword ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
+                  {showIntakePassword ? (
+                    <EyeOff className="size-4 auth-eye-icon" aria-hidden />
+                  ) : (
+                    <Eye className="size-4 auth-eye-icon" aria-hidden />
+                  )}
                 </button>
               </div>
               <div className="auth-password-wrap">
@@ -2239,9 +2255,9 @@ function App() {
                   aria-label={showIntakePasswordConfirm ? t("login.hidePassword") : t("login.showPassword")}
                 >
                   {showIntakePasswordConfirm ? (
-                    <EyeOff className="size-4" aria-hidden />
+                    <EyeOff className="size-4 auth-eye-icon" aria-hidden />
                   ) : (
-                    <Eye className="size-4" aria-hidden />
+                    <Eye className="size-4 auth-eye-icon" aria-hidden />
                   )}
                 </button>
               </div>
@@ -2528,6 +2544,32 @@ function App() {
       )}
 
       <div className="chat-container">
+        {intakeSaved && intakeId ? (
+          <aside className="client-session-panel" aria-label="Client session controls">
+            <h3>Client panel</h3>
+            <p>Use this panel to manage your session and quickly navigate.</p>
+            <button
+              type="button"
+              className="btn btn-toolbar btn-panel-home"
+              onClick={() => setView("cover")}
+            >
+              Home
+            </button>
+            <button
+              type="button"
+              className="btn btn-toolbar btn-panel-signout"
+              onClick={() => {
+                clearSavedIntake();
+                setShowChat(false);
+                setView("login");
+              }}
+            >
+              Sign out
+            </button>
+          </aside>
+        ) : null}
+
+        <div className="chat-workspace">
         <div className="safety-toolbar">
           <button
             type="button"
@@ -2970,6 +3012,7 @@ function App() {
           </p>
         </div>
         </main>
+        </div>
 
         <SiteFooter
           supportEmail={SUPPORT_EMAIL}

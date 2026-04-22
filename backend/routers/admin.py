@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 try:
     from ..database import get_db
     from ..schemas.intake import AdminIntakeCreateRequest
-    from ..services.admin_auth_service import try_login
+    from ..services.admin_auth_service import logout_admin_session, try_login
     from ..services.config_service import SUPPORTED_LANGS
     from ..services.evidence_service import get_evidence_timeline_for_admin
     from ..services.intake_service import (
@@ -19,13 +19,14 @@ try:
         export_intakes_csv,
         list_intake_events_for_admin,
         list_intakes_for_admin,
+        require_admin_access,
         send_intake_staff_email,
         set_intake_admin_status,
     )
 except ImportError:
     from database import get_db  # type: ignore
     from schemas.intake import AdminIntakeCreateRequest  # type: ignore
-    from services.admin_auth_service import try_login  # type: ignore
+    from services.admin_auth_service import logout_admin_session, try_login  # type: ignore
     from services.config_service import SUPPORTED_LANGS  # type: ignore
     from services.evidence_service import get_evidence_timeline_for_admin  # type: ignore
     from services.intake_service import (  # type: ignore
@@ -37,6 +38,7 @@ except ImportError:
         export_intakes_csv,
         list_intake_events_for_admin,
         list_intakes_for_admin,
+        require_admin_access,
         send_intake_staff_email,
         set_intake_admin_status,
     )
@@ -74,6 +76,14 @@ class AdminIntakeEmailBody(BaseModel):
 def admin_login_endpoint(body: AdminLoginBody):
     token, expires_in = try_login(body.email, body.password)
     return {"access_token": token, "token_type": "bearer", "expires_in": expires_in}
+
+
+@router.post("/admin/logout")
+def admin_logout_endpoint(request: Request):
+    # Require a valid current admin token, then rotate session version to revoke active tokens.
+    require_admin_access(request)
+    logout_admin_session()
+    return {"ok": True}
 
 
 @router.get("/admin/intakes")

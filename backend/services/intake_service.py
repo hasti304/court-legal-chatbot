@@ -16,15 +16,23 @@ from sqlalchemy.orm import Session
 try:
     from ..models import Intake, IntakeSubmission, MagicLinkToken
     from .auth_password_service import hash_password
-    from .admin_auth_service import admin_request_authorized
-    from .config_service import ADMIN_EXPORT_KEY, engine, groq_configured
-    from .transactional_email import send_transactional_email
+    from .admin_auth_service import admin_login_configured, admin_request_authorized
+    from .config_service import ADMIN_EMAIL, ADMIN_EXPORT_KEY, ADMIN_JWT_SECRET, engine, groq_configured
+    from .transactional_email import (
+        email_provider_configured,
+        email_provider_hint,
+        send_transactional_email,
+    )
 except ImportError:
     from models import Intake, IntakeSubmission, MagicLinkToken  # type: ignore
     from services.auth_password_service import hash_password  # type: ignore
-    from services.admin_auth_service import admin_request_authorized  # type: ignore
-    from services.config_service import ADMIN_EXPORT_KEY, engine, groq_configured  # type: ignore
-    from services.transactional_email import send_transactional_email  # type: ignore
+    from services.admin_auth_service import admin_login_configured, admin_request_authorized  # type: ignore
+    from services.config_service import ADMIN_EMAIL, ADMIN_EXPORT_KEY, ADMIN_JWT_SECRET, engine, groq_configured  # type: ignore
+    from services.transactional_email import (  # type: ignore
+        email_provider_configured,
+        email_provider_hint,
+        send_transactional_email,
+    )
 
 
 def normalize_language(lang: Optional[str], supported_langs: set[str]) -> str:
@@ -836,28 +844,86 @@ def list_intakes_for_admin(request: Request, db: Session):
     require_admin_access(request)
     ensure_tables()
     safe_limit = 500
-    rows = db.execute(
-        text(
-            """
-            SELECT
-              i.id,
-              i.first_name,
-              i.last_name,
-              i.email,
-              i.phone,
-              i.zip,
-              i.language,
-              CAST(i.consent AS INTEGER) AS consent,
-              i.created_at,
-              COALESCE(NULLIF(TRIM(i.admin_status), ''), 'pending') AS admin_status,
-              COALESCE(i.login_count, 0) AS login_count,
-              ts.topic AS issue_topic,
-              ts.problem_summary AS problem_summary,
+    bind = db.get_bind()
+    dialect_name = getattr(getattr(bind, "dialect", None), "name", "") if bind is not None else ""
+
+    def _column_exists(table_name: str, column_name: str) -> bool:
+        try:
+            if dialect_name == "sqlite":
+                cols = db.execute(text(f"PRAGMA table_info({table_name})")).fetchall()
+                return any(str(c[1]) == column_name for c in cols)
+            row = db.execute(
+                text(
+                    """
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_name = :table_name
+                      AND column_name = :column_name
+                    LIMIT 1
+                    """
+                ),
+                {"table_name": table_name, "column_name": column_name},
+            ).first()
+            return row is not None
+        except Exception:
+            return False
+
+    def _table_exists(table_name: str) -> bool:
+        try:
+            if dialect_name == "sqlite":
+                row = db.execute(
+                    text("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = :table_name LIMIT 1"),
+                    {"table_name": table_name},
+                ).first()
+                return row is not None
+            row = db.execute(
+                text(
+                    """
+                    SELECT 1
+                    FROM information_schema.tables
+                    WHERE table_name = :table_name
+                    LIMIT 1
+                    """
+                ),
+                {"table_name": table_name},
+            ).first()
+            return row is not None
+        except Exception:
+            return False
+
+    has_triage_sessions = _table_exists("triage_sessions")
+    has_deadlines = _table_exists("intake_deadlines")
+    has_intake_events = _table_exists("intake_events")
+    has_admin_status = _column_exists("intakes", "admin_status")
+    has_login_count = _column_exists("intakes", "login_count")
+    has_problem_summary = has_triage_sessions and _column_exists("triage_sessions", "problem_summary")
+
+    admin_status_expr = (
+        "COALESCE(NULLIF(TRIM(i.admin_status), ''), 'pending') AS admin_status"
+        if has_admin_status
+        else "'pending' AS admin_status"
+    )
+    login_count_expr = "COALESCE(i.login_count, 0) AS login_count" if has_login_count else "0 AS login_count"
+    problem_summary_expr = "ts.problem_summary AS problem_summary" if has_problem_summary else "NULL AS problem_summary"
+    issue_topic_expr = "ts.topic AS issue_topic" if has_triage_sessions else "NULL AS issue_topic"
+    consent_expr = (
+        "CAST(i.consent AS INTEGER) AS consent"
+        if dialect_name == "sqlite"
+        else "CASE WHEN i.consent THEN 1 ELSE 0 END AS consent"
+    )
+    next_deadline_date_expr = (
+        """
               (
                 SELECT MIN(d.due_date)
                 FROM intake_deadlines d
                 WHERE d.intake_id = i.id
               ) AS next_deadline_date,
+        """
+        if has_deadlines
+        else "NULL AS next_deadline_date,"
+    )
+    next_deadline_type_expr = (
+        """
               (
                 SELECT d2.deadline_type
                 FROM intake_deadlines d2
@@ -865,43 +931,117 @@ def list_intakes_for_admin(request: Request, db: Session):
                 ORDER BY d2.due_date ASC
                 LIMIT 1
               ) AS next_deadline_type,
+        """
+        if has_deadlines
+        else "NULL AS next_deadline_type,"
+    )
+    deadline_count_expr = (
+        """
               (
                 SELECT COUNT(*)
                 FROM intake_deadlines d3
                 WHERE d3.intake_id = i.id
               ) AS deadline_count
-            FROM intakes i
-            LEFT JOIN triage_sessions ts ON ts.intake_id = i.id
-            ORDER BY i.created_at DESC
-            LIMIT :lim
-            """
-        ),
-        {"lim": safe_limit},
-    ).mappings().all()
+        """
+        if has_deadlines
+        else "0 AS deadline_count"
+    )
+    triage_join = "LEFT JOIN triage_sessions ts ON ts.intake_id = i.id" if has_triage_sessions else ""
+
+    try:
+        rows = db.execute(
+            text(
+                f"""
+                SELECT
+                  i.id,
+                  i.first_name,
+                  i.last_name,
+                  i.email,
+                  i.phone,
+                  i.zip,
+                  i.language,
+                  {consent_expr},
+                  i.created_at,
+                  {admin_status_expr},
+                  {login_count_expr},
+                  {issue_topic_expr},
+                  {problem_summary_expr},
+                  {next_deadline_date_expr}
+                  {next_deadline_type_expr}
+                  {deadline_count_expr}
+                FROM intakes i
+                {triage_join}
+                ORDER BY i.created_at DESC
+                LIMIT :lim
+                """
+            ),
+            {"lim": safe_limit},
+        ).mappings().all()
+    except Exception:
+        # Fallback keeps admin UI operational when optional roadmap tables are absent/inaccessible.
+        fallback_rows = (
+            db.query(Intake)
+            .order_by(Intake.created_at.desc())
+            .limit(safe_limit)
+            .all()
+        )
+        rows = [
+            {
+                "id": r.id,
+                "first_name": r.first_name,
+                "last_name": r.last_name,
+                "email": r.email,
+                "phone": r.phone,
+                "zip": r.zip,
+                "language": r.language,
+                "consent": bool(getattr(r, "consent", False)),
+                "created_at": r.created_at,
+                "admin_status": (str(getattr(r, "admin_status", "") or "").strip() or "pending"),
+                "login_count": int(getattr(r, "login_count", 0) or 0),
+                "issue_topic": None,
+                "problem_summary": None,
+                "next_deadline_date": None,
+                "next_deadline_type": None,
+                "deadline_count": 0,
+            }
+            for r in fallback_rows
+        ]
     intake_ids = [str(r.get("id") or "").strip() for r in rows if str(r.get("id") or "").strip()]
     intake_id_set = set(intake_ids)
     intake_events_by_id: Dict[str, List[Dict[str, Any]]] = {}
-    if intake_ids:
-        event_rows = db.execute(
-            text(
-                """
-                SELECT intake_id, event_type, event_value, created_at
-                FROM intake_events
-                WHERE event_type IN (
-                  'topic_selected',
-                  'problem_summary',
-                  'problem_summary_alternate_topic',
-                  'navigator_login'
-                )
-                ORDER BY created_at DESC
-                """
-            )
-        ).mappings().all()
-        for er in event_rows:
-            iid = str(er.get("intake_id") or "").strip()
-            if not iid or iid not in intake_id_set:
-                continue
-            intake_events_by_id.setdefault(iid, []).append(dict(er))
+    if intake_ids and has_intake_events:
+        try:
+            # Scope event reads strictly to the visible intake set to avoid full-table scans/timeouts.
+            chunks = [intake_ids[i:i + 100] for i in range(0, len(intake_ids), 100)]
+            total_event_rows = 0
+            for chunk in chunks:
+                params = {f"iid{i}": v for i, v in enumerate(chunk)}
+                placeholders = ", ".join(f":iid{i}" for i in range(len(chunk)))
+                event_rows = db.execute(
+                    text(
+                        f"""
+                        SELECT intake_id, event_type, event_value, created_at
+                        FROM intake_events
+                        WHERE intake_id IN ({placeholders})
+                          AND event_type IN (
+                            'topic_selected',
+                            'problem_summary',
+                            'problem_summary_alternate_topic',
+                            'navigator_login'
+                          )
+                        ORDER BY created_at DESC
+                        """
+                    ),
+                    params,
+                ).mappings().all()
+                total_event_rows += len(event_rows)
+                for er in event_rows:
+                    iid = str(er.get("intake_id") or "").strip()
+                    if not iid or iid not in intake_id_set:
+                        continue
+                    intake_events_by_id.setdefault(iid, []).append(dict(er))
+        except Exception:
+            intake_events_by_id = {}
     out = []
     for r in rows:
         d = dict(r)
@@ -1464,6 +1604,20 @@ def admin_health_checks(request: Request, db: Session) -> dict:
     except Exception as e:
         checks.append({"name": "Database connectivity", "status": "fail", "detail": str(e)})
 
+    # Check 1b: basic DB read for sessions/events to catch partial migration issues.
+    try:
+        sessions = int(db.execute(text("SELECT COUNT(*) FROM triage_sessions")).scalar() or 0)
+        events = int(db.execute(text("SELECT COUNT(*) FROM intake_events")).scalar() or 0)
+        checks.append(
+            {
+                "name": "Session/event analytics tables",
+                "status": "pass",
+                "detail": f"Triage sessions: {sessions}. Intake events: {events}.",
+            }
+        )
+    except Exception as e:
+        checks.append({"name": "Session/event analytics tables", "status": "fail", "detail": str(e)})
+
     # Check 2: critical tables for new roadmap tasks.
     required_tables = ["triage_sessions", "intake_deadlines", "evidence_files"]
     missing = []
@@ -1520,6 +1674,43 @@ def admin_health_checks(request: Request, db: Session) -> dict:
             "detail": "Configured" if groq_configured else "Not configured (fallback summaries active).",
         }
     )
+
+    # Check 5: transactional email provider (required for magic-link and staff email notifications).
+    email_ok = bool(email_provider_configured())
+    checks.append(
+        {
+            "name": "Transactional email provider",
+            "status": "pass" if email_ok else "warn",
+            "detail": email_provider_hint() if email_ok else "Not configured; sign-in links/notifications may fail.",
+        }
+    )
+
+    # Check 6: admin auth configuration sanity.
+    has_admin_email = bool((ADMIN_EMAIL or "").strip())
+    has_admin_jwt = bool((ADMIN_JWT_SECRET or "").strip() or (ADMIN_EXPORT_KEY or "").strip())
+    if has_admin_email and has_admin_jwt and admin_login_configured():
+        checks.append(
+            {
+                "name": "Admin auth configuration",
+                "status": "pass",
+                "detail": "Admin email, password source, and JWT secret are configured.",
+            }
+        )
+    else:
+        missing_bits = []
+        if not has_admin_email:
+            missing_bits.append("ADMIN_EMAIL")
+        if not has_admin_jwt:
+            missing_bits.append("ADMIN_JWT_SECRET (or ADMIN_EXPORT_KEY)")
+        if not admin_login_configured():
+            missing_bits.append("admin password source")
+        checks.append(
+            {
+                "name": "Admin auth configuration",
+                "status": "fail",
+                "detail": f"Missing/invalid: {', '.join(missing_bits)}",
+            }
+        )
 
     failed = sum(1 for c in checks if c["status"] == "fail")
     warned = sum(1 for c in checks if c["status"] == "warn")
