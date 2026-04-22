@@ -326,7 +326,22 @@ export default function AdminPortal() {
         ...(options.headers || {}),
         ...adminAuthHeaders(),
       };
-      return fetch(apiUrl(path), { ...options, headers });
+      try {
+        return await fetch(apiUrl(path), { ...options, headers });
+      } catch (err) {
+        const msg = String(err?.message || "").toLowerCase();
+        const isNetworkFailure =
+          err instanceof TypeError ||
+          msg.includes("failed to fetch") ||
+          msg.includes("networkerror") ||
+          msg.includes("load failed");
+        if (isNetworkFailure) {
+          throw new Error(
+            "Cannot reach the API right now (possible cold start or temporary outage). Please wait a few seconds and try again."
+          );
+        }
+        throw err;
+      }
     },
     [apiUrl]
   );
@@ -398,15 +413,22 @@ export default function AdminPortal() {
       setIntakes(Array.isArray(data) ? data : []);
     } catch (err) {
       setIntakes([]);
-      setLoadError(
+      let detail = "";
+      try {
+        const health = await fetch(apiUrl("/health"));
+        if (health.ok) detail = "API is up, but admin endpoint failed. Try signing out/in again.";
+      } catch {
+        detail = "API health check is unreachable from this browser origin.";
+      }
+      const baseMessage =
         err?.message && String(err.message).trim().length > 0
           ? String(err.message)
-          : "Failed to load intakes."
-      );
+          : "Failed to load intakes.";
+      setLoadError(detail ? `${baseMessage} ${detail}` : baseMessage);
     } finally {
       setLoading(false);
     }
-  }, [authFetch]);
+  }, [apiUrl, authFetch]);
 
   const openActivityModal = async (row) => {
     setActivityModal(row);

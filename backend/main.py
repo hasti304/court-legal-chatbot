@@ -52,20 +52,23 @@ def _split_csv_env(name: str) -> list[str]:
     return [item.strip().rstrip("/") for item in raw.split(",") if item.strip()]
 
 
-ALLOWED_ORIGINS = [
+_BASE_ALLOWED_ORIGINS = [
     "https://court-legal-chatbot-frontend.onrender.com",
     "https://hasti304.github.io",
     "http://localhost:3000",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    *_split_csv_env("CORS_ALLOWED_ORIGINS"),
 ]
+ALLOWED_ORIGINS = list(dict.fromkeys([*_BASE_ALLOWED_ORIGINS, *_split_csv_env("CORS_ALLOWED_ORIGINS")]))
 
 # Browsers treat localhost and 127.0.0.1 as different origins; Authorization header triggers preflight.
 # Keep regex strict and explicit so Render frontend deployments always receive ACAO headers.
+_DEFAULT_CORS_ORIGIN_REGEX = r"^https://([a-z0-9-]+)\.onrender\.com$|^http://(localhost|127\.0\.0\.1)(:\d+)?$"
+_custom_cors_regex = os.getenv("CORS_ALLOWED_ORIGIN_REGEX", "").strip()
 _CORS_ORIGIN_REGEX = (
-    os.getenv("CORS_ALLOWED_ORIGIN_REGEX", "").strip()
-    or r"^https://([a-z0-9-]+)\.onrender\.com$|^http://(localhost|127\.0\.0\.1)(:\d+)?$"
+    f"(?:{_DEFAULT_CORS_ORIGIN_REGEX})|(?:{_custom_cors_regex})"
+    if _custom_cors_regex
+    else _DEFAULT_CORS_ORIGIN_REGEX
 )
 
 app.add_middleware(
