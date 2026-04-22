@@ -13,9 +13,7 @@ import {
   FaSignOutAlt,
   FaTrashAlt,
 } from "react-icons/fa";
-import { getApiBaseUrl } from "../utils/apiBase";
-
-const API_BASE = getApiBaseUrl();
+import { getApiBaseUrl, rewriteLegacyRenderFetchUrl } from "../utils/apiBase";
 
 const SUPPORT_EMAIL = "intake@chicagoadvocatelegal.com";
 
@@ -41,11 +39,14 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
     "speechSynthesis" in window &&
     typeof window.SpeechSynthesisUtterance !== "undefined";
 
-  const apiUrl = (path) => `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`;
+  const apiUrl = (path) => {
+    const base = getApiBaseUrl();
+    return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+  };
 
   const fetchWithTimeout = (url, options = {}, timeout = 8000) =>
     Promise.race([
-      fetch(url, options),
+      fetch(typeof url === "string" ? rewriteLegacyRenderFetchUrl(url) : url, options),
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error("Request timeout")), timeout)
       ),

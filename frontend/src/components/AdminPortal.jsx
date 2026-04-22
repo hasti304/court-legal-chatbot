@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { FaMoon, FaSun } from "react-icons/fa";
+import { FaMoon, FaSun, FaEye, FaEyeSlash } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
 import StatusBanner from "./StatusBanner";
 import "./AdminPortal.css";
@@ -11,8 +11,6 @@ import {
 } from "../utils/adminAuth";
 import { getStoredTheme, persistTheme } from "../utils/themeStorage";
 import { getApiBaseUrl } from "../utils/apiBase";
-
-const API_BASE = getApiBaseUrl();
 const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
 
 function initialTabFromHash() {
@@ -171,7 +169,10 @@ function deadlineBadgeMeta(daysLeft) {
 export default function AdminPortal() {
   const { t } = useTranslation();
   const apiUrl = useMemo(
-    () => (path) => `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`,
+    () => (path) => {
+      const base = getApiBaseUrl();
+      return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+    },
     []
   );
   const staffAdminUrl = useMemo(() => getStaffAdminUrl(), []);
@@ -180,6 +181,7 @@ export default function AdminPortal() {
   const [token, setToken] = useState(() => getAdminToken());
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showStaffPassword, setShowStaffPassword] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
 
@@ -857,15 +859,26 @@ export default function AdminPortal() {
             </div>
             <div className="admin-portal-field">
               <label htmlFor="admin-password">Password</label>
-              <input
-                id="admin-password"
-                className="admin-portal-input"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <div className="admin-portal-password-wrap">
+                <input
+                  id="admin-password"
+                  className="admin-portal-input admin-portal-input--with-toggle"
+                  type={showStaffPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  className="admin-portal-password-toggle"
+                  onClick={() => setShowStaffPassword((s) => !s)}
+                  aria-label={showStaffPassword ? t("login.hidePassword") : t("login.showPassword")}
+                  title={showStaffPassword ? t("login.hidePassword") : t("login.showPassword")}
+                >
+                  {showStaffPassword ? <FaEyeSlash size={16} aria-hidden /> : <FaEye size={16} aria-hidden />}
+                </button>
+              </div>
             </div>
             <button
               type="submit"

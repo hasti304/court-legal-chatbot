@@ -28,7 +28,7 @@ import SiteFooter from "./components/SiteFooter";
 import TrustPanel from "./components/TrustPanel";
 import { printReferralsSummary } from "./utils/printReferrals";
 import { STORAGE_KEY } from "./utils/storageKeys";
-import { getApiBaseUrl } from "./utils/apiBase";
+import { getApiBaseUrl, rewriteLegacyRenderFetchUrl } from "./utils/apiBase";
 import {
   getPendingTriageFromStorage,
   clearSavedChatState,
@@ -56,9 +56,13 @@ const INTAKE_SAVED_KEY = "cal_intake_saved_v1";
 const LARGE_TEXT_KEY = "cal_large_text_v1";
 const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
 
-const API_BASE = getApiBaseUrl();
-
 const SUPPORT_EMAIL = "intake@chicagoadvocatelegal.com";
+
+function isLocalDevHost() {
+  if (typeof window === "undefined") return false;
+  const h = window.location.hostname || "";
+  return h === "localhost" || h === "127.0.0.1";
+}
 
 function isValidEmail(email) {
   const v = String(email || "").trim();
@@ -97,8 +101,9 @@ function initialAuthView() {
 }
 
 function fetchWithTimeout(url, options = {}, timeout = DEFAULT_FETCH_TIMEOUT_MS) {
+  const target = typeof url === "string" ? rewriteLegacyRenderFetchUrl(url) : url;
   return Promise.race([
-    fetch(url, options),
+    fetch(target, options),
     new Promise((_, reject) =>
       setTimeout(() => reject(new Error("Request timeout")), timeout)
     ),
@@ -122,7 +127,8 @@ async function postIntakeStartWithRetry(url, payload, onRetryStart) {
   } catch (error) {
     if (String(error?.message || "").toLowerCase().includes("timeout")) {
       if (typeof onRetryStart === "function") onRetryStart();
-      await fetchWithTimeout(`${API_BASE}/health`, {}, WARMUP_TIMEOUT_MS).catch(() => null);
+      const base = getApiBaseUrl();
+      await fetchWithTimeout(`${base}/health`, {}, WARMUP_TIMEOUT_MS).catch(() => null);
       return run();
     }
     throw error;
@@ -301,6 +307,7 @@ function App() {
   const [intakeLastName, setIntakeLastName] = useState("");
   const [intakeEmail, setIntakeEmail] = useState("");
   const [intakePassword, setIntakePassword] = useState("");
+  const [intakePasswordConfirm, setIntakePasswordConfirm] = useState("");
   const [intakePhone, setIntakePhone] = useState("");
   const [intakeConsent, setIntakeConsent] = useState(false);
 
@@ -333,6 +340,7 @@ function App() {
   const [resetBusy, setResetBusy] = useState(false);
   const [resetError, setResetError] = useState("");
   const [showIntakePassword, setShowIntakePassword] = useState(false);
+  const [showIntakePasswordConfirm, setShowIntakePasswordConfirm] = useState(false);
 
   const [largeText, setLargeText] = useState(
     () => localStorage.getItem(LARGE_TEXT_KEY) === "1"
@@ -351,7 +359,10 @@ function App() {
   const [speechEnabled, setSpeechEnabled] = useState(false);
   const [speaking, setSpeaking] = useState(false);
 
-  const apiUrl = (path) => `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`;
+  const apiUrl = (path) => {
+    const base = getApiBaseUrl();
+    return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+  };
 
   const passwordStrengthKey = (passwordRaw) => {
     const password = String(passwordRaw || "");
@@ -415,8 +426,10 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const apiPath = (path) =>
-      `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`;
+    const apiPath = (path) => {
+      const base = getApiBaseUrl();
+      return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+    };
     const params = new URLSearchParams(window.location.search);
     const fresh = params.get("fresh") === "1";
 
@@ -1341,6 +1354,10 @@ function App() {
       setIntakeError(t("login.passwordTooShort"));
       return;
     }
+    if (String(intakePasswordConfirm || "").trim() !== String(intakePassword || "").trim()) {
+      setIntakeError(t("login.passwordMismatch"));
+      return;
+    }
 
     setLoading(true);
     setIntakeSubmitPhase("saving");
@@ -1379,6 +1396,7 @@ function App() {
       localStorage.setItem(INTAKE_ID_KEY, newId);
       localStorage.setItem(INTAKE_SAVED_KEY, "1");
       setIntakePassword("");
+      setIntakePasswordConfirm("");
 
       setView("intakeSuccess");
     } catch (e) {
@@ -1706,7 +1724,7 @@ function App() {
             {t("login.checkBody", { email: magicLinkSentTo || "—" })}
           </p>
 
-          {magicDevLink ? (
+          {magicDevLink && isLocalDevHost() ? (
             <div className="auth-github-dev-box">
               <p className="auth-github-dev-label">{t("login.devLinkLabel")}</p>
               <a className="auth-github-text-link auth-github-dev-link" href={magicDevLink}>
@@ -1787,7 +1805,7 @@ function App() {
                 {forgotNotice}
               </div>
             ) : null}
-            {forgotDevLink ? (
+            {forgotDevLink && isLocalDevHost() ? (
               <div className="auth-github-dev-box">
                 <p className="auth-github-dev-label">{t("login.resetDevLinkLabel")}</p>
                 <a className="auth-github-text-link auth-github-dev-link" href={forgotDevLink}>
@@ -2038,6 +2056,31 @@ function App() {
           <h1 className="auth-github-title">{t("login.createAccountTitle")}</h1>
           <p className="auth-github-sub">{t("intake.subtitle")}</p>
 
+          <div className="auth-github-intake-role-row" role="group" aria-label={t("login.intakeLoginChoiceAria")}>
+            <button
+              type="button"
+              className="auth-github-btn-secondary auth-github-intake-role-btn"
+              onClick={() => {
+                setMagicLinkError("");
+                setMagicVerifyError("");
+                setView("login");
+              }}
+              disabled={loading}
+            >
+              {t("login.clientLogin")}
+            </button>
+            <button
+              type="button"
+              className="auth-github-btn-secondary auth-github-intake-role-btn"
+              onClick={() => {
+                window.location.hash = "#/admin";
+              }}
+              disabled={loading}
+            >
+              {t("login.staffLogin")}
+            </button>
+          </div>
+
           <p className="auth-github-returning">
             {t("login.returningPrompt")}{" "}
             <button
@@ -2113,6 +2156,30 @@ function App() {
                   {showIntakePassword ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
                 </button>
               </div>
+              <div className="auth-password-wrap">
+                <input
+                  className="auth-github-input auth-github-input--in-password-wrap"
+                  type={showIntakePasswordConfirm ? "text" : "password"}
+                  value={intakePasswordConfirm}
+                  onChange={(e) => setIntakePasswordConfirm(e.target.value)}
+                  placeholder={t("login.confirmAccountPassword")}
+                  autoComplete="new-password"
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  className="auth-password-toggle auth-password-toggle--icon"
+                  onClick={() => setShowIntakePasswordConfirm((s) => !s)}
+                  disabled={loading}
+                  aria-label={showIntakePasswordConfirm ? t("login.hidePassword") : t("login.showPassword")}
+                >
+                  {showIntakePasswordConfirm ? (
+                    <EyeOff className="size-4" aria-hidden />
+                  ) : (
+                    <Eye className="size-4" aria-hidden />
+                  )}
+                </button>
+              </div>
               {intakePassword ? (
                 <p className={`auth-password-strength auth-password-strength--${passwordStrengthKey(intakePassword)}`}>
                   {t(`login.passwordStrength.${passwordStrengthKey(intakePassword)}`)}
@@ -2161,7 +2228,6 @@ function App() {
           className={footerAuthClass}
           supportEmail={SUPPORT_EMAIL}
           onPrivacyClick={() => setView("privacy")}
-          showStaffSignIn
         />
         <EmergencyButton />
       </div>

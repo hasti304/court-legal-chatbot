@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -22,6 +24,7 @@ try:
         reset_password,
     )
     from ..services.admin_auth_service import admin_login_configured
+    from ..services.config_service import ADMIN_EMAIL, ADMIN_EXPORT_KEY, ADMIN_JWT_SECRET
     from ..services.transactional_email import email_provider_configured, email_provider_hint
 except ImportError:
     from database import get_db  # type: ignore
@@ -44,6 +47,7 @@ except ImportError:
         reset_password,
     )
     from services.admin_auth_service import admin_login_configured  # type: ignore
+    from services.config_service import ADMIN_EMAIL, ADMIN_EXPORT_KEY, ADMIN_JWT_SECRET  # type: ignore
     from services.transactional_email import email_provider_configured, email_provider_hint  # type: ignore
 
 router = APIRouter()
@@ -76,8 +80,27 @@ def password_reset(payload: PasswordResetBody, db: Session = Depends(get_db)):
 
 @router.get("/auth/config-status")
 def auth_config_status():
+    has_pwd_hash = bool((os.getenv("ADMIN_PASSWORD_HASH") or "").strip())
+    allow_plain = os.getenv("ADMIN_ALLOW_PLAIN_PASSWORD", "").strip().lower() in ("1", "true", "yes")
+    has_plain_pwd = bool((os.getenv("ADMIN_PASSWORD") or "").strip())
+    admin_password_ok = has_pwd_hash or (allow_plain and has_plain_pwd)
+    admin_jwt_ok = bool((ADMIN_JWT_SECRET or "").strip() or (ADMIN_EXPORT_KEY or "").strip())
+
+    hints: list[str] = []
+    if not admin_password_ok:
+        hints.append(
+            "Set ADMIN_PASSWORD_HASH (bcrypt), or for local dev only ADMIN_ALLOW_PLAIN_PASSWORD=true plus ADMIN_PASSWORD."
+        )
+    if not admin_jwt_ok:
+        hints.append("Set ADMIN_JWT_SECRET (or legacy ADMIN_EXPORT_KEY) so staff login can issue a token.")
+
     return {
         "admin_login_configured": bool(admin_login_configured()),
+        "admin_ready_for_login": bool(admin_login_configured()) and admin_jwt_ok,
+        "admin_password_configured": admin_password_ok,
+        "admin_jwt_configured": admin_jwt_ok,
+        "admin_email_effective": (ADMIN_EMAIL or "").strip().lower() or None,
         "email_provider_configured": bool(email_provider_configured()),
         "email_provider_hint": email_provider_hint(),
+        "admin_setup_hints": hints,
     }

@@ -1,8 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { getApiBaseUrl } from "../utils/apiBase";
 
-const API_BASE = getApiBaseUrl();
-
 const TEMPLATE_LABELS = {
   demand_letter: "Demand Letter",
   lease_termination: "Lease Termination Letter",
@@ -267,7 +265,7 @@ export default function DocumentGeneratorPanel({ topic = "general", intakeId = "
 
       const results = await Promise.all(
         targets.map(async (email) => {
-          const response = await fetch(`${API_BASE}/documents/email`, {
+          const response = await fetch(`${getApiBaseUrl()}/documents/email`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payloadFor(email)),
@@ -320,7 +318,7 @@ export default function DocumentGeneratorPanel({ topic = "general", intakeId = "
       formData.append("file", selectedUpload);
       formData.append("intake_id", intakeId || "");
       formData.append("document_context", templateId);
-      const response = await fetch(`${API_BASE}/documents/upload`, {
+      const response = await fetch(`${getApiBaseUrl()}/documents/upload`, {
         method: "POST",
         body: formData,
       });
