@@ -110,6 +110,54 @@ function fetchWithTimeout(url, options = {}, timeout = DEFAULT_FETCH_TIMEOUT_MS)
   ]);
 }
 
+/**
+ * Email magic links use `/?magic_token=…`. Some clients or redirects leave the token only
+ * inside the hash (`#/…?magic_token=…`), where `location.search` is empty — then verify would
+ * send an empty token unless we read the hash too.
+ */
+function getMagicTokenFromLocation() {
+  try {
+    const fromSearch = new URLSearchParams(window.location.search).get("magic_token");
+    if (fromSearch) return String(fromSearch).trim();
+    const hash = window.location.hash || "";
+    const m = /[?&]magic_token=([^&]+)/.exec(hash);
+    if (!m) return "";
+    let v = m[1];
+    try {
+      v = decodeURIComponent(v.replace(/\+/g, "%20"));
+    } catch {
+      /* keep raw fragment */
+    }
+    return String(v).trim();
+  } catch {
+    return "";
+  }
+}
+
+function stripMagicTokenFromLocation() {
+  try {
+    const path = window.location.pathname || "/";
+    const sp = new URLSearchParams(
+      (window.location.search || "").startsWith("?") ? window.location.search.slice(1) : window.location.search
+    );
+    sp.delete("magic_token");
+    const qs = sp.toString();
+
+    let hash = window.location.hash || "";
+    if (hash.includes("magic_token=")) {
+      hash = hash.replace(/\?magic_token=[^&]+/g, "").replace(/&magic_token=[^&]+/g, "");
+      hash = hash.replace(/\?$/, "");
+    }
+
+    window.history.replaceState({}, "", `${path}${qs ? `?${qs}` : ""}${hash}`);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Survives React StrictMode double-effect so we do not POST verify twice for one token. */
+let __magicLinkAutoVerifyToken = "";
+
 async function postIntakeStartWithRetry(url, payload, onRetryStart) {
   const run = () =>
     fetchWithTimeout(
@@ -455,16 +503,16 @@ function App() {
       return undefined;
     }
 
-    const token = params.get("magic_token");
+    const token = getMagicTokenFromLocation();
     if (!token) return undefined;
-    setMagicTokenPending(String(token).trim());
+    setMagicTokenPending(token);
     setMagicVerifyError("");
     setView("login");
     return undefined;
   }, []);
 
-  const verifyPendingMagicLink = async () => {
-    const token = String(magicTokenPending || "").trim();
+  const verifyMagicLinkWithToken = async (tokenOverride) => {
+    const token = String(tokenOverride ?? magicTokenPending ?? "").trim();
     if (!token || magicVerifyBusy) return;
     setMagicVerifyBusy(true);
     setMagicVerifyError("");
@@ -480,14 +528,20 @@ function App() {
       );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data?.detail ? String(data.detail) : i18n.t("login.verifyFailed"));
+        const d = data?.detail;
+        const detailMsg = Array.isArray(d)
+          ? d
+              .map((x) => (typeof x === "string" ? x : x?.msg || JSON.stringify(x)))
+              .filter(Boolean)
+              .join("; ")
+          : d != null
+            ? String(d)
+            : "";
+        throw new Error(detailMsg || i18n.t("login.verifyFailed"));
       }
-      const p = new URLSearchParams(window.location.search);
-      p.delete("magic_token");
-      const qs = p.toString();
-      const newUrl = `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash || ""}`;
-      window.history.replaceState({}, "", newUrl);
+      stripMagicTokenFromLocation();
       setMagicTokenPending("");
+      __magicLinkAutoVerifyToken = "";
       completeLogin(data.intake_id);
     } catch (err) {
       setMagicVerifyError(
@@ -499,6 +553,17 @@ function App() {
       setMagicVerifyBusy(false);
     }
   };
+
+  const verifyPendingMagicLink = async () => verifyMagicLinkWithToken(magicTokenPending);
+
+  useEffect(() => {
+    if (view !== "login") return;
+    const token = String(magicTokenPending || "").trim();
+    if (!token) return;
+    if (__magicLinkAutoVerifyToken === token) return;
+    __magicLinkAutoVerifyToken = token;
+    void verifyMagicLinkWithToken(token);
+  }, [view, magicTokenPending]);
 
   useEffect(() => {
     document.documentElement.setAttribute("dir", "ltr");

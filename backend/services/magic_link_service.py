@@ -72,7 +72,9 @@ def _build_magic_url(plain_token: str) -> str:
     base = (FRONTEND_BASE_URL or "").rstrip("/")
     if not base:
         base = "http://localhost:5173"
-    return f"{base}/?magic_token={plain_token}"
+    # Put the token in the hash so it survives clients/redirects that rewrite "/?…" to "/#/" and drop the query string.
+    # The SPA reads magic_token from location.search or location.hash (see frontend getMagicTokenFromLocation).
+    return f"{base}/#/?magic_token={plain_token}"
 
 
 def _send_via_resend(to_email: str, magic_url: str) -> bool:
