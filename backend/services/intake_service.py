@@ -4,6 +4,8 @@ import io
 import json
 import os
 import re
+import time
+import uuid
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
@@ -49,6 +51,24 @@ def normalize_language(lang: Optional[str], supported_langs: set[str]) -> str:
 
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+_DEBUG_LOG_PATH = "debug-c1e03b.log"
+
+
+def _append_debug_log(hypothesis_id: str, location: str, message: str, data: dict) -> None:
+    payload = {
+        "sessionId": "c1e03b",
+        "runId": "initial",
+        "hypothesisId": hypothesis_id,
+        "id": f"log_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}",
+        "timestamp": int(time.time() * 1000),
+        "location": location,
+        "message": message,
+        "data": data,
+    }
+    with open(_DEBUG_LOG_PATH, "a", encoding="utf-8") as f:
+        f.write(json.dumps(payload, ensure_ascii=True) + "\n")
 
 
 def normalize_us_phone(phone: str) -> str:
@@ -948,6 +968,15 @@ def list_intakes_for_admin(request: Request, db: Session):
     )
     triage_join = "LEFT JOIN triage_sessions ts ON ts.intake_id = i.id" if has_triage_sessions else ""
 
+    # region agent log
+    _append_debug_log(
+        "H5",
+        "backend/services/intake_service.py:list_intakes_for_admin:start",
+        "Admin intakes list start",
+        {"safe_limit": safe_limit},
+    )
+    # endregion
+
     rows = db.execute(
         text(
             f"""
@@ -976,33 +1005,66 @@ def list_intakes_for_admin(request: Request, db: Session):
         ),
         {"lim": safe_limit},
     ).mappings().all()
+    # region agent log
+    _append_debug_log(
+        "H5",
+        "backend/services/intake_service.py:list_intakes_for_admin:rows",
+        "Primary intake rows fetched",
+        {"rows_count": len(rows)},
+    )
+    # endregion
     intake_ids = [str(r.get("id") or "").strip() for r in rows if str(r.get("id") or "").strip()]
     intake_id_set = set(intake_ids)
     intake_events_by_id: Dict[str, List[Dict[str, Any]]] = {}
     if intake_ids and has_intake_events:
         try:
-            event_rows = db.execute(
-                text(
-                    """
-                    SELECT intake_id, event_type, event_value, created_at
-                    FROM intake_events
-                    WHERE event_type IN (
-                      'topic_selected',
-                      'problem_summary',
-                      'problem_summary_alternate_topic',
-                      'navigator_login'
-                    )
-                    ORDER BY created_at DESC
-                    """
-                )
-            ).mappings().all()
-            for er in event_rows:
-                iid = str(er.get("intake_id") or "").strip()
-                if not iid or iid not in intake_id_set:
-                    continue
-                intake_events_by_id.setdefault(iid, []).append(dict(er))
+            # Scope event reads strictly to the visible intake set to avoid full-table scans/timeouts.
+            chunks = [intake_ids[i:i + 100] for i in range(0, len(intake_ids), 100)]
+            total_event_rows = 0
+            for chunk in chunks:
+                params = {f"iid{i}": v for i, v in enumerate(chunk)}
+                placeholders = ", ".join(f":iid{i}" for i in range(len(chunk)))
+                event_rows = db.execute(
+                    text(
+                        f"""
+                        SELECT intake_id, event_type, event_value, created_at
+                        FROM intake_events
+                        WHERE intake_id IN ({placeholders})
+                          AND event_type IN (
+                            'topic_selected',
+                            'problem_summary',
+                            'problem_summary_alternate_topic',
+                            'navigator_login'
+                          )
+                        ORDER BY created_at DESC
+                        """
+                    ),
+                    params,
+                ).mappings().all()
+                total_event_rows += len(event_rows)
+                for er in event_rows:
+                    iid = str(er.get("intake_id") or "").strip()
+                    if not iid or iid not in intake_id_set:
+                        continue
+                    intake_events_by_id.setdefault(iid, []).append(dict(er))
+            # region agent log
+            _append_debug_log(
+                "H6",
+                "backend/services/intake_service.py:list_intakes_for_admin:events",
+                "Scoped intake event rows fetched",
+                {"intake_count": len(intake_ids), "event_rows_count": total_event_rows, "chunk_count": len(chunks)},
+            )
+            # endregion
         except Exception:
             intake_events_by_id = {}
+            # region agent log
+            _append_debug_log(
+                "H6",
+                "backend/services/intake_service.py:list_intakes_for_admin:event_query_exception",
+                "Event enrichment query failed and was skipped",
+                {"intake_count": len(intake_ids)},
+            )
+            # endregion
     out = []
     for r in rows:
         d = dict(r)
