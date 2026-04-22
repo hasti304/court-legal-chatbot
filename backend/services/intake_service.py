@@ -868,9 +868,35 @@ def list_intakes_for_admin(request: Request, db: Session):
         except Exception:
             return False
 
+    def _table_exists(table_name: str) -> bool:
+        try:
+            if dialect_name == "sqlite":
+                row = db.execute(
+                    text("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = :table_name LIMIT 1"),
+                    {"table_name": table_name},
+                ).first()
+                return row is not None
+            row = db.execute(
+                text(
+                    """
+                    SELECT 1
+                    FROM information_schema.tables
+                    WHERE table_name = :table_name
+                    LIMIT 1
+                    """
+                ),
+                {"table_name": table_name},
+            ).first()
+            return row is not None
+        except Exception:
+            return False
+
+    has_triage_sessions = _table_exists("triage_sessions")
+    has_deadlines = _table_exists("intake_deadlines")
+    has_intake_events = _table_exists("intake_events")
     has_admin_status = _column_exists("intakes", "admin_status")
     has_login_count = _column_exists("intakes", "login_count")
-    has_problem_summary = _column_exists("triage_sessions", "problem_summary")
+    has_problem_summary = has_triage_sessions and _column_exists("triage_sessions", "problem_summary")
 
     admin_status_expr = (
         "COALESCE(NULLIF(TRIM(i.admin_status), ''), 'pending') AS admin_status"
@@ -879,6 +905,48 @@ def list_intakes_for_admin(request: Request, db: Session):
     )
     login_count_expr = "COALESCE(i.login_count, 0) AS login_count" if has_login_count else "0 AS login_count"
     problem_summary_expr = "ts.problem_summary AS problem_summary" if has_problem_summary else "NULL AS problem_summary"
+    issue_topic_expr = "ts.topic AS issue_topic" if has_triage_sessions else "NULL AS issue_topic"
+    consent_expr = (
+        "CAST(i.consent AS INTEGER) AS consent"
+        if dialect_name == "sqlite"
+        else "CASE WHEN i.consent THEN 1 ELSE 0 END AS consent"
+    )
+    next_deadline_date_expr = (
+        """
+              (
+                SELECT MIN(d.due_date)
+                FROM intake_deadlines d
+                WHERE d.intake_id = i.id
+              ) AS next_deadline_date,
+        """
+        if has_deadlines
+        else "NULL AS next_deadline_date,"
+    )
+    next_deadline_type_expr = (
+        """
+              (
+                SELECT d2.deadline_type
+                FROM intake_deadlines d2
+                WHERE d2.intake_id = i.id
+                ORDER BY d2.due_date ASC
+                LIMIT 1
+              ) AS next_deadline_type,
+        """
+        if has_deadlines
+        else "NULL AS next_deadline_type,"
+    )
+    deadline_count_expr = (
+        """
+              (
+                SELECT COUNT(*)
+                FROM intake_deadlines d3
+                WHERE d3.intake_id = i.id
+              ) AS deadline_count
+        """
+        if has_deadlines
+        else "0 AS deadline_count"
+    )
+    triage_join = "LEFT JOIN triage_sessions ts ON ts.intake_id = i.id" if has_triage_sessions else ""
 
     rows = db.execute(
         text(
@@ -891,31 +959,17 @@ def list_intakes_for_admin(request: Request, db: Session):
               i.phone,
               i.zip,
               i.language,
-              CAST(i.consent AS INTEGER) AS consent,
+              {consent_expr},
               i.created_at,
               {admin_status_expr},
               {login_count_expr},
-              ts.topic AS issue_topic,
+              {issue_topic_expr},
               {problem_summary_expr},
-              (
-                SELECT MIN(d.due_date)
-                FROM intake_deadlines d
-                WHERE d.intake_id = i.id
-              ) AS next_deadline_date,
-              (
-                SELECT d2.deadline_type
-                FROM intake_deadlines d2
-                WHERE d2.intake_id = i.id
-                ORDER BY d2.due_date ASC
-                LIMIT 1
-              ) AS next_deadline_type,
-              (
-                SELECT COUNT(*)
-                FROM intake_deadlines d3
-                WHERE d3.intake_id = i.id
-              ) AS deadline_count
+              {next_deadline_date_expr}
+              {next_deadline_type_expr}
+              {deadline_count_expr}
             FROM intakes i
-            LEFT JOIN triage_sessions ts ON ts.intake_id = i.id
+            {triage_join}
             ORDER BY i.created_at DESC
             LIMIT :lim
             """
@@ -925,27 +979,30 @@ def list_intakes_for_admin(request: Request, db: Session):
     intake_ids = [str(r.get("id") or "").strip() for r in rows if str(r.get("id") or "").strip()]
     intake_id_set = set(intake_ids)
     intake_events_by_id: Dict[str, List[Dict[str, Any]]] = {}
-    if intake_ids:
-        event_rows = db.execute(
-            text(
-                """
-                SELECT intake_id, event_type, event_value, created_at
-                FROM intake_events
-                WHERE event_type IN (
-                  'topic_selected',
-                  'problem_summary',
-                  'problem_summary_alternate_topic',
-                  'navigator_login'
+    if intake_ids and has_intake_events:
+        try:
+            event_rows = db.execute(
+                text(
+                    """
+                    SELECT intake_id, event_type, event_value, created_at
+                    FROM intake_events
+                    WHERE event_type IN (
+                      'topic_selected',
+                      'problem_summary',
+                      'problem_summary_alternate_topic',
+                      'navigator_login'
+                    )
+                    ORDER BY created_at DESC
+                    """
                 )
-                ORDER BY created_at DESC
-                """
-            )
-        ).mappings().all()
-        for er in event_rows:
-            iid = str(er.get("intake_id") or "").strip()
-            if not iid or iid not in intake_id_set:
-                continue
-            intake_events_by_id.setdefault(iid, []).append(dict(er))
+            ).mappings().all()
+            for er in event_rows:
+                iid = str(er.get("intake_id") or "").strip()
+                if not iid or iid not in intake_id_set:
+                    continue
+                intake_events_by_id.setdefault(iid, []).append(dict(er))
+        except Exception:
+            intake_events_by_id = {}
     out = []
     for r in rows:
         d = dict(r)
