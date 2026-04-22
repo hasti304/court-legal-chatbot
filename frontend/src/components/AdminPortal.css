@@ -261,6 +261,12 @@
   box-shadow: 0 0 0 3px rgba(47, 109, 182, 0.24);
 }
 
+.admin-eye-icon {
+  color: #355279;
+  stroke-width: 2.25;
+  filter: drop-shadow(0 1px 0 #ffffff) drop-shadow(0 1.5px 2px rgba(35, 61, 94, 0.28));
+}
+
 .admin-portal-tabs {
   display: flex;
   flex-wrap: wrap;

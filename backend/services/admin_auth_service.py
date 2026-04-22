@@ -47,15 +47,18 @@ def admin_login_configured() -> bool:
 
 def _verify_password(plain: str) -> bool:
     h = (os.getenv("ADMIN_PASSWORD_HASH") or "").strip()
+    allow_plain = os.getenv("ADMIN_ALLOW_PLAIN_PASSWORD", "").strip().lower() in ("1", "true", "yes")
     if h:
         try:
-            return bcrypt.checkpw(
+            if bcrypt.checkpw(
                 (plain or "").encode("utf-8"),
                 h.encode("utf-8"),
-            )
+            ):
+                return True
         except Exception:
-            return False
-    if os.getenv("ADMIN_ALLOW_PLAIN_PASSWORD", "").strip().lower() in ("1", "true", "yes"):
+            # Treat an invalid hash as non-match and allow explicit dev fallback below.
+            pass
+    if allow_plain:
         expected = (os.getenv("ADMIN_PASSWORD") or "").strip()
         if not expected:
             return False

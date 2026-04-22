@@ -2938,6 +2938,12 @@ a:focus-visible,
   padding: 0;
 }
 
+.auth-eye-icon {
+  color: #334e73;
+  stroke-width: 2.25;
+  filter: drop-shadow(0 1px 0 #ffffff) drop-shadow(0 1.5px 2px rgba(35, 61, 94, 0.28));
+}
+
 .auth-password-toggle:hover:not(:disabled) {
   border-color: #8b949e;
 }

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { FaMoon, FaSun, FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaMoon, FaSun } from "react-icons/fa";
+import { Eye, EyeOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import StatusBanner from "./StatusBanner";
 import "./AdminPortal.css";
@@ -876,7 +877,11 @@ export default function AdminPortal() {
                   aria-label={showStaffPassword ? t("login.hidePassword") : t("login.showPassword")}
                   title={showStaffPassword ? t("login.hidePassword") : t("login.showPassword")}
                 >
-                  {showStaffPassword ? <FaEyeSlash size={16} aria-hidden /> : <FaEye size={16} aria-hidden />}
+                  {showStaffPassword ? (
+                    <EyeOff className="admin-eye-icon" size={16} aria-hidden />
+                  ) : (
+                    <Eye className="admin-eye-icon" size={16} aria-hidden />
+                  )}
                 </button>
               </div>
             </div>
