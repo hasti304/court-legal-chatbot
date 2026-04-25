@@ -6,15 +6,21 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_SQLITE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'app.db')}"
-DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_SQLITE_URL)
+_raw = (os.getenv("DATABASE_URL") or "").strip() or DEFAULT_SQLITE_URL
+# SQLAlchemy 2.x removed the legacy "postgres" dialect; Render still provides postgres:// URLs.
+if _raw.startswith("postgres://"):
+    _raw = _raw.replace("postgres://", "postgresql://", 1)
+DATABASE_URL = _raw
 
 engine_kwargs: dict = {}
 if DATABASE_URL.startswith("sqlite"):
     engine_kwargs["connect_args"] = {"check_same_thread": False}
 elif DATABASE_URL.startswith("postgresql"):
-    # Render and other managed PostgreSQL hosts require SSL; add it when not already specified in the URL.
-    if "sslmode" not in DATABASE_URL:
+    # Managed Postgres (Render, etc.) requires TLS unless the URL already sets SSL params.
+    lower = DATABASE_URL.lower()
+    if "sslmode=" not in lower and "ssl=" not in lower:
         engine_kwargs["connect_args"] = {"sslmode": "require"}
+    engine_kwargs["pool_pre_ping"] = True
 
 engine = create_engine(DATABASE_URL, **engine_kwargs)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
