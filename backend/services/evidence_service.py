@@ -51,12 +51,9 @@ def ensure_evidence_tables() -> None:
     CREATE INDEX IF NOT EXISTS idx_evidence_files_intake_uploaded
     ON evidence_files (intake_id, uploaded_at);
     """
-    try:
-        with engine.begin() as conn:
-            conn.execute(text(create_evidence))
-            conn.execute(text(create_idx))
-    except Exception as e:
-        print(f"Warning: ensure_evidence_tables failed: {e}")
+    with engine.begin() as conn:
+        conn.execute(text(create_evidence))
+        conn.execute(text(create_idx))
 
 
 def _extract_text_from_txt(content: bytes) -> str:

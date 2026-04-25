@@ -46,5 +46,3 @@ logs/
 backend/app.db
 backend/intakes.csv
 *.csv
-# Added by code-review-graph
-.code-review-graph/
