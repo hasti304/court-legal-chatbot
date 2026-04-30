@@ -25,7 +25,7 @@ ADMIN_JWT_EXPIRE_MINUTES = int(os.getenv("ADMIN_JWT_EXPIRE_MINUTES", "480") or "
 # Magic link sign-in (email must match an existing intake row)
 FRONTEND_BASE_URL = os.getenv(
     "FRONTEND_BASE_URL",
-    "https://hasti304.github.io/court-legal-chatbot",
+    "http://localhost:5173",
 ).strip().rstrip("/")
 
 

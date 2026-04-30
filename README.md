@@ -1,7 +1,7 @@
 ![Frontend](https://img.shields.io/badge/Frontend-React%20%2B%20Vite-0ea5e9)
 ![Backend](https://img.shields.io/badge/Backend-FastAPI-22c55e)
 ![Database](https://img.shields.io/badge/Database-SQLAlchemy-f59e0b)
-![Deployment](https://img.shields.io/badge/Deploy-Render-8b5cf6)
+![Deployment](https://img.shields.io/badge/Deploy-Render%20(API)%20%2B%20Vercel%20(App)-8b5cf6)
 
 # CAL Legal Chatbot
 
@@ -11,8 +11,8 @@ This project is built as a production-style full-stack system (`React + FastAPI 
 
 ## Live Links
 
-- App: [court-legal-chatbot-frontend.onrender.com](https://court-legal-chatbot-frontend.onrender.com)
-- API: [court-legal-chatbot-1.onrender.com](https://court-legal-chatbot-1.onrender.com)
+- App: set after Vercel deploy (for example `https://your-app.vercel.app`)
+- API: set after Render deploy (for example `https://your-backend.onrender.com`)
 - Repository: [github.com/hasti304/court-legal-chatbot](https://github.com/hasti304/court-legal-chatbot)
 
 Render free-tier services may take a few seconds to wake up on first request.
@@ -143,10 +143,11 @@ If outbound email is not configured, magic-link URLs are printed in backend logs
 
 ## Deployment
 
-The project is configured for Render-hosted deployment with separate frontend and backend services.
+The project is configured for:
 
-- Frontend: static build and hosting
-- Backend: FastAPI API service
+- Frontend: Vercel (Vite static build)
+- Backend: Render web service (FastAPI)
+- Database: Supabase Postgres
 
 ## Safety and Legal Boundary
 

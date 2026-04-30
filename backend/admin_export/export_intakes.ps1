@@ -2,7 +2,7 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$AdminKey,
 
-  [string]$BaseUrl = "https://court-legal-chatbot.onrender.com",
+  [string]$BaseUrl = "https://your-backend.onrender.com",
 
   [string]$OutDir = "."
 )

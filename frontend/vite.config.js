@@ -5,24 +5,9 @@ import path from "node:path";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const isGhPagesBuild = mode === "gh-pages";
-  const deployTarget = String(
-    env.VITE_DEPLOY_TARGET || (isGhPagesBuild ? "gh-pages" : "")
-  ).toLowerCase();
+  const deployTarget = String(env.VITE_DEPLOY_TARGET || "").toLowerCase();
   const appBase = deployTarget === "gh-pages" ? "/court-legal-chatbot/" : "/";
-  let apiBase = String(env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
-  if (isGhPagesBuild && !apiBase) {
-    apiBase = "https://court-legal-chatbot-1.onrender.com";
-  }
-  try {
-    const u = new URL(apiBase || "https://court-legal-chatbot-1.onrender.com");
-    if (u.hostname === "court-legal-chatbot.onrender.com") {
-      u.hostname = "court-legal-chatbot-1.onrender.com";
-      apiBase = u.toString().replace(/\/+$/, "");
-    }
-  } catch {
-    /* ignore */
-  }
+  const apiBase = String(env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
   let apiOrigin = "";
   if (apiBase) {
     try {
@@ -38,7 +23,7 @@ export default defineConfig(({ mode }) => {
   );
 
   return {
-    // Render and most hosts serve at "/". For GitHub Pages, set VITE_DEPLOY_TARGET=gh-pages.
+    // Vercel/Render and most hosts serve at "/". GitHub Pages uses "/court-legal-chatbot/".
     base: appBase,
     resolve: {
       alias: {

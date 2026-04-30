@@ -2,38 +2,6 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!--
-      Legacy Render API hostname breaks CORS from GitHub Pages. This runs before React / SW-cached
-      bundles load and rewrites any fetch() to the correct API host.
-    -->
-    <script>
-      (function () {
-        try {
-          var h = location.hostname || "";
-          var p = location.pathname || "";
-          var href = location.href || "";
-          var inRepo =
-            /court-legal-chatbot/i.test(p) ||
-            /court-legal-chatbot/i.test(location.search || "") ||
-            /court-legal-chatbot/i.test(location.hash || "") ||
-            /court-legal-chatbot/i.test(href);
-          if (!h.endsWith("github.io") || !inRepo) return;
-          var good = "https://court-legal-chatbot-1.onrender.com";
-          var re = /https?:\/\/court-legal-chatbot\.onrender\.com/gi;
-          var origFetch = window.fetch;
-          window.fetch = function (input, init) {
-            if (typeof input === "string") {
-              input = input.replace(re, good);
-            } else if (input && typeof Request !== "undefined" && input instanceof Request) {
-              var u = input.url.replace(re, good);
-              if (u !== input.url) input = new Request(u, input);
-            }
-            return origFetch.call(this, input, init);
-          };
-        } catch (e) {}
-      })();
-    </script>
-
     <!-- Viewport (safe-area for notched phones; avoids 100vh jump on mobile browsers) -->
     <meta
       name="viewport"
