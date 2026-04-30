@@ -58,6 +58,7 @@ def _split_csv_env(name: str) -> list[str]:
 _BASE_ALLOWED_ORIGINS = [
     "https://court-legal-chatbot-frontend.onrender.com",
     "https://hasti304.github.io",
+    "https://court-legal-chatbot.vercel.app",
     "http://localhost:3000",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
@@ -66,7 +67,11 @@ ALLOWED_ORIGINS = list(dict.fromkeys([*_BASE_ALLOWED_ORIGINS, *_split_csv_env("C
 
 # Browsers treat localhost and 127.0.0.1 as different origins; Authorization header triggers preflight.
 # Keep regex strict and explicit so Render frontend deployments always receive ACAO headers.
-_DEFAULT_CORS_ORIGIN_REGEX = r"^https://([a-z0-9-]+)\.onrender\.com$|^http://(localhost|127\.0\.0\.1)(:\d+)?$"
+_DEFAULT_CORS_ORIGIN_REGEX = (
+    r"^https://([a-z0-9-]+)\.onrender\.com$"
+    r"|^https://([a-z0-9-]+)\.vercel\.app$"
+    r"|^http://(localhost|127\.0\.0\.1)(:\d+)?$"
+)
 _custom_cors_regex = os.getenv("CORS_ALLOWED_ORIGIN_REGEX", "").strip()
 _CORS_ORIGIN_REGEX = (
     f"(?:{_DEFAULT_CORS_ORIGIN_REGEX})|(?:{_custom_cors_regex})"
