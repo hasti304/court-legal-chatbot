@@ -9,7 +9,7 @@ __pycache__/
 
 .venv/
 venv/
-.python-version
+# .python-version is committed so Render (and teammates) use the same Python pin.
 
 # Env files
 .env
