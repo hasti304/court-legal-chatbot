@@ -355,10 +355,7 @@ def _migrate_intakes_admin_status(conn) -> None:
             conn.execute(text("ALTER TABLE intakes ADD COLUMN admin_status TEXT DEFAULT 'pending'"))
             conn.execute(text("UPDATE intakes SET admin_status = 'pending' WHERE admin_status IS NULL"))
         else:
-            try:
-                conn.execute(text("ALTER TABLE intakes ADD COLUMN admin_status VARCHAR(32) DEFAULT 'pending'"))
-            except Exception:
-                pass
+            conn.execute(text("ALTER TABLE intakes ADD COLUMN IF NOT EXISTS admin_status VARCHAR(32) DEFAULT 'pending'"))
     except Exception as e:
         print(f"Warning: intakes admin_status migration skipped: {e}")
 
@@ -376,10 +373,7 @@ def _migrate_triage_sessions_problem_summary(conn) -> None:
                 return
             conn.execute(text("ALTER TABLE triage_sessions ADD COLUMN problem_summary TEXT"))
         else:
-            try:
-                conn.execute(text("ALTER TABLE triage_sessions ADD COLUMN problem_summary TEXT"))
-            except Exception:
-                pass
+            conn.execute(text("ALTER TABLE triage_sessions ADD COLUMN IF NOT EXISTS problem_summary TEXT"))
     except Exception as e:
         print(f"Warning: triage_sessions problem_summary migration skipped: {e}")
 
@@ -397,10 +391,7 @@ def _migrate_intakes_login_count(conn) -> None:
                 return
             conn.execute(text("ALTER TABLE intakes ADD COLUMN login_count INTEGER NOT NULL DEFAULT 0"))
         else:
-            try:
-                conn.execute(text("ALTER TABLE intakes ADD COLUMN login_count INTEGER NOT NULL DEFAULT 0"))
-            except Exception:
-                pass
+            conn.execute(text("ALTER TABLE intakes ADD COLUMN IF NOT EXISTS login_count INTEGER NOT NULL DEFAULT 0"))
     except Exception as e:
         print(f"Warning: intakes login_count migration skipped: {e}")
 
@@ -418,10 +409,7 @@ def _migrate_intakes_password_hash(conn) -> None:
                 return
             conn.execute(text("ALTER TABLE intakes ADD COLUMN password_hash TEXT"))
         else:
-            try:
-                conn.execute(text("ALTER TABLE intakes ADD COLUMN password_hash TEXT"))
-            except Exception:
-                pass
+            conn.execute(text("ALTER TABLE intakes ADD COLUMN IF NOT EXISTS password_hash TEXT"))
     except Exception as e:
         print(f"Warning: intakes password_hash migration skipped: {e}")
 
