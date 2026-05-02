@@ -283,7 +283,6 @@ def ensure_triage_sessions_table_exists() -> None:
     try:
         with engine.begin() as conn:
             _apply_triage_sessions_ddl(conn)
-            _migrate_triage_sessions_problem_summary(conn)
     except Exception as e:
         print(f"Warning: ensure_triage_sessions_table_exists failed: {e}")
 
@@ -342,20 +341,50 @@ def ensure_tables():
     ON intake_deadlines (intake_id, due_date);
     """
 
+    # Each phase runs in its own transaction so a failed ALTER TABLE migration
+    # cannot abort the PostgreSQL transaction that contains the CREATE TABLEs.
+    # In PostgreSQL a single failed statement marks the whole transaction as
+    # aborted — even when the Python exception is caught — causing COMMIT to
+    # silently ROLLBACK every preceding DDL statement in the same transaction.
+
+    # Phase 1: base tables (intakes must exist before events/deadlines FK refs)
     try:
         with engine.begin() as conn:
             conn.execute(text(create_intakes))
             conn.execute(text(create_events))
-            _apply_triage_sessions_ddl(conn)
-            conn.execute(text(create_events_index))
             conn.execute(text(create_deadlines))
-            conn.execute(text(create_deadlines_index))
-            _migrate_intakes_admin_status(conn)
-            _migrate_intakes_password_hash(conn)
-            _migrate_intakes_login_count(conn)
-            _migrate_triage_sessions_problem_summary(conn)
     except SQLAlchemyError as e:
-        print(f"Warning: ensure_tables failed: {e}")
+        print(f"Warning: ensure_tables (base tables) failed: {e}")
+
+    # Phase 2: triage_sessions (separate so its creation is never rolled back
+    # by a migration failure below)
+    try:
+        with engine.begin() as conn:
+            _apply_triage_sessions_ddl(conn)
+    except SQLAlchemyError as e:
+        print(f"Warning: ensure_tables (triage_sessions) failed: {e}")
+
+    # Phase 3: indexes for base tables
+    try:
+        with engine.begin() as conn:
+            conn.execute(text(create_events_index))
+            conn.execute(text(create_deadlines_index))
+    except SQLAlchemyError as e:
+        print(f"Warning: ensure_tables (indexes) failed: {e}")
+
+    # Phase 4: column migrations — one transaction each so a single failure
+    # never prevents the others from running
+    for migration_fn in [
+        _migrate_intakes_admin_status,
+        _migrate_intakes_password_hash,
+        _migrate_intakes_login_count,
+        _migrate_triage_sessions_problem_summary,
+    ]:
+        try:
+            with engine.begin() as conn:
+                migration_fn(conn)
+        except Exception as e:
+            print(f"Warning: migration {migration_fn.__name__} skipped: {e}")
 
 
 def _migrate_intakes_admin_status(conn) -> None:
@@ -364,17 +393,13 @@ def _migrate_intakes_admin_status(conn) -> None:
         dialect = conn.engine.dialect.name
     except Exception:
         dialect = ""
-    try:
-        if dialect == "sqlite":
-            cols = {r[1] for r in conn.execute(text("PRAGMA table_info(intakes)")).fetchall()}
-            if "admin_status" in cols:
-                return
+    if dialect == "sqlite":
+        cols = {r[1] for r in conn.execute(text("PRAGMA table_info(intakes)")).fetchall()}
+        if "admin_status" not in cols:
             conn.execute(text("ALTER TABLE intakes ADD COLUMN admin_status TEXT DEFAULT 'pending'"))
             conn.execute(text("UPDATE intakes SET admin_status = 'pending' WHERE admin_status IS NULL"))
-        else:
-            conn.execute(text("ALTER TABLE intakes ADD COLUMN IF NOT EXISTS admin_status VARCHAR(32) DEFAULT 'pending'"))
-    except Exception as e:
-        print(f"Warning: intakes admin_status migration skipped: {e}")
+    else:
+        conn.execute(text("ALTER TABLE intakes ADD COLUMN IF NOT EXISTS admin_status VARCHAR(32) DEFAULT 'pending'"))
 
 
 def _migrate_triage_sessions_problem_summary(conn) -> None:
@@ -383,16 +408,12 @@ def _migrate_triage_sessions_problem_summary(conn) -> None:
         dialect = conn.engine.dialect.name
     except Exception:
         dialect = ""
-    try:
-        if dialect == "sqlite":
-            cols = {r[1] for r in conn.execute(text("PRAGMA table_info(triage_sessions)")).fetchall()}
-            if "problem_summary" in cols:
-                return
+    if dialect == "sqlite":
+        cols = {r[1] for r in conn.execute(text("PRAGMA table_info(triage_sessions)")).fetchall()}
+        if "problem_summary" not in cols:
             conn.execute(text("ALTER TABLE triage_sessions ADD COLUMN problem_summary TEXT"))
-        else:
-            conn.execute(text("ALTER TABLE triage_sessions ADD COLUMN IF NOT EXISTS problem_summary TEXT"))
-    except Exception as e:
-        print(f"Warning: triage_sessions problem_summary migration skipped: {e}")
+    else:
+        conn.execute(text("ALTER TABLE triage_sessions ADD COLUMN IF NOT EXISTS problem_summary TEXT"))
 
 
 def _migrate_intakes_login_count(conn) -> None:
@@ -401,16 +422,12 @@ def _migrate_intakes_login_count(conn) -> None:
         dialect = conn.engine.dialect.name
     except Exception:
         dialect = ""
-    try:
-        if dialect == "sqlite":
-            cols = {r[1] for r in conn.execute(text("PRAGMA table_info(intakes)")).fetchall()}
-            if "login_count" in cols:
-                return
+    if dialect == "sqlite":
+        cols = {r[1] for r in conn.execute(text("PRAGMA table_info(intakes)")).fetchall()}
+        if "login_count" not in cols:
             conn.execute(text("ALTER TABLE intakes ADD COLUMN login_count INTEGER NOT NULL DEFAULT 0"))
-        else:
-            conn.execute(text("ALTER TABLE intakes ADD COLUMN IF NOT EXISTS login_count INTEGER NOT NULL DEFAULT 0"))
-    except Exception as e:
-        print(f"Warning: intakes login_count migration skipped: {e}")
+    else:
+        conn.execute(text("ALTER TABLE intakes ADD COLUMN IF NOT EXISTS login_count INTEGER NOT NULL DEFAULT 0"))
 
 
 def _migrate_intakes_password_hash(conn) -> None:
@@ -419,16 +436,12 @@ def _migrate_intakes_password_hash(conn) -> None:
         dialect = conn.engine.dialect.name
     except Exception:
         dialect = ""
-    try:
-        if dialect == "sqlite":
-            cols = {r[1] for r in conn.execute(text("PRAGMA table_info(intakes)")).fetchall()}
-            if "password_hash" in cols:
-                return
+    if dialect == "sqlite":
+        cols = {r[1] for r in conn.execute(text("PRAGMA table_info(intakes)")).fetchall()}
+        if "password_hash" not in cols:
             conn.execute(text("ALTER TABLE intakes ADD COLUMN password_hash TEXT"))
-        else:
-            conn.execute(text("ALTER TABLE intakes ADD COLUMN IF NOT EXISTS password_hash TEXT"))
-    except Exception as e:
-        print(f"Warning: intakes password_hash migration skipped: {e}")
+    else:
+        conn.execute(text("ALTER TABLE intakes ADD COLUMN IF NOT EXISTS password_hash TEXT"))
 
 
 def ensure_triage_session_row(conn, intake_id: str):
