@@ -72,7 +72,7 @@ const resources = {
         createAccount: "Create an account",
         createAccountTitle: "Create an account",
         clientLogin: "Client login",
-        staffLogin: "Staff login",
+        staffLogin: "Admin login",
         intakeLoginChoiceAria: "Choose client or staff sign-in",
         welcomeBackTitle: "Welcome back",
         welcomeBackBody:
@@ -127,6 +127,8 @@ const resources = {
         continueToPortal: "Continue to resources",
         serverError:
           "Sorry – we could not save your information. Please try again.",
+        duplicateAccount:
+          "An account already exists with this email or phone number. Please sign in, or use a different email and phone number to register.",
       },
 
       privacy: {
@@ -564,7 +566,7 @@ const resources = {
         createAccount: "Crear una cuenta",
         createAccountTitle: "Crear una cuenta",
         clientLogin: "Inicio de cliente",
-        staffLogin: "Acceso de personal",
+        staffLogin: "Acceso de administrador",
         intakeLoginChoiceAria: "Elija inicio de sesión de cliente o de personal",
         welcomeBackTitle: "Bienvenido/a de nuevo",
         welcomeBackBody:
@@ -619,6 +621,8 @@ const resources = {
         continueToPortal: "Continuar a los recursos",
         serverError:
           "Lo siento – no pudimos guardar su información. Inténtelo de nuevo.",
+        duplicateAccount:
+          "Ya existe una cuenta con este correo o número de teléfono. Inicie sesión o use otro correo y número para registrarse.",
       },
 
       privacy: {

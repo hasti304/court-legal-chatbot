@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
-from sqlalchemy import desc, func, text
+from sqlalchemy import desc, func, or_, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -234,6 +234,60 @@ def require_admin_access(request: Request) -> None:
     raise HTTPException(status_code=401, detail="Unauthorized")
 
 
+_CREATE_TRIAGE_SESSIONS_SQL = """
+CREATE TABLE IF NOT EXISTS triage_sessions (
+  intake_id TEXT PRIMARY KEY,
+  started_at TEXT NOT NULL,
+  last_seen_at TEXT NOT NULL,
+  topic TEXT,
+  emergency TEXT,
+  in_court BOOLEAN,
+  income TEXT,
+  zip_code TEXT,
+  level INTEGER,
+  referral_count INTEGER NOT NULL DEFAULT 0,
+  referral_names TEXT NOT NULL DEFAULT '[]',
+  completed BOOLEAN NOT NULL DEFAULT FALSE,
+  completed_at TEXT,
+  ai_used BOOLEAN NOT NULL DEFAULT FALSE,
+  ai_used_at TEXT,
+  restart_count INTEGER NOT NULL DEFAULT 0,
+  back_count INTEGER NOT NULL DEFAULT 0,
+  last_event_type TEXT,
+  problem_summary TEXT,
+  FOREIGN KEY (intake_id) REFERENCES intakes(id)
+);
+"""
+
+_CREATE_TRIAGE_TOPIC_INDEX_SQL = """
+CREATE INDEX IF NOT EXISTS idx_triage_sessions_topic
+ON triage_sessions (topic);
+"""
+
+_CREATE_TRIAGE_ZIP_INDEX_SQL = """
+CREATE INDEX IF NOT EXISTS idx_triage_sessions_zip
+ON triage_sessions (zip_code);
+"""
+
+
+def _apply_triage_sessions_ddl(conn) -> None:
+    conn.execute(text(_CREATE_TRIAGE_SESSIONS_SQL))
+    conn.execute(text(_CREATE_TRIAGE_TOPIC_INDEX_SQL))
+    conn.execute(text(_CREATE_TRIAGE_ZIP_INDEX_SQL))
+
+
+def ensure_triage_sessions_table_exists() -> None:
+    """Idempotent: ensures triage_sessions exists even if a prior ensure_tables transaction failed."""
+    if not engine:
+        return
+    try:
+        with engine.begin() as conn:
+            _apply_triage_sessions_ddl(conn)
+            _migrate_triage_sessions_problem_summary(conn)
+    except Exception as e:
+        print(f"Warning: ensure_triage_sessions_table_exists failed: {e}")
+
+
 def ensure_tables():
     if not engine:
         return
@@ -264,44 +318,9 @@ def ensure_tables():
     );
     """
 
-    create_triage_sessions = """
-    CREATE TABLE IF NOT EXISTS triage_sessions (
-      intake_id TEXT PRIMARY KEY,
-      started_at TEXT NOT NULL,
-      last_seen_at TEXT NOT NULL,
-      topic TEXT,
-      emergency TEXT,
-      in_court BOOLEAN,
-      income TEXT,
-      zip_code TEXT,
-      level INTEGER,
-      referral_count INTEGER NOT NULL DEFAULT 0,
-      referral_names TEXT NOT NULL DEFAULT '[]',
-      completed BOOLEAN NOT NULL DEFAULT FALSE,
-      completed_at TEXT,
-      ai_used BOOLEAN NOT NULL DEFAULT FALSE,
-      ai_used_at TEXT,
-      restart_count INTEGER NOT NULL DEFAULT 0,
-      back_count INTEGER NOT NULL DEFAULT 0,
-      last_event_type TEXT,
-      problem_summary TEXT,
-      FOREIGN KEY (intake_id) REFERENCES intakes(id)
-    );
-    """
-
     create_events_index = """
     CREATE INDEX IF NOT EXISTS idx_intake_events_intake_id_created_at
     ON intake_events (intake_id, created_at);
-    """
-
-    create_sessions_topic_index = """
-    CREATE INDEX IF NOT EXISTS idx_triage_sessions_topic
-    ON triage_sessions (topic);
-    """
-
-    create_sessions_zip_index = """
-    CREATE INDEX IF NOT EXISTS idx_triage_sessions_zip
-    ON triage_sessions (zip_code);
     """
 
     create_deadlines = """
@@ -327,10 +346,8 @@ def ensure_tables():
         with engine.begin() as conn:
             conn.execute(text(create_intakes))
             conn.execute(text(create_events))
-            conn.execute(text(create_triage_sessions))
+            _apply_triage_sessions_ddl(conn)
             conn.execute(text(create_events_index))
-            conn.execute(text(create_sessions_topic_index))
-            conn.execute(text(create_sessions_zip_index))
             conn.execute(text(create_deadlines))
             conn.execute(text(create_deadlines_index))
             _migrate_intakes_admin_status(conn)
@@ -655,6 +672,25 @@ def create_intake_start(req, db: Session, supported_langs: set[str]):
         raise HTTPException(status_code=400, detail="Consent is required")
 
     phone_digits = normalize_us_phone(req.phone)
+    email_norm = req.email.strip().lower()
+
+    ensure_tables()
+    ensure_triage_sessions_table_exists()
+
+    existing = (
+        db.query(Intake)
+        .filter(or_(func.lower(Intake.email) == email_norm, Intake.phone == phone_digits))
+        .first()
+    )
+    if existing:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "An account already exists with this email address or phone number. "
+                "Please sign in, or register using a different email and phone number."
+            ),
+        )
+
     intake_id = os.urandom(16).hex()
     lang = normalize_language(req.language, supported_langs)
     password_hash = hash_password(req.password) if getattr(req, "password", None) else None
@@ -664,7 +700,7 @@ def create_intake_start(req, db: Session, supported_langs: set[str]):
             id=intake_id,
             first_name=req.first_name.strip(),
             last_name=req.last_name.strip(),
-            email=req.email.strip().lower(),
+            email=email_norm,
             phone=phone_digits,
             zip=req.zip.strip(),
             language=lang,
@@ -675,7 +711,7 @@ def create_intake_start(req, db: Session, supported_langs: set[str]):
         db.add(row)
         db.commit()
         if engine:
-            ensure_tables()
+            ensure_triage_sessions_table_exists()
             with engine.begin() as conn:
                 ensure_triage_session_row(conn, intake_id)
         return {"status": "success", "intake_id": intake_id}
