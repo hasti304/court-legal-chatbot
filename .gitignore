@@ -46,3 +46,16 @@ logs/
 backend/app.db
 backend/intakes.csv
 *.csv
+
+# =========================
+# Local IDE / AI tooling (do not commit secrets)
+# =========================
+.claude/
+.crgignore
+.cursorrules
+.mcp.json
+.opencode.json
+.windsurfrules
+AGENTS.md
+CLAUDE.md
+GEMINI.md
