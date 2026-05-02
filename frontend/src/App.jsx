@@ -1444,10 +1444,18 @@ function App() {
       );
 
       if (!res.ok) {
+        if (res.status === 409) {
+          throw new Error(t("intake.duplicateAccount"));
+        }
         let detail = "";
         try {
           const payload = await res.json();
-          detail = payload?.detail ? String(payload.detail) : "";
+          const d = payload?.detail;
+          detail = Array.isArray(d)
+            ? d.map((x) => (typeof x === "string" ? x : x?.msg || "")).filter(Boolean).join(" ")
+            : d
+              ? String(d)
+              : "";
         } catch (e) {}
         throw new Error(detail || "Unable to save intake right now.");
       }

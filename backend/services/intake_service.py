@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
-from sqlalchemy import desc, func, text
+from sqlalchemy import desc, func, or_, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -234,6 +234,59 @@ def require_admin_access(request: Request) -> None:
     raise HTTPException(status_code=401, detail="Unauthorized")
 
 
+_CREATE_TRIAGE_SESSIONS_SQL = """
+CREATE TABLE IF NOT EXISTS triage_sessions (
+  intake_id TEXT PRIMARY KEY,
+  started_at TEXT NOT NULL,
+  last_seen_at TEXT NOT NULL,
+  topic TEXT,
+  emergency TEXT,
+  in_court BOOLEAN,
+  income TEXT,
+  zip_code TEXT,
+  level INTEGER,
+  referral_count INTEGER NOT NULL DEFAULT 0,
+  referral_names TEXT NOT NULL DEFAULT '[]',
+  completed BOOLEAN NOT NULL DEFAULT FALSE,
+  completed_at TEXT,
+  ai_used BOOLEAN NOT NULL DEFAULT FALSE,
+  ai_used_at TEXT,
+  restart_count INTEGER NOT NULL DEFAULT 0,
+  back_count INTEGER NOT NULL DEFAULT 0,
+  last_event_type TEXT,
+  problem_summary TEXT,
+  FOREIGN KEY (intake_id) REFERENCES intakes(id)
+);
+"""
+
+_CREATE_TRIAGE_TOPIC_INDEX_SQL = """
+CREATE INDEX IF NOT EXISTS idx_triage_sessions_topic
+ON triage_sessions (topic);
+"""
+
+_CREATE_TRIAGE_ZIP_INDEX_SQL = """
+CREATE INDEX IF NOT EXISTS idx_triage_sessions_zip
+ON triage_sessions (zip_code);
+"""
+
+
+def _apply_triage_sessions_ddl(conn) -> None:
+    conn.execute(text(_CREATE_TRIAGE_SESSIONS_SQL))
+    conn.execute(text(_CREATE_TRIAGE_TOPIC_INDEX_SQL))
+    conn.execute(text(_CREATE_TRIAGE_ZIP_INDEX_SQL))
+
+
+def ensure_triage_sessions_table_exists() -> None:
+    """Idempotent: ensures triage_sessions exists even if a prior ensure_tables transaction failed."""
+    if not engine:
+        return
+    try:
+        with engine.begin() as conn:
+            _apply_triage_sessions_ddl(conn)
+    except Exception as e:
+        print(f"Warning: ensure_triage_sessions_table_exists failed: {e}")
+
+
 def ensure_tables():
     if not engine:
         return
@@ -264,44 +317,9 @@ def ensure_tables():
     );
     """
 
-    create_triage_sessions = """
-    CREATE TABLE IF NOT EXISTS triage_sessions (
-      intake_id TEXT PRIMARY KEY,
-      started_at TEXT NOT NULL,
-      last_seen_at TEXT NOT NULL,
-      topic TEXT,
-      emergency TEXT,
-      in_court BOOLEAN,
-      income TEXT,
-      zip_code TEXT,
-      level INTEGER,
-      referral_count INTEGER NOT NULL DEFAULT 0,
-      referral_names TEXT NOT NULL DEFAULT '[]',
-      completed BOOLEAN NOT NULL DEFAULT FALSE,
-      completed_at TEXT,
-      ai_used BOOLEAN NOT NULL DEFAULT FALSE,
-      ai_used_at TEXT,
-      restart_count INTEGER NOT NULL DEFAULT 0,
-      back_count INTEGER NOT NULL DEFAULT 0,
-      last_event_type TEXT,
-      problem_summary TEXT,
-      FOREIGN KEY (intake_id) REFERENCES intakes(id)
-    );
-    """
-
     create_events_index = """
     CREATE INDEX IF NOT EXISTS idx_intake_events_intake_id_created_at
     ON intake_events (intake_id, created_at);
-    """
-
-    create_sessions_topic_index = """
-    CREATE INDEX IF NOT EXISTS idx_triage_sessions_topic
-    ON triage_sessions (topic);
-    """
-
-    create_sessions_zip_index = """
-    CREATE INDEX IF NOT EXISTS idx_triage_sessions_zip
-    ON triage_sessions (zip_code);
     """
 
     create_deadlines = """
@@ -323,22 +341,50 @@ def ensure_tables():
     ON intake_deadlines (intake_id, due_date);
     """
 
+    # Each phase runs in its own transaction so a failed ALTER TABLE migration
+    # cannot abort the PostgreSQL transaction that contains the CREATE TABLEs.
+    # In PostgreSQL a single failed statement marks the whole transaction as
+    # aborted — even when the Python exception is caught — causing COMMIT to
+    # silently ROLLBACK every preceding DDL statement in the same transaction.
+
+    # Phase 1: base tables (intakes must exist before events/deadlines FK refs)
     try:
         with engine.begin() as conn:
             conn.execute(text(create_intakes))
             conn.execute(text(create_events))
-            conn.execute(text(create_triage_sessions))
-            conn.execute(text(create_events_index))
-            conn.execute(text(create_sessions_topic_index))
-            conn.execute(text(create_sessions_zip_index))
             conn.execute(text(create_deadlines))
-            conn.execute(text(create_deadlines_index))
-            _migrate_intakes_admin_status(conn)
-            _migrate_intakes_password_hash(conn)
-            _migrate_intakes_login_count(conn)
-            _migrate_triage_sessions_problem_summary(conn)
     except SQLAlchemyError as e:
-        print(f"Warning: ensure_tables failed: {e}")
+        print(f"Warning: ensure_tables (base tables) failed: {e}")
+
+    # Phase 2: triage_sessions (separate so its creation is never rolled back
+    # by a migration failure below)
+    try:
+        with engine.begin() as conn:
+            _apply_triage_sessions_ddl(conn)
+    except SQLAlchemyError as e:
+        print(f"Warning: ensure_tables (triage_sessions) failed: {e}")
+
+    # Phase 3: indexes for base tables
+    try:
+        with engine.begin() as conn:
+            conn.execute(text(create_events_index))
+            conn.execute(text(create_deadlines_index))
+    except SQLAlchemyError as e:
+        print(f"Warning: ensure_tables (indexes) failed: {e}")
+
+    # Phase 4: column migrations — one transaction each so a single failure
+    # never prevents the others from running
+    for migration_fn in [
+        _migrate_intakes_admin_status,
+        _migrate_intakes_password_hash,
+        _migrate_intakes_login_count,
+        _migrate_triage_sessions_problem_summary,
+    ]:
+        try:
+            with engine.begin() as conn:
+                migration_fn(conn)
+        except Exception as e:
+            print(f"Warning: migration {migration_fn.__name__} skipped: {e}")
 
 
 def _migrate_intakes_admin_status(conn) -> None:
@@ -347,20 +393,13 @@ def _migrate_intakes_admin_status(conn) -> None:
         dialect = conn.engine.dialect.name
     except Exception:
         dialect = ""
-    try:
-        if dialect == "sqlite":
-            cols = {r[1] for r in conn.execute(text("PRAGMA table_info(intakes)")).fetchall()}
-            if "admin_status" in cols:
-                return
+    if dialect == "sqlite":
+        cols = {r[1] for r in conn.execute(text("PRAGMA table_info(intakes)")).fetchall()}
+        if "admin_status" not in cols:
             conn.execute(text("ALTER TABLE intakes ADD COLUMN admin_status TEXT DEFAULT 'pending'"))
             conn.execute(text("UPDATE intakes SET admin_status = 'pending' WHERE admin_status IS NULL"))
-        else:
-            try:
-                conn.execute(text("ALTER TABLE intakes ADD COLUMN admin_status VARCHAR(32) DEFAULT 'pending'"))
-            except Exception:
-                pass
-    except Exception as e:
-        print(f"Warning: intakes admin_status migration skipped: {e}")
+    else:
+        conn.execute(text("ALTER TABLE intakes ADD COLUMN IF NOT EXISTS admin_status VARCHAR(32) DEFAULT 'pending'"))
 
 
 def _migrate_triage_sessions_problem_summary(conn) -> None:
@@ -369,19 +408,12 @@ def _migrate_triage_sessions_problem_summary(conn) -> None:
         dialect = conn.engine.dialect.name
     except Exception:
         dialect = ""
-    try:
-        if dialect == "sqlite":
-            cols = {r[1] for r in conn.execute(text("PRAGMA table_info(triage_sessions)")).fetchall()}
-            if "problem_summary" in cols:
-                return
+    if dialect == "sqlite":
+        cols = {r[1] for r in conn.execute(text("PRAGMA table_info(triage_sessions)")).fetchall()}
+        if "problem_summary" not in cols:
             conn.execute(text("ALTER TABLE triage_sessions ADD COLUMN problem_summary TEXT"))
-        else:
-            try:
-                conn.execute(text("ALTER TABLE triage_sessions ADD COLUMN problem_summary TEXT"))
-            except Exception:
-                pass
-    except Exception as e:
-        print(f"Warning: triage_sessions problem_summary migration skipped: {e}")
+    else:
+        conn.execute(text("ALTER TABLE triage_sessions ADD COLUMN IF NOT EXISTS problem_summary TEXT"))
 
 
 def _migrate_intakes_login_count(conn) -> None:
@@ -390,19 +422,12 @@ def _migrate_intakes_login_count(conn) -> None:
         dialect = conn.engine.dialect.name
     except Exception:
         dialect = ""
-    try:
-        if dialect == "sqlite":
-            cols = {r[1] for r in conn.execute(text("PRAGMA table_info(intakes)")).fetchall()}
-            if "login_count" in cols:
-                return
+    if dialect == "sqlite":
+        cols = {r[1] for r in conn.execute(text("PRAGMA table_info(intakes)")).fetchall()}
+        if "login_count" not in cols:
             conn.execute(text("ALTER TABLE intakes ADD COLUMN login_count INTEGER NOT NULL DEFAULT 0"))
-        else:
-            try:
-                conn.execute(text("ALTER TABLE intakes ADD COLUMN login_count INTEGER NOT NULL DEFAULT 0"))
-            except Exception:
-                pass
-    except Exception as e:
-        print(f"Warning: intakes login_count migration skipped: {e}")
+    else:
+        conn.execute(text("ALTER TABLE intakes ADD COLUMN IF NOT EXISTS login_count INTEGER NOT NULL DEFAULT 0"))
 
 
 def _migrate_intakes_password_hash(conn) -> None:
@@ -411,19 +436,12 @@ def _migrate_intakes_password_hash(conn) -> None:
         dialect = conn.engine.dialect.name
     except Exception:
         dialect = ""
-    try:
-        if dialect == "sqlite":
-            cols = {r[1] for r in conn.execute(text("PRAGMA table_info(intakes)")).fetchall()}
-            if "password_hash" in cols:
-                return
+    if dialect == "sqlite":
+        cols = {r[1] for r in conn.execute(text("PRAGMA table_info(intakes)")).fetchall()}
+        if "password_hash" not in cols:
             conn.execute(text("ALTER TABLE intakes ADD COLUMN password_hash TEXT"))
-        else:
-            try:
-                conn.execute(text("ALTER TABLE intakes ADD COLUMN password_hash TEXT"))
-            except Exception:
-                pass
-    except Exception as e:
-        print(f"Warning: intakes password_hash migration skipped: {e}")
+    else:
+        conn.execute(text("ALTER TABLE intakes ADD COLUMN IF NOT EXISTS password_hash TEXT"))
 
 
 def ensure_triage_session_row(conn, intake_id: str):
@@ -667,6 +685,25 @@ def create_intake_start(req, db: Session, supported_langs: set[str]):
         raise HTTPException(status_code=400, detail="Consent is required")
 
     phone_digits = normalize_us_phone(req.phone)
+    email_norm = req.email.strip().lower()
+
+    ensure_tables()
+    ensure_triage_sessions_table_exists()
+
+    existing = (
+        db.query(Intake)
+        .filter(or_(func.lower(Intake.email) == email_norm, Intake.phone == phone_digits))
+        .first()
+    )
+    if existing:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "An account already exists with this email address or phone number. "
+                "Please sign in, or register using a different email and phone number."
+            ),
+        )
+
     intake_id = os.urandom(16).hex()
     lang = normalize_language(req.language, supported_langs)
     password_hash = hash_password(req.password) if getattr(req, "password", None) else None
@@ -676,7 +713,7 @@ def create_intake_start(req, db: Session, supported_langs: set[str]):
             id=intake_id,
             first_name=req.first_name.strip(),
             last_name=req.last_name.strip(),
-            email=req.email.strip().lower(),
+            email=email_norm,
             phone=phone_digits,
             zip=req.zip.strip(),
             language=lang,
@@ -687,7 +724,7 @@ def create_intake_start(req, db: Session, supported_langs: set[str]):
         db.add(row)
         db.commit()
         if engine:
-            ensure_tables()
+            ensure_triage_sessions_table_exists()
             with engine.begin() as conn:
                 ensure_triage_session_row(conn, intake_id)
         return {"status": "success", "intake_id": intake_id}
