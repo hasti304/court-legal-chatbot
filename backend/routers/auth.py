@@ -1,6 +1,6 @@
 import os
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 
 try:
@@ -76,6 +76,31 @@ def password_forgot(payload: PasswordForgotBody, db: Session = Depends(get_db)):
 @router.post("/auth/password/reset", response_model=PasswordResetResponse)
 def password_reset(payload: PasswordResetBody, db: Session = Depends(get_db)):
     return reset_password(payload=payload, db=db)
+
+
+@router.get("/auth/email-test")
+def email_test(x_admin_key: str = Header(None)):
+    """Send a test email to ADMIN_EMAIL. Protected by X-Admin-Key header."""
+    if not ADMIN_EXPORT_KEY or x_admin_key != ADMIN_EXPORT_KEY:
+        raise HTTPException(status_code=403, detail="Forbidden: provide X-Admin-Key header")
+    try:
+        from ..services.transactional_email import send_transactional_email
+    except ImportError:
+        from services.transactional_email import send_transactional_email  # type: ignore
+    to = (ADMIN_EMAIL or "").strip()
+    if not to:
+        raise HTTPException(status_code=400, detail="ADMIN_EMAIL is not configured")
+    ok = send_transactional_email(
+        to,
+        "CAL email test",
+        "If you received this, outbound email is configured correctly on Render.",
+        "<p>If you received this, outbound email is configured correctly on Render.</p>",
+    )
+    provider = email_provider_hint()
+    if ok:
+        return {"status": "ok", "sent_to": to, "provider": provider}
+    return {"status": "failed", "sent_to": to, "provider": provider,
+            "hint": "Check Render logs for the exact SMTP/Resend error."}
 
 
 @router.get("/auth/config-status")
