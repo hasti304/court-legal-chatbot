@@ -1,6 +1,7 @@
 import hashlib
 import secrets
 import smtplib
+import traceback
 from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -108,7 +109,7 @@ def _send_via_resend(to_email: str, magic_url: str) -> bool:
             )
         return r.status_code in (200, 201)
     except Exception as e:
-        print(f"Warning: Resend magic link email failed: {e}")
+        print(f"Warning: Resend magic link email failed [{type(e).__name__}]: {e}")
         return False
 
 
@@ -127,14 +128,39 @@ def _send_via_smtp(to_email: str, magic_url: str) -> bool:
         msg.attach(MIMEText(html, "html"))
 
         _, envelope_from = parseaddr(SMTP_FROM)
-        with smtplib.SMTP(SMTP_HOST, port, timeout=30) as server:
-            server.starttls()
+        # Port 465 uses SSL-from-the-start; port 587 (and others) use STARTTLS upgrade.
+        if port == 465:
+            smtp_cls = smtplib.SMTP_SSL
+            use_starttls = False
+        else:
+            smtp_cls = smtplib.SMTP
+            use_starttls = True
+        with smtp_cls(SMTP_HOST, port, timeout=30) as server:
+            if use_starttls:
+                server.starttls()
             if SMTP_USER and SMTP_PASSWORD:
                 server.login(SMTP_USER, SMTP_PASSWORD)
             server.sendmail(envelope_from or SMTP_FROM, [to_email], msg.as_string())
         return True
+    except smtplib.SMTPAuthenticationError as e:
+        print(
+            f"Warning: SMTP auth failed for user '{SMTP_USER}' on {SMTP_HOST}:{SMTP_PORT}. "
+            f"For Gmail, ensure 2FA is enabled and SMTP_PASSWORD is a 16-char App Password "
+            f"(no spaces). Error: {e}"
+        )
+        return False
+    except (ConnectionRefusedError, TimeoutError, OSError) as e:
+        print(
+            f"Warning: SMTP connection to {SMTP_HOST}:{SMTP_PORT} failed [{type(e).__name__}]: {e}. "
+            f"Cloud providers often block outbound SMTP — consider switching to RESEND_API_KEY."
+        )
+        return False
+    except smtplib.SMTPException as e:
+        print(f"Warning: SMTP magic link email failed [{type(e).__name__}]: {e}")
+        return False
     except Exception as e:
-        print(f"Warning: SMTP magic link email failed: {e}")
+        print(f"Warning: SMTP magic link email unexpected error [{type(e).__name__}]: {e}")
+        traceback.print_exc()
         return False
 
 
