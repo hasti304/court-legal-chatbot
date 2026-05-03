@@ -1,0 +1,306 @@
+/* =============================================
+   ChatDashboard.css — Professional Legal Dashboard
+   Uses CSS vars from App.css via :root
+   ============================================= */
+
+.chatdash {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  font-size: 0.9rem;
+  color: var(--text-primary, #0f172a);
+}
+
+/* ── Header ─────────────────────────────────── */
+.chatdash-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-light, #dfe7f1);
+}
+
+.chatdash-header-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.chatdash-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-primary, #0f172a);
+  line-height: 1.2;
+}
+
+.chatdash-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted, #6b7d96);
+  margin-top: 1px;
+}
+
+/* ── Stats Grid ─────────────────────────────── */
+.chatdash-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 14px;
+  border-bottom: 1px solid var(--border-light, #dfe7f1);
+}
+
+.chatdash-stat {
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-light, #dfe7f1);
+  border-radius: var(--radius-md, 12px);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+  cursor: default;
+}
+
+.chatdash-stat:hover {
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(15, 23, 42, 0.08));
+  transform: translateY(-1px);
+}
+
+.chatdash-stat--accent {
+  background: var(--primary-soft, #e6eefb);
+  border-color: #c5d9f4;
+}
+
+.chatdash-stat-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.chatdash-stat-value {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--primary, #1f4fa8);
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.chatdash-stat--accent .chatdash-stat-value {
+  color: var(--primary, #1f4fa8);
+}
+
+.chatdash-stat-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary, #4b5d78);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.chatdash-stat-sub {
+  font-size: 0.68rem;
+  color: var(--text-muted, #6b7d96);
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Sections ───────────────────────────────── */
+.chatdash-section {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-light, #dfe7f1);
+}
+
+.chatdash-section-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #6b7d96);
+  margin-bottom: 10px;
+}
+
+.chatdash-section-title--danger {
+  color: var(--danger, #b91c1c);
+}
+
+/* ── Risk Alerts ────────────────────────────── */
+.chatdash-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--danger-soft, #fee2e2);
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.82rem;
+  color: var(--danger, #b91c1c);
+  font-weight: 600;
+  margin-bottom: 7px;
+  line-height: 1.4;
+}
+
+.chatdash-alert-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--danger, #b91c1c);
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+/* ── Recent Queries ─────────────────────────── */
+.chatdash-query {
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-light, #dfe7f1);
+  border-radius: var(--radius-sm, 10px);
+  padding: 9px 11px;
+  margin-bottom: 7px;
+  transition: box-shadow 0.15s ease;
+}
+
+.chatdash-query:hover {
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(15, 23, 42, 0.06));
+}
+
+.chatdash-query-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.chatdash-query-topic {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--primary, #1f4fa8);
+  background: var(--primary-soft, #e6eefb);
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+.chatdash-query-time {
+  font-size: 0.68rem;
+  color: var(--text-muted, #6b7d96);
+}
+
+.chatdash-query-text {
+  font-size: 0.82rem;
+  color: var(--text-primary, #0f172a);
+  line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* ── Topic Breakdown ────────────────────────── */
+.chatdash-topic-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 0.82rem;
+}
+
+.chatdash-topic-name {
+  width: 96px;
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--text-secondary, #4b5d78);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chatdash-topic-bar-wrap {
+  flex: 1;
+  height: 7px;
+  background: var(--bg-muted, #edf2f8);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.chatdash-topic-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary, #1f4fa8), #3b82f6);
+  border-radius: 999px;
+  transition: width 0.45s ease;
+}
+
+.chatdash-topic-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted, #6b7d96);
+  width: 20px;
+  text-align: right;
+}
+
+/* ── Saved Cases ────────────────────────────── */
+.chatdash-case-card {
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-light, #dfe7f1);
+  border-radius: var(--radius-sm, 10px);
+  padding: 10px 12px;
+}
+
+.chatdash-case-status {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.chatdash-case-status.done {
+  color: var(--success, #047857);
+}
+
+.chatdash-case-topic {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  margin-bottom: 4px;
+}
+
+.chatdash-case-detail {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #4b5d78);
+  line-height: 1.4;
+}
+
+/* ── Empty states ───────────────────────────── */
+.chatdash-empty-small {
+  font-size: 0.8rem;
+  color: var(--text-muted, #6b7d96);
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.chatdash-big-empty {
+  padding: 24px 16px;
+  text-align: center;
+}
+
+.chatdash-big-empty-icon {
+  font-size: 2.2rem;
+  margin-bottom: 10px;
+}
+
+.chatdash-big-empty p {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #4b5d78);
+  line-height: 1.5;
+}
+
+/* ── Disclaimer ─────────────────────────────── */
+.chatdash-disclaimer {
+  padding: 10px 14px 14px;
+  font-size: 0.72rem;
+  color: var(--text-muted, #6b7d96);
+  line-height: 1.5;
+  font-style: italic;
+  text-align: center;
+}

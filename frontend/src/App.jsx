@@ -49,6 +49,7 @@ import { useTranslation } from "react-i18next";
 import i18n, { setAppLanguage, getNormalizedLanguage } from "./i18n";
 
 const AIChat = lazy(() => import("./components/AIChat"));
+const ChatDashboard = lazy(() => import("./components/ChatDashboard"));
 
 const FIRST_VISIT_KEY = "cal_first_visit_done_v1";
 const INTAKE_ID_KEY = "cal_intake_id_v1";
@@ -2554,27 +2555,36 @@ function App() {
 
       <div className="chat-container">
         {intakeSaved && intakeId ? (
-          <aside className="client-session-panel" aria-label="Client session controls">
-            <h3>Client panel</h3>
-            <p>Use this panel to manage your session and quickly navigate.</p>
-            <button
-              type="button"
-              className="btn btn-toolbar btn-panel-home"
-              onClick={() => setView("cover")}
-            >
-              Home
-            </button>
-            <button
-              type="button"
-              className="btn btn-toolbar btn-panel-signout"
-              onClick={() => {
-                clearSavedIntake();
-                setShowChat(false);
-                setView("login");
-              }}
-            >
-              Sign out
-            </button>
+          <aside className="client-session-panel" aria-label="Client dashboard">
+            <Suspense fallback={null}>
+              <ChatDashboard
+                intakeSaved={intakeSaved}
+                intakeId={intakeId}
+                currentTopic={currentTopic}
+              />
+            </Suspense>
+            <div style={{ padding: "0 14px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+              <button
+                type="button"
+                className="btn btn-toolbar btn-panel-home"
+                onClick={() => setView("cover")}
+                style={{ width: "100%", justifyContent: "center" }}
+              >
+                Home
+              </button>
+              <button
+                type="button"
+                className="btn btn-toolbar btn-panel-signout"
+                onClick={() => {
+                  clearSavedIntake();
+                  setShowChat(false);
+                  setView("login");
+                }}
+                style={{ width: "100%", justifyContent: "center" }}
+              >
+                Sign out
+              </button>
+            </div>
           </aside>
         ) : null}
 

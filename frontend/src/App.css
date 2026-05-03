@@ -408,13 +408,30 @@ body.discreet-mode .chat-input:focus {
   border-radius: var(--radius-md);
   text-align: left;
   border: 1px solid #d7e2ef;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  transition: border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.professional-topic-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 60% 0%, rgba(31, 79, 168, 0.04), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.22s ease;
+  pointer-events: none;
 }
 
 .professional-topic-card:hover {
-  border-color: #b9cce5;
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  border-color: #aac6e8;
+  box-shadow: 0 12px 28px rgba(31, 79, 168, 0.1);
+  transform: translateY(-3px);
+}
+
+.professional-topic-card:hover::after {
+  opacity: 1;
 }
 
 .topic-card-icon {
@@ -428,6 +445,11 @@ body.discreet-mode .chat-input:focus {
   color: var(--primary);
   font-size: 1.25rem;
   margin-bottom: 14px;
+  transition: transform 0.22s ease;
+}
+
+.professional-topic-card:hover .topic-card-icon {
+  transform: scale(1.08);
 }
 
 .topic-card h3 {
@@ -922,16 +944,16 @@ body.discreet-mode .chat-input:focus {
 }
 
 .client-session-panel {
-  width: 240px;
+  width: 280px;
   flex-shrink: 0;
   align-self: stretch;
   border-right: 1px solid var(--border-light);
   background: var(--bg-soft);
-  padding: 16px 14px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
   box-sizing: border-box;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .client-session-panel h3 {
@@ -1128,13 +1150,14 @@ body.discreet-mode .chat-input:focus {
   width: auto;
   max-width: min(520px, 92%);
   margin-left: auto;
-  background: #1d4ed8;
+  background: var(--primary);
   color: white;
   border-bottom-right-radius: 6px;
   box-shadow: var(--shadow-sm);
   white-space: pre-wrap;
   overflow-wrap: normal;
   word-break: normal;
+  animation: messageAppear 0.22s ease both;
 }
 
 .message.bot {
@@ -1143,6 +1166,21 @@ body.discreet-mode .chat-input:focus {
   border: 1px solid var(--border-light);
   border-bottom-left-radius: 6px;
   box-shadow: var(--shadow-sm);
+  animation: messageAppear 0.22s ease both;
+}
+
+.message.bot strong {
+  font-weight: 800;
+}
+
+.message.bot a {
+  color: var(--primary);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.message.bot a:hover {
+  text-decoration: underline;
 }
 
 .message-tools {
