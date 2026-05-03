@@ -495,7 +495,8 @@ function App() {
       setView("intake");
     }
 
-    const resetTokenParam = params.get("reset_token");
+    const resetTokenParam = params.get("reset_token") ||
+      (() => { const m = /[?&]reset_token=([^&]+)/.exec(window.location.hash || ""); return m ? decodeURIComponent(m[1].replace(/\+/g, "%20")) : ""; })();
     if (resetTokenParam) {
       setResetToken(String(resetTokenParam).trim());
       setResetError("");
@@ -3021,12 +3022,12 @@ function App() {
         </div>
         </main>
         </div>
-
-        <SiteFooter
-          supportEmail={SUPPORT_EMAIL}
-          className={chatFooterClassName}
-        />
       </div>
+
+      <SiteFooter
+        supportEmail={SUPPORT_EMAIL}
+        className={chatFooterClassName}
+      />
 
       <EmergencyButton />
     </div>

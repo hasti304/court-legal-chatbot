@@ -122,7 +122,7 @@ def request_password_reset(payload, db: Session) -> dict:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
     base = (FRONTEND_BASE_URL or "").rstrip("/") or "http://localhost:5173"
-    reset_url = f"{base}/?reset_token={plain}"
+    reset_url = f"{base}/#/?reset_token={plain}"
     subject = "Reset your password — Chicago Advocate Legal, NFP"
     text = (
         "You requested a password reset for the CAL legal resource navigator.\n\n"
