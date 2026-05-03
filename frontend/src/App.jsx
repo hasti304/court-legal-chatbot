@@ -1802,6 +1802,12 @@ function App() {
             {t("login.checkBody", { email: magicLinkSentTo || "—" })}
           </p>
 
+          {magicLinkError ? (
+            <div className="auth-github-alert" role="alert">
+              {magicLinkError}
+            </div>
+          ) : null}
+
           {magicDevLink && isLocalDevHost() ? (
             <div className="auth-github-dev-box">
               <p className="auth-github-dev-label">{t("login.devLinkLabel")}</p>
