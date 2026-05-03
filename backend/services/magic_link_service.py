@@ -4,6 +4,7 @@ import smtplib
 from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.utils import parseaddr
 from typing import Optional
 
 import httpx
@@ -125,11 +126,12 @@ def _send_via_smtp(to_email: str, magic_url: str) -> bool:
         msg.attach(MIMEText(text, "plain"))
         msg.attach(MIMEText(html, "html"))
 
+        _, envelope_from = parseaddr(SMTP_FROM)
         with smtplib.SMTP(SMTP_HOST, port, timeout=30) as server:
             server.starttls()
             if SMTP_USER and SMTP_PASSWORD:
                 server.login(SMTP_USER, SMTP_PASSWORD)
-            server.sendmail(SMTP_FROM, [to_email], msg.as_string())
+            server.sendmail(envelope_from or SMTP_FROM, [to_email], msg.as_string())
         return True
     except Exception as e:
         print(f"Warning: SMTP magic link email failed: {e}")

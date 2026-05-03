@@ -56,7 +56,7 @@ RESEND_FROM = os.getenv("RESEND_FROM", "CAL Login <onboarding@resend.dev>").stri
 SMTP_HOST = os.getenv("SMTP_HOST", "").strip()
 SMTP_PORT = os.getenv("SMTP_PORT", "587").strip()
 SMTP_USER = os.getenv("SMTP_USER", "").strip()
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "").strip()
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "").strip().replace(" ", "")
 SMTP_FROM = os.getenv("SMTP_FROM", "").strip()
 
 try:
