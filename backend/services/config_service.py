@@ -37,7 +37,7 @@ def dev_auth_links_in_response_allowed() -> bool:
     return "://localhost" in base or base.startswith("http://localhost") or base.startswith("https://localhost")
 
 
-MAGIC_LINK_TTL_MINUTES = int(os.getenv("MAGIC_LINK_TTL_MINUTES", "20") or "20")
+MAGIC_LINK_TTL_MINUTES = int(os.getenv("MAGIC_LINK_TTL_MINUTES", "15") or "15")
 MAGIC_LINK_DEV_RETURN_TOKEN = os.getenv("MAGIC_LINK_DEV_RETURN_TOKEN", "").strip().lower() in (
     "1",
     "true",
@@ -50,14 +50,11 @@ RESET_PASSWORD_DEV_RETURN_TOKEN = os.getenv("RESET_PASSWORD_DEV_RETURN_TOKEN", "
 )
 RESET_PASSWORD_TTL_MINUTES = int(os.getenv("RESET_PASSWORD_TTL_MINUTES", "30") or "30")
 
-RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
-RESEND_FROM = os.getenv("RESEND_FROM", "CAL Login <onboarding@resend.dev>").strip()
-
-SMTP_HOST = os.getenv("SMTP_HOST", "").strip()
-SMTP_PORT = os.getenv("SMTP_PORT", "587").strip()
-SMTP_USER = os.getenv("SMTP_USER", "").strip()
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "").strip().replace(" ", "")
-SMTP_FROM = os.getenv("SMTP_FROM", "").strip()
+# Gmail API OAuth2 — emails sent over HTTPS, no SMTP required.
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "").strip()
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "").strip()
+GOOGLE_REFRESH_TOKEN = os.getenv("GOOGLE_REFRESH_TOKEN", "").strip()
+GOOGLE_SENDER_EMAIL = os.getenv("GOOGLE_SENDER_EMAIL", "").strip()
 
 try:
     from ..database import engine

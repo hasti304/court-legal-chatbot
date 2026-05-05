@@ -47,6 +47,7 @@ import { Eye, EyeOff } from "lucide-react";
 
 import { useTranslation } from "react-i18next";
 import i18n, { setAppLanguage, getNormalizedLanguage } from "./i18n";
+import SlackLayout from "./components/layout/SlackLayout";
 
 const AIChat = lazy(() => import("./components/AIChat"));
 const ChatDashboard = lazy(() => import("./components/ChatDashboard"));
@@ -2367,123 +2368,139 @@ function App() {
 
   if (!showChat || view === "cover") {
     return (
-      <div className={landingClass}>
-        <div className="landing-background-accent"></div>
-        <div className="landing-header">
-          <div className="logo-container">
-            {renderHeaderLogo()}
-            <h1>{t("app.title")}</h1>
-            <p className="subtitle">{t("app.subtitle")}</p>
-            <div className="landing-lang-theme-row">
-              <ThemeToggle />
-              <LanguagePicker variant={lpVariant} />
+      <SlackLayout
+        isDark={isDark}
+        activeSection="home"
+        activeTopic={currentTopic}
+        firstName={intakeFirstName}
+        intakeSaved={intakeSaved}
+        topbarTitle="Home"
+        canGoBack={false}
+        onNavigate={(section) => {
+          if (section === "chat") startChatFromCover();
+        }}
+        onTopicSelect={(topicId) => {
+          setCurrentTopic(topicId);
+          startChatFromCover();
+        }}
+        onStartChat={startChatFromCover}
+        onSignOut={() => {
+          clearSavedIntake();
+          setView("login");
+        }}
+        onBack={() => {}}
+        topbarExtras={
+          <>
+            <ThemeToggle />
+            <LanguagePicker variant={lpVariant} />
+          </>
+        }
+      >
+        <div className="slack-welcome-panel" id="main-content">
+          {/* Welcome hero */}
+          <div className="slack-welcome-hero">
+            <div className="slack-welcome-avatar" aria-hidden="true">
+              {intakeFirstName ? intakeFirstName.charAt(0).toUpperCase() : "⚖"}
+            </div>
+            <h2 className="slack-welcome-title">
+              {intakeFirstName
+                ? `Welcome back, ${intakeFirstName}!`
+                : t("landing.welcomeTitle")}
+            </h2>
+            <p className="slack-welcome-sub">{t("landing.tagline")}</p>
+
+            <div className="slack-welcome-actions">
+              {pendingTriage ? (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-large btn-start"
+                    onClick={resumeTriageFromCover}
+                    disabled={loading}
+                  >
+                    {t("resume.continueBtn")}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-start btn-cover-secondary"
+                    onClick={discardPendingAndStartFresh}
+                    disabled={loading}
+                  >
+                    {t("resume.startNewBtn")}
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="btn btn-primary btn-large btn-start"
+                  onClick={startChatFromCover}
+                  disabled={loading}
+                >
+                  {t("landing.begin")}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="slack-welcome-content">
+            <TrustPanel className="trust-panel-landing" />
+
+            <LegalGlossary className="legal-glossary-landing" />
+
+            <div className="topic-cards">
+              {topicCards.map((card) => (
+                <div key={card.key} className="topic-card professional-topic-card">
+                  <div className="topic-card-icon">{card.icon}</div>
+                  <h3>{card.title}</h3>
+                  <p>{card.desc}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="contact-help-box">
+              <p>
+                Need help? Email:{" "}
+                <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
+              </p>
+            </div>
+
+            <div className="disclaimer-box">
+              <p className="disclaimer-title">{t("landing.importantNoticeTitle")}</p>
+              <p className="disclaimer-text">
+                <strong>{t("landing.infoOnly")}</strong>
+              </p>
+              <p className="privacy-warning">
+                ⚠️ <strong>{t("landing.privacyTitle")}</strong> {t("landing.privacyText")}
+              </p>
+            </div>
+
+            <div className="secondary-link-wrap secondary-link-wrap--split">
+              <button
+                type="button"
+                onClick={() => setView(intakeSaved && intakeId ? "intakeChoice" : "intake")}
+                className="link-button"
+              >
+                {t("login.backToSignIn")}
+              </button>
+              <span className="secondary-link-sep" aria-hidden="true">
+                ·
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setMagicLinkError("");
+                  setMagicVerifyError("");
+                  setView("login");
+                }}
+                className="link-button"
+              >
+                {t("login.signInWithEmail")}
+              </button>
             </div>
           </div>
         </div>
-
-        <main className="landing-main" id="main-content">
-          <div className="landing-content">
-          <h2>{t("landing.welcomeTitle")}</h2>
-          <p className="tagline">{t("landing.tagline")}</p>
-
-          <TrustPanel className="trust-panel-landing" />
-
-          <LegalGlossary className="legal-glossary-landing" />
-
-          <div className="topic-cards">
-            {topicCards.map((card) => (
-              <div key={card.key} className="topic-card professional-topic-card">
-                <div className="topic-card-icon">{card.icon}</div>
-                <h3>{card.title}</h3>
-                <p>{card.desc}</p>
-              </div>
-            ))}
-          </div>
-
-          {pendingTriage ? (
-            <div className="resume-session-card">
-              <h3 className="resume-session-title">{t("resume.title")}</h3>
-              <p className="resume-session-detail">{t("resume.detail")}</p>
-              <div className="resume-session-actions">
-                <button
-                  type="button"
-                  className="btn btn-primary btn-large btn-start"
-                  onClick={resumeTriageFromCover}
-                  disabled={loading}
-                >
-                  {t("resume.continueBtn")}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-start btn-cover-secondary"
-                  onClick={discardPendingAndStartFresh}
-                  disabled={loading}
-                >
-                  {t("resume.startNewBtn")}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              className="btn btn-primary btn-large btn-start"
-              onClick={startChatFromCover}
-              disabled={loading}
-            >
-              {t("landing.begin")}
-            </button>
-          )}
-
-          <div className="contact-help-box">
-            <p>
-              Need help? Email:{" "}
-              <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
-            </p>
-          </div>
-
-          <div className="disclaimer-box">
-            <p className="disclaimer-title">{t("landing.importantNoticeTitle")}</p>
-            <p className="disclaimer-text">
-              <strong>{t("landing.infoOnly")}</strong>
-            </p>
-            <p className="privacy-warning">
-              ⚠️ <strong>{t("landing.privacyTitle")}</strong> {t("landing.privacyText")}
-            </p>
-          </div>
-
-          <div className="secondary-link-wrap secondary-link-wrap--split">
-            <button
-              type="button"
-              onClick={() => setView(intakeSaved && intakeId ? "intakeChoice" : "intake")}
-              className="link-button"
-            >
-              {t("login.backToSignIn")}
-            </button>
-            <span className="secondary-link-sep" aria-hidden="true">
-              ·
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                setMagicLinkError("");
-                setMagicVerifyError("");
-                setView("login");
-              }}
-              className="link-button"
-            >
-              {t("login.signInWithEmail")}
-            </button>
-          </div>
-          </div>
-        </main>
-
-        <SiteFooter
-          className={footerAuthClass}
-          supportEmail={SUPPORT_EMAIL}
-          onPrivacyClick={() => setView("privacy")}
-          showStaffSignIn
-        />
         <EmergencyButton />
-      </div>
+      </SlackLayout>
     );
   }
 
@@ -2509,33 +2526,41 @@ function App() {
   };
 
   return (
-    <div className={chatShellClass}>
-      <div className="chat-header">
-        <div className="header-content">
-          <img
-            src={calLogo}
-            alt="Chicago Advocate Legal, NFP logo"
-            className="chat-header-logo"
-          />
-          <div className="header-text">
-            <h2>CAL Legal Information and Resources Chatbot</h2>
-            <p>Information & Referrals</p>
-          </div>
-          <div className="header-right">
-            <button
-              type="button"
-              className="btn btn-large-text-toggle"
-              onClick={() => setLargeText((v) => !v)}
-              aria-pressed={largeText}
-            >
-              {largeText ? t("accessibility.largeTextOff") : t("accessibility.largeText")}
-            </button>
-            <ThemeToggle />
-            <LanguagePicker variant={lpVariant} labelOnDarkBackground />
-          </div>
-        </div>
-      </div>
-
+    <SlackLayout
+      isDark={isDark}
+      activeSection="chat"
+      activeTopic={currentTopic}
+      firstName={intakeFirstName}
+      intakeSaved={intakeSaved}
+      topbarTitle={currentTopic ? `# ${currentTopic.replace(/_/g, " ")}` : "Legal Consultation"}
+      canGoBack={conversationHistory.length > 1}
+      onNavigate={(section) => {
+        if (section === "home") goToCover();
+      }}
+      onTopicSelect={(topicId) => setCurrentTopic(topicId)}
+      onStartChat={startChatFromCover}
+      onSignOut={() => {
+        clearSavedIntake();
+        setShowChat(false);
+        setView("login");
+      }}
+      onBack={handleBack}
+      topbarExtras={
+        <>
+          <button
+            type="button"
+            className="slack-topbar-icon-btn"
+            onClick={() => setLargeText((v) => !v)}
+            aria-pressed={largeText}
+            title={largeText ? t("accessibility.largeTextOff") : t("accessibility.largeText")}
+          >
+            <span style={{ fontSize: "11px", fontWeight: 700 }}>Aa</span>
+          </button>
+          <ThemeToggle />
+          <LanguagePicker variant={lpVariant} />
+        </>
+      }
+    >
       {messages.length > 0 && conversationState?.step !== "complete" && (
         <div className="progress-bar-container">
           <div className="progress-info">
@@ -2553,42 +2578,7 @@ function App() {
         </div>
       )}
 
-      <div className="chat-container">
-        {intakeSaved && intakeId ? (
-          <aside className="client-session-panel" aria-label="Client dashboard">
-            <Suspense fallback={null}>
-              <ChatDashboard
-                intakeSaved={intakeSaved}
-                intakeId={intakeId}
-                currentTopic={currentTopic}
-              />
-            </Suspense>
-            <div style={{ padding: "0 14px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
-              <button
-                type="button"
-                className="btn btn-toolbar btn-panel-home"
-                onClick={() => setView("cover")}
-                style={{ width: "100%", justifyContent: "center" }}
-              >
-                Home
-              </button>
-              <button
-                type="button"
-                className="btn btn-toolbar btn-panel-signout"
-                onClick={() => {
-                  clearSavedIntake();
-                  setShowChat(false);
-                  setView("login");
-                }}
-                style={{ width: "100%", justifyContent: "center" }}
-              >
-                Sign out
-              </button>
-            </div>
-          </aside>
-        ) : null}
-
-        <div className="chat-workspace">
+        <div className="slack-chat-workspace">
         <div className="safety-toolbar">
           <button
             type="button"
@@ -3026,21 +3016,12 @@ function App() {
 
         <div className="chat-footer">
           <p className="footer-disclaimer">{t("landing.infoOnly")}</p>
-          <p className="footer-privacy-warning">
-            Quick Exit is available if you need to leave this page quickly.
-          </p>
         </div>
         </main>
         </div>
-      </div>
-
-      <SiteFooter
-        supportEmail={SUPPORT_EMAIL}
-        className={chatFooterClassName}
-      />
 
       <EmergencyButton />
-    </div>
+    </SlackLayout>
   );
 }
 
