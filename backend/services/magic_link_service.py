@@ -1,14 +1,8 @@
 import hashlib
 import secrets
-import smtplib
-import traceback
 from datetime import datetime, timedelta, timezone
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.utils import parseaddr
 from typing import Optional
 
-import httpx
 from fastapi import HTTPException
 from sqlalchemy import desc
 from sqlalchemy.exc import SQLAlchemyError
@@ -22,15 +16,12 @@ try:
         MAGIC_LINK_DEV_RETURN_TOKEN,
         MAGIC_LINK_TTL_MINUTES,
         dev_auth_links_in_response_allowed,
-        RESEND_API_KEY,
-        RESEND_FROM,
-        SMTP_FROM,
-        SMTP_HOST,
-        SMTP_PASSWORD,
-        SMTP_PORT,
-        SMTP_USER,
     )
-    from .transactional_email import email_provider_configured, email_provider_hint
+    from .transactional_email import (
+        email_provider_configured,
+        email_provider_hint,
+        send_transactional_email,
+    )
 except ImportError:
     from models.intake import Intake  # type: ignore
     from models.magic_link import MagicLinkToken  # type: ignore
@@ -39,15 +30,12 @@ except ImportError:
         MAGIC_LINK_DEV_RETURN_TOKEN,
         MAGIC_LINK_TTL_MINUTES,
         dev_auth_links_in_response_allowed,
-        RESEND_API_KEY,
-        RESEND_FROM,
-        SMTP_FROM,
-        SMTP_HOST,
-        SMTP_PASSWORD,
-        SMTP_PORT,
-        SMTP_USER,
     )
-    from services.transactional_email import email_provider_configured, email_provider_hint  # type: ignore
+    from services.transactional_email import (  # type: ignore
+        email_provider_configured,
+        email_provider_hint,
+        send_transactional_email,
+    )
 
 
 def utc_now() -> datetime:
@@ -74,101 +62,35 @@ def _build_magic_url(plain_token: str) -> str:
     base = (FRONTEND_BASE_URL or "").rstrip("/")
     if not base:
         base = "http://localhost:5173"
-    # Put the token in the hash so it survives clients/redirects that rewrite "/?…" to "/#/" and drop the query string.
-    # The SPA reads magic_token from location.search or location.hash (see frontend getMagicTokenFromLocation).
+    # Token is placed in the hash fragment so it survives clients that rewrite query strings.
     return f"{base}/#/?magic_token={plain_token}"
 
 
-def _send_via_resend(to_email: str, magic_url: str) -> bool:
-    if not RESEND_API_KEY:
-        return False
-    try:
-        with httpx.Client(timeout=20.0) as client:
-            r = client.post(
-                "https://api.resend.com/emails",
-                headers={
-                    "Authorization": f"Bearer {RESEND_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "from": RESEND_FROM,
-                    "to": [to_email],
-                    "subject": "Your sign-in link — Chicago Advocate Legal, NFP",
-                    "html": f"""
-                    <p>Hello,</p>
-                    <p>Click the link below to sign in to the legal resource navigator. This link expires in {MAGIC_LINK_TTL_MINUTES} minutes.</p>
-                    <p><a href="{magic_url}">Sign in</a></p>
-                    <p>If you did not request this, you can ignore this email.</p>
-                    """,
-                },
-            )
-        if r.status_code not in (200, 201):
-            print(
-                f"Warning: Resend magic link email failed with HTTP {r.status_code}: "
-                f"{getattr(r, 'text', '')[:500]}"
-            )
-        return r.status_code in (200, 201)
-    except Exception as e:
-        print(f"Warning: Resend magic link email failed [{type(e).__name__}]: {e}")
-        return False
-
-
-def _send_via_smtp(to_email: str, magic_url: str) -> bool:
-    if not SMTP_HOST or not SMTP_FROM:
-        return False
-    try:
-        port = int(SMTP_PORT or "587")
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = "Your sign-in link — Chicago Advocate Legal, NFP"
-        msg["From"] = SMTP_FROM
-        msg["To"] = to_email
-        text = f"Sign in (copy link if button does not work):\n{magic_url}\n"
-        html = f'<p><a href="{magic_url}">Sign in</a></p><p>This link expires in {MAGIC_LINK_TTL_MINUTES} minutes.</p>'
-        msg.attach(MIMEText(text, "plain"))
-        msg.attach(MIMEText(html, "html"))
-
-        _, envelope_from = parseaddr(SMTP_FROM)
-        # Port 465 uses SSL-from-the-start; port 587 (and others) use STARTTLS upgrade.
-        if port == 465:
-            smtp_cls = smtplib.SMTP_SSL
-            use_starttls = False
-        else:
-            smtp_cls = smtplib.SMTP
-            use_starttls = True
-        with smtp_cls(SMTP_HOST, port, timeout=30) as server:
-            if use_starttls:
-                server.starttls()
-            if SMTP_USER and SMTP_PASSWORD:
-                server.login(SMTP_USER, SMTP_PASSWORD)
-            server.sendmail(envelope_from or SMTP_FROM, [to_email], msg.as_string())
-        return True
-    except smtplib.SMTPAuthenticationError as e:
-        print(
-            f"Warning: SMTP auth failed for user '{SMTP_USER}' on {SMTP_HOST}:{SMTP_PORT}. "
-            f"For Gmail, ensure 2FA is enabled and SMTP_PASSWORD is a 16-char App Password "
-            f"(no spaces). Error: {e}"
-        )
-        return False
-    except (ConnectionRefusedError, TimeoutError, OSError) as e:
-        print(
-            f"Warning: SMTP connection to {SMTP_HOST}:{SMTP_PORT} failed [{type(e).__name__}]: {e}. "
-            f"Cloud providers often block outbound SMTP — consider switching to RESEND_API_KEY."
-        )
-        return False
-    except smtplib.SMTPException as e:
-        print(f"Warning: SMTP magic link email failed [{type(e).__name__}]: {e}")
-        return False
-    except Exception as e:
-        print(f"Warning: SMTP magic link email unexpected error [{type(e).__name__}]: {e}")
-        traceback.print_exc()
-        return False
+def _send_magic_link_email(to_email: str, magic_url: str) -> bool:
+    subject = "Your sign-in link — Chicago Advocate Legal, NFP"
+    text = (
+        "Hello,\n\n"
+        f"Click the link below to sign in (expires in {MAGIC_LINK_TTL_MINUTES} minutes):\n"
+        f"{magic_url}\n\n"
+        "If you did not request this, you can ignore this email."
+    )
+    html = (
+        "<p>Hello,</p>"
+        "<p>Click the link below to sign in to the legal resource navigator. "
+        f"This link expires in <strong>{MAGIC_LINK_TTL_MINUTES} minutes</strong>.</p>"
+        f'<p><a href="{magic_url}" style="font-size:16px;padding:10px 20px;'
+        'background:#1a56db;color:#fff;text-decoration:none;border-radius:6px;">'
+        "Sign in</a></p>"
+        "<p>If you did not request this, you can safely ignore this email.</p>"
+    )
+    return send_transactional_email(to_email, subject, text, html)
 
 
 def request_magic_link(payload, db: Session) -> dict:
     email = str(payload.email).strip().lower()
     intake = find_intake_for_email(db, email)
     if not intake:
-        # Keep anti-enumeration behavior while still returning a generic delivery status.
+        # Anti-enumeration: always return success even when email is unknown.
         return {"status": "sent", "email_sent": True}
 
     plain = secrets.token_urlsafe(32)
@@ -191,9 +113,9 @@ def request_magic_link(payload, db: Session) -> dict:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
     magic_url = _build_magic_url(plain)
-    sent = _send_via_resend(email, magic_url) or _send_via_smtp(email, magic_url)
+    sent = _send_magic_link_email(email, magic_url)
     if not sent:
-        print(f"Magic link for {email} (configure RESEND_API_KEY or SMTP): {magic_url}")
+        print(f"Magic link for {email} (email not sent — check logs): {magic_url}")
 
     result: dict = {"status": "sent", "email_sent": bool(sent)}
     if not sent:
@@ -201,7 +123,7 @@ def request_magic_link(payload, db: Session) -> dict:
             result["delivery_hint"] = email_provider_hint()
         else:
             result["delivery_hint"] = (
-                "Email provider is configured, but sending failed. Check backend logs for provider errors."
+                "Gmail API is configured but sending failed. Check backend logs for details."
             )
     if MAGIC_LINK_DEV_RETURN_TOKEN and dev_auth_links_in_response_allowed():
         result["dev_magic_link"] = magic_url
