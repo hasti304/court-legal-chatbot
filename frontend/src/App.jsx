@@ -43,11 +43,14 @@ import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
 import calLogo from "./assets/cal_logo.png";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Send, RotateCcw, Loader2, ArrowLeft, ShieldAlert, Trash2, Volume2, VolumeX } from "lucide-react";
 
 import { useTranslation } from "react-i18next";
 import i18n, { setAppLanguage, getNormalizedLanguage } from "./i18n";
 import SlackLayout from "./components/layout/SlackLayout";
+import LoginLayout from "./components/LoginLayout";
+import ReferralCard from "./components/ReferralCard";
+import { Textarea } from "./components/ui/textarea";
 
 const AIChat = lazy(() => import("./components/AIChat"));
 const ChatDashboard = lazy(() => import("./components/ChatDashboard"));
@@ -1606,52 +1609,50 @@ function App() {
 
   if (view === "login") {
     return (
-      <div className={authPageClass}>
-        <div className="auth-github-lang-row">
-          <ThemeToggle />
-          <LanguagePicker variant={lpVariant} />
-        </div>
+      <LoginLayout
+        title={t("login.heading")}
+        subtitle={t("login.lead")}
+        extras={<><ThemeToggle /><LanguagePicker variant={lpVariant} /></>}
+        footer={
+          <SiteFooter
+            className={footerAuthClass}
+            supportEmail={SUPPORT_EMAIL}
+            onPrivacyClick={() => setView("privacy")}
+            showStaffSignIn
+          />
+        }
+      >
+        <form onSubmit={handlePasswordLoginSubmit} className="space-y-4">
+          {magicVerifyError ? (
+            <div role="alert" className="rounded-xl bg-destructive/10 text-destructive px-4 py-3 text-sm border border-destructive/20">
+              {magicVerifyError}
+            </div>
+          ) : null}
+          {magicTokenPending ? (
+            <div role="status" className="rounded-xl bg-muted px-4 py-3 text-sm border border-border">
+              Email link detected. Click below to complete sign-in.
+            </div>
+          ) : null}
+          {passwordResetNotice ? (
+            <div role="status" className="rounded-xl bg-muted px-4 py-3 text-sm border border-border">
+              {passwordResetNotice}
+            </div>
+          ) : null}
+          {passwordLoginError ? (
+            <div role="alert" className="rounded-xl bg-destructive/10 text-destructive px-4 py-3 text-sm border border-destructive/20">
+              {passwordLoginError}
+            </div>
+          ) : null}
+          {magicLinkError ? (
+            <div role="alert" className="rounded-xl bg-destructive/10 text-destructive px-4 py-3 text-sm border border-destructive/20">
+              {magicLinkError}
+            </div>
+          ) : null}
 
-        <main className="auth-github-main auth-github-main--split" id="main-content">
-          <div className="auth-split-inner">
-            {renderAuthAside()}
-            <div className="auth-split-form-col">
-          <h1 className="auth-github-title">{t("login.heading")}</h1>
-          <p className="auth-github-sub">{t("login.lead")}</p>
-
-          <form className="auth-github-card" onSubmit={handlePasswordLoginSubmit}>
-            {magicVerifyError ? (
-              <div className="auth-github-alert" role="alert">
-                {magicVerifyError}
-              </div>
-            ) : null}
-            {magicTokenPending ? (
-              <div className="auth-github-success" role="status">
-                Email link detected. Click below to complete sign-in.
-              </div>
-            ) : null}
-            {passwordResetNotice ? (
-              <div className="auth-github-success" role="status">
-                {passwordResetNotice}
-              </div>
-            ) : null}
-            {passwordLoginError ? (
-              <div className="auth-github-alert" role="alert">
-                {passwordLoginError}
-              </div>
-            ) : null}
-            {magicLinkError ? (
-              <div className="auth-github-alert" role="alert">
-                {magicLinkError}
-              </div>
-            ) : null}
-
-            <Label className="auth-github-label" htmlFor="auth-signin-email">
-              {t("login.emailLabel")}
-            </Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="auth-signin-email">{t("login.emailLabel")}</Label>
             <Input
               id="auth-signin-email"
-              className="auth-github-input"
               type="email"
               name="login"
               autoComplete="email"
@@ -1663,392 +1664,339 @@ function App() {
                 setPasswordLoginError("");
               }}
               disabled={magicLinkBusy || passwordLoginBusy}
+              className="rounded-xl"
             />
-            <Label className="auth-github-label" htmlFor="auth-signin-password">
-              {t("login.passwordLabel")}
-            </Label>
-            <div className="auth-password-wrap">
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="auth-signin-password">{t("login.passwordLabel")}</Label>
+            <div className="relative">
               <Input
                 id="auth-signin-password"
-                className="auth-github-input auth-github-input--in-password-wrap"
                 type={showLoginPassword ? "text" : "password"}
                 autoComplete="current-password"
                 value={loginPassword}
-                onChange={(e) => {
-                  setLoginPassword(e.target.value);
-                  setPasswordLoginError("");
-                }}
+                onChange={(e) => { setLoginPassword(e.target.value); setPasswordLoginError(""); }}
                 disabled={magicLinkBusy || passwordLoginBusy}
+                className="rounded-xl pr-10"
               />
               <Button
                 type="button"
-                className="auth-password-toggle"
                 size="icon"
+                variant="ghost"
                 onClick={() => setShowLoginPassword((s) => !s)}
                 disabled={magicLinkBusy || passwordLoginBusy}
                 aria-label={showLoginPassword ? t("login.hidePassword") : t("login.showPassword")}
-                variant="outline"
+                className="absolute right-0 top-0 h-full px-3 rounded-r-xl"
               >
-                {showLoginPassword ? (
-                  <EyeOff className="size-4 auth-eye-icon" aria-hidden />
-                ) : (
-                  <Eye className="size-4 auth-eye-icon" aria-hidden />
-                )}
+                {showLoginPassword ? <EyeOff className="w-4 h-4" aria-hidden /> : <Eye className="w-4 h-4" aria-hidden />}
               </Button>
             </div>
             {loginPassword ? (
-              <p className={`auth-password-strength auth-password-strength--${passwordStrengthKey(loginPassword)}`}>
+              <p className={`text-xs mt-1 ${
+                passwordStrengthKey(loginPassword) === "weak" ? "text-destructive" :
+                passwordStrengthKey(loginPassword) === "medium" ? "text-amber-600" : "text-green-600"
+              }`}>
                 {t(`login.passwordStrength.${passwordStrengthKey(loginPassword)}`)}
               </p>
             ) : null}
+          </div>
 
-            <Button
-              type="submit"
-              className="auth-github-btn-primary"
-              disabled={magicLinkBusy || passwordLoginBusy}
-              size="lg"
-            >
+          <div className="space-y-2 pt-1">
+            <Button type="submit" className="w-full rounded-xl" size="lg" disabled={magicLinkBusy || passwordLoginBusy}>
               {passwordLoginBusy ? t("login.signingIn") : t("login.passwordLoginButton")}
             </Button>
             {magicTokenPending ? (
               <Button
                 type="button"
-                className="auth-github-btn-primary"
+                className="w-full rounded-xl"
+                size="lg"
                 disabled={magicLinkBusy || passwordLoginBusy || magicVerifyBusy}
                 onClick={() => void verifyPendingMagicLink()}
-                size="lg"
               >
                 {magicVerifyBusy ? "Verifying link..." : "Complete sign-in from email link"}
               </Button>
             ) : null}
-            <Button
-              type="button"
-              className="auth-github-btn-secondary"
-              disabled={magicLinkBusy || passwordLoginBusy}
-              onClick={() => {
-                setForgotEmail(String(magicLinkEmail || "").trim().toLowerCase());
-                setForgotError("");
-                setForgotNotice("");
-                setForgotDevLink("");
-                setView("forgotPassword");
-              }}
-              variant="secondary"
-              size="lg"
-            >
-              {t("login.forgotPassword")}
-            </Button>
-            <Button
-              type="button"
-              className="auth-github-btn-ghost"
-              disabled={magicLinkBusy || passwordLoginBusy}
-              onClick={() => sendMagicLinkRequest(magicLinkEmail)}
-              variant="ghost"
-              size="lg"
-            >
-              {magicLinkBusy ? t("login.sending") : t("login.emailLoginButton")}
-            </Button>
-          </form>
+          </div>
+        </form>
 
-          <p className="auth-github-foot">
-            {t("login.newUserPrompt")}{" "}
-            <Button
-              type="button"
-              className="auth-github-text-link"
-              onClick={() => {
-                setMagicLinkError("");
-                setMagicVerifyError("");
-                setView("intake");
-              }}
-              variant="link"
-            >
-              {t("login.createAccount")}
-            </Button>
-          </p>
+        <div className="flex flex-col gap-2 mt-3">
           <Button
             type="button"
-            className="auth-github-text-link auth-github-foot-solo"
-            onClick={() => setView("privacy")}
+            variant="secondary"
+            size="lg"
+            className="w-full rounded-xl"
+            disabled={magicLinkBusy || passwordLoginBusy}
+            onClick={() => {
+              setForgotEmail(String(magicLinkEmail || "").trim().toLowerCase());
+              setForgotError("");
+              setForgotNotice("");
+              setForgotDevLink("");
+              setView("forgotPassword");
+            }}
+          >
+            {t("login.forgotPassword")}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="lg"
+            className="w-full rounded-xl"
+            disabled={magicLinkBusy || passwordLoginBusy}
+            onClick={() => sendMagicLinkRequest(magicLinkEmail)}
+          >
+            {magicLinkBusy ? t("login.sending") : t("login.emailLoginButton")}
+          </Button>
+        </div>
+
+        <div className="mt-6 pt-5 border-t border-border flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">{t("login.newUserPrompt")}</span>
+          <Button
+            type="button"
             variant="link"
+            className="p-0 h-auto font-medium"
+            onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("intake"); }}
+          >
+            {t("login.createAccount")}
+          </Button>
+        </div>
+        <div className="text-center mt-3">
+          <Button
+            type="button"
+            variant="link"
+            className="p-0 h-auto text-xs text-muted-foreground"
+            onClick={() => setView("privacy")}
           >
             {t("intake.privacyLink")}
           </Button>
-            </div>
-          </div>
-        </main>
-
-        <SiteFooter
-          className={footerAuthClass}
-          supportEmail={SUPPORT_EMAIL}
-          onPrivacyClick={() => setView("privacy")}
-          showStaffSignIn
-        />
+        </div>
         <EmergencyButton />
-      </div>
+      </LoginLayout>
     );
   }
 
   if (view === "magicSent") {
     return (
-      <div className={authPageClass}>
-        <div className="auth-github-lang-row">
-          <ThemeToggle />
-          <LanguagePicker variant={lpVariant} />
-        </div>
-
-        <main className="auth-github-main auth-github-main--split" id="main-content">
-          <div className="auth-split-inner">
-            {renderAuthAside()}
-            <div className="auth-split-form-col">
-          <h1 className="auth-github-title">{t("login.checkTitle")}</h1>
-          <p className="auth-github-sub">
-            {t("login.checkBody", { email: magicLinkSentTo || "—" })}
-          </p>
-
-          {magicDevLink && isLocalDevHost() ? (
-            <div className="auth-github-dev-box">
-              <p className="auth-github-dev-label">{t("login.devLinkLabel")}</p>
-              <a className="auth-github-text-link auth-github-dev-link" href={magicDevLink}>
-                {magicDevLink}
-              </a>
-            </div>
-          ) : null}
-
-          <div className="auth-github-card auth-github-card--plain">
-            <Button
-              type="button"
-              className="auth-github-btn-primary"
-              disabled={magicLinkBusy}
-              onClick={() => sendMagicLinkRequest(magicLinkSentTo)}
-              size="lg"
-            >
-              {magicLinkBusy ? t("login.sending") : t("login.resend")}
-            </Button>
-            <Button
-              type="button"
-              className="auth-github-btn-secondary"
-              onClick={() => {
-                setMagicLinkError("");
-                setMagicDevLink("");
-                setView("login");
-              }}
-              variant="secondary"
-              size="lg"
-            >
-              {t("login.backToSignIn")}
-            </Button>
+      <LoginLayout
+        title={t("login.checkTitle")}
+        subtitle={t("login.checkBody", { email: magicLinkSentTo || "—" })}
+        extras={<><ThemeToggle /><LanguagePicker variant={lpVariant} /></>}
+        footer={
+          <SiteFooter
+            className={footerAuthClass}
+            supportEmail={SUPPORT_EMAIL}
+            onPrivacyClick={() => setView("privacy")}
+            showStaffSignIn
+          />
+        }
+      >
+        {magicDevLink && isLocalDevHost() ? (
+          <div className="rounded-xl border border-border bg-muted px-4 py-3 mb-4">
+            <p className="text-xs text-muted-foreground mb-1">{t("login.devLinkLabel")}</p>
+            <a className="text-sm text-foreground underline underline-offset-2 break-all" href={magicDevLink}>
+              {magicDevLink}
+            </a>
           </div>
-
+        ) : null}
+        <div className="flex flex-col gap-3">
           <Button
             type="button"
-            className="auth-github-text-link auth-github-foot-solo"
-            onClick={() => setView("privacy")}
+            className="w-full rounded-xl"
+            size="lg"
+            disabled={magicLinkBusy}
+            onClick={() => sendMagicLinkRequest(magicLinkSentTo)}
+          >
+            {magicLinkBusy ? t("login.sending") : t("login.resend")}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            className="w-full rounded-xl"
+            onClick={() => { setMagicLinkError(""); setMagicDevLink(""); setView("login"); }}
+          >
+            {t("login.backToSignIn")}
+          </Button>
+        </div>
+        <div className="text-center mt-4">
+          <Button
+            type="button"
             variant="link"
+            className="p-0 h-auto text-xs text-muted-foreground"
+            onClick={() => setView("privacy")}
           >
             {t("intake.privacyLink")}
           </Button>
-            </div>
-          </div>
-        </main>
-
-        <SiteFooter
-          className={footerAuthClass}
-          supportEmail={SUPPORT_EMAIL}
-          onPrivacyClick={() => setView("privacy")}
-          showStaffSignIn
-        />
+        </div>
         <EmergencyButton />
-      </div>
+      </LoginLayout>
     );
   }
 
   if (view === "forgotPassword") {
     return (
-      <div className={authPageClass}>
-        <div className="auth-github-lang-row">
-          <ThemeToggle />
-          <LanguagePicker variant={lpVariant} />
-        </div>
-        <main className="auth-github-main auth-github-main--split" id="main-content">
-          <div className="auth-split-inner">
-            {renderAuthAside()}
-            <div className="auth-split-form-col">
-          <h1 className="auth-github-title">{t("login.forgotTitle")}</h1>
-          <p className="auth-github-sub">{t("login.forgotBody")}</p>
-          <form className="auth-github-card" onSubmit={handleForgotPasswordSubmit}>
-            {forgotError ? (
-              <div className="auth-github-alert" role="alert">
-                {forgotError}
-              </div>
-            ) : null}
-            {forgotNotice ? (
-              <div className="auth-github-success" role="status">
-                {forgotNotice}
-              </div>
-            ) : null}
-            {forgotDevLink && isLocalDevHost() ? (
-              <div className="auth-github-dev-box">
-                <p className="auth-github-dev-label">{t("login.resetDevLinkLabel")}</p>
-                <a className="auth-github-text-link auth-github-dev-link" href={forgotDevLink}>
-                  {forgotDevLink}
-                </a>
-              </div>
-            ) : null}
-            <Label className="auth-github-label" htmlFor="auth-forgot-email">
-              {t("login.emailLabel")}
-            </Label>
+      <LoginLayout
+        title={t("login.forgotTitle")}
+        subtitle={t("login.forgotBody")}
+        extras={<><ThemeToggle /><LanguagePicker variant={lpVariant} /></>}
+        footer={
+          <SiteFooter
+            className={footerAuthClass}
+            supportEmail={SUPPORT_EMAIL}
+            onPrivacyClick={() => setView("privacy")}
+            showStaffSignIn
+          />
+        }
+      >
+        <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
+          {forgotError ? (
+            <div role="alert" className="rounded-xl bg-destructive/10 text-destructive px-4 py-3 text-sm border border-destructive/20">
+              {forgotError}
+            </div>
+          ) : null}
+          {forgotNotice ? (
+            <div role="status" className="rounded-xl bg-muted px-4 py-3 text-sm border border-border">
+              {forgotNotice}
+            </div>
+          ) : null}
+          {forgotDevLink && isLocalDevHost() ? (
+            <div className="rounded-xl border border-border bg-muted px-4 py-3">
+              <p className="text-xs text-muted-foreground mb-1">{t("login.resetDevLinkLabel")}</p>
+              <a className="text-sm text-foreground underline underline-offset-2 break-all" href={forgotDevLink}>
+                {forgotDevLink}
+              </a>
+            </div>
+          ) : null}
+          <div className="space-y-1.5">
+            <Label htmlFor="auth-forgot-email">{t("login.emailLabel")}</Label>
             <Input
               id="auth-forgot-email"
-              className="auth-github-input"
               type="email"
               autoComplete="email"
               value={forgotEmail}
-              onChange={(e) => {
-                setForgotEmail(e.target.value);
-                setForgotError("");
-              }}
+              onChange={(e) => { setForgotEmail(e.target.value); setForgotError(""); }}
               disabled={forgotBusy}
+              className="rounded-xl"
             />
-            <Button type="submit" className="auth-github-btn-primary" disabled={forgotBusy} size="lg">
+          </div>
+          <div className="space-y-2 pt-1">
+            <Button type="submit" className="w-full rounded-xl" size="lg" disabled={forgotBusy}>
               {forgotBusy ? t("login.sending") : t("login.sendReset")}
             </Button>
             <Button
               type="button"
-              className="auth-github-btn-secondary"
-              onClick={() => setView("login")}
-              disabled={forgotBusy}
               variant="secondary"
               size="lg"
+              className="w-full rounded-xl"
+              onClick={() => setView("login")}
+              disabled={forgotBusy}
             >
               {t("login.backToSignIn")}
             </Button>
-          </form>
-            </div>
           </div>
-        </main>
-        <SiteFooter
-          className={footerAuthClass}
-          supportEmail={SUPPORT_EMAIL}
-          onPrivacyClick={() => setView("privacy")}
-          showStaffSignIn
-        />
+        </form>
         <EmergencyButton />
-      </div>
+      </LoginLayout>
     );
   }
 
   if (view === "resetPassword") {
     return (
-      <div className={authPageClass}>
-        <div className="auth-github-lang-row">
-          <ThemeToggle />
-          <LanguagePicker variant={lpVariant} />
-        </div>
-        <main className="auth-github-main auth-github-main--split" id="main-content">
-          <div className="auth-split-inner">
-            {renderAuthAside()}
-            <div className="auth-split-form-col">
-          <h1 className="auth-github-title">{t("login.resetTitle")}</h1>
-          <p className="auth-github-sub">{t("login.resetBody")}</p>
-          <form className="auth-github-card" onSubmit={handleResetPasswordSubmit}>
-            {resetError ? (
-              <div className="auth-github-alert" role="alert">
-                {resetError}
-              </div>
-            ) : null}
-            <Label className="auth-github-label" htmlFor="auth-reset-password-1">
-              {t("login.newPassword")}
-            </Label>
-            <div className="auth-password-wrap">
+      <LoginLayout
+        title={t("login.resetTitle")}
+        subtitle={t("login.resetBody")}
+        extras={<><ThemeToggle /><LanguagePicker variant={lpVariant} /></>}
+        footer={
+          <SiteFooter
+            className={footerAuthClass}
+            supportEmail={SUPPORT_EMAIL}
+            onPrivacyClick={() => setView("privacy")}
+            showStaffSignIn
+          />
+        }
+      >
+        <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
+          {resetError ? (
+            <div role="alert" className="rounded-xl bg-destructive/10 text-destructive px-4 py-3 text-sm border border-destructive/20">
+              {resetError}
+            </div>
+          ) : null}
+          <div className="space-y-1.5">
+            <Label htmlFor="auth-reset-password-1">{t("login.newPassword")}</Label>
+            <div className="relative">
               <Input
                 id="auth-reset-password-1"
-                className="auth-github-input auth-github-input--in-password-wrap"
                 type={showResetPassword1 ? "text" : "password"}
                 autoComplete="new-password"
                 value={resetPassword1}
-                onChange={(e) => {
-                  setResetPassword1(e.target.value);
-                  setResetError("");
-                }}
+                onChange={(e) => { setResetPassword1(e.target.value); setResetError(""); }}
                 disabled={resetBusy}
+                className="rounded-xl pr-10"
               />
               <Button
                 type="button"
-                className="auth-password-toggle"
                 size="icon"
+                variant="ghost"
                 onClick={() => setShowResetPassword1((s) => !s)}
                 disabled={resetBusy}
                 aria-label={showResetPassword1 ? t("login.hidePassword") : t("login.showPassword")}
-                variant="outline"
+                className="absolute right-0 top-0 h-full px-3 rounded-r-xl"
               >
-                {showResetPassword1 ? (
-                  <EyeOff className="size-4 auth-eye-icon" aria-hidden />
-                ) : (
-                  <Eye className="size-4 auth-eye-icon" aria-hidden />
-                )}
+                {showResetPassword1 ? <EyeOff className="w-4 h-4" aria-hidden /> : <Eye className="w-4 h-4" aria-hidden />}
               </Button>
             </div>
             {resetPassword1 ? (
-              <p className={`auth-password-strength auth-password-strength--${passwordStrengthKey(resetPassword1)}`}>
+              <p className={`text-xs mt-1 ${
+                passwordStrengthKey(resetPassword1) === "weak" ? "text-destructive" :
+                passwordStrengthKey(resetPassword1) === "medium" ? "text-amber-600" : "text-green-600"
+              }`}>
                 {t(`login.passwordStrength.${passwordStrengthKey(resetPassword1)}`)}
               </p>
             ) : null}
-            <Label className="auth-github-label" htmlFor="auth-reset-password-2">
-              {t("login.confirmPassword")}
-            </Label>
-            <div className="auth-password-wrap">
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="auth-reset-password-2">{t("login.confirmPassword")}</Label>
+            <div className="relative">
               <Input
                 id="auth-reset-password-2"
-                className="auth-github-input auth-github-input--in-password-wrap"
                 type={showResetPassword2 ? "text" : "password"}
                 autoComplete="new-password"
                 value={resetPassword2}
-                onChange={(e) => {
-                  setResetPassword2(e.target.value);
-                  setResetError("");
-                }}
+                onChange={(e) => { setResetPassword2(e.target.value); setResetError(""); }}
                 disabled={resetBusy}
+                className="rounded-xl pr-10"
               />
               <Button
                 type="button"
-                className="auth-password-toggle"
                 size="icon"
+                variant="ghost"
                 onClick={() => setShowResetPassword2((s) => !s)}
                 disabled={resetBusy}
                 aria-label={showResetPassword2 ? t("login.hidePassword") : t("login.showPassword")}
-                variant="outline"
+                className="absolute right-0 top-0 h-full px-3 rounded-r-xl"
               >
-                {showResetPassword2 ? (
-                  <EyeOff className="size-4 auth-eye-icon" aria-hidden />
-                ) : (
-                  <Eye className="size-4 auth-eye-icon" aria-hidden />
-                )}
+                {showResetPassword2 ? <EyeOff className="w-4 h-4" aria-hidden /> : <Eye className="w-4 h-4" aria-hidden />}
               </Button>
             </div>
-            <Button type="submit" className="auth-github-btn-primary" disabled={resetBusy} size="lg">
+          </div>
+          <div className="space-y-2 pt-1">
+            <Button type="submit" className="w-full rounded-xl" size="lg" disabled={resetBusy}>
               {resetBusy ? t("login.savingPassword") : t("login.resetPasswordButton")}
             </Button>
             <Button
               type="button"
-              className="auth-github-btn-secondary"
-              onClick={() => setView("login")}
-              disabled={resetBusy}
               variant="secondary"
               size="lg"
+              className="w-full rounded-xl"
+              onClick={() => setView("login")}
+              disabled={resetBusy}
             >
               {t("login.backToSignIn")}
             </Button>
-          </form>
-            </div>
           </div>
-        </main>
-        <SiteFooter
-          className={footerAuthClass}
-          supportEmail={SUPPORT_EMAIL}
-          onPrivacyClick={() => setView("privacy")}
-          showStaffSignIn
-        />
+        </form>
         <EmergencyButton />
-      </div>
+      </LoginLayout>
     );
   }
 
@@ -2056,313 +2004,300 @@ function App() {
     const hasSaved = intakeSaved && intakeId;
 
     return (
-      <div className={authPageClass}>
-        <div className="auth-github-lang-row">
-          <ThemeToggle />
-          <LanguagePicker variant={lpVariant} />
-        </div>
-
-        <main className="auth-github-main auth-github-main--split" id="main-content">
-          <div className="auth-split-inner">
-            {renderAuthAside()}
-            <div className="auth-split-form-col">
-          <h1 className="auth-github-title">{t("login.welcomeBackTitle")}</h1>
-          <p className="auth-github-sub">{t("login.welcomeBackBody")}</p>
-
-          <div className="auth-github-card auth-github-card--plain">
-            <button
-              type="button"
-              className="auth-github-btn-primary"
-              onClick={() => setView("cover")}
-              disabled={loading || !hasSaved}
-            >
-              {t("login.continueThisDevice")}
-            </button>
-            <button
-              type="button"
-              className="auth-github-btn-secondary"
-              onClick={() => {
-                setMagicLinkEmail("");
-                setMagicLinkError("");
-                setMagicVerifyError("");
-                setView("login");
-              }}
-              disabled={loading}
-            >
-              {t("login.useDifferentEmail")}
-            </button>
-            <button
-              type="button"
-              className="auth-github-btn-ghost"
-              onClick={() => {
-                clearSavedIntake();
-                setMagicLinkEmail("");
-                setMagicLinkError("");
-                setMagicVerifyError("");
-                setView("login");
-              }}
-              disabled={loading}
-            >
-              {t("login.signOutDevice")}
-            </button>
-          </div>
-
-          <button
+      <LoginLayout
+        title={t("login.welcomeBackTitle")}
+        subtitle={t("login.welcomeBackBody")}
+        extras={<><ThemeToggle /><LanguagePicker variant={lpVariant} /></>}
+        footer={
+          <SiteFooter
+            className={footerAuthClass}
+            supportEmail={SUPPORT_EMAIL}
+            onPrivacyClick={() => setView("privacy")}
+            showStaffSignIn
+          />
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <Button
             type="button"
-            className="auth-github-text-link auth-github-foot-solo"
+            className="w-full rounded-xl"
+            size="lg"
+            onClick={() => setView("cover")}
+            disabled={loading || !hasSaved}
+          >
+            {t("login.continueThisDevice")}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            className="w-full rounded-xl"
+            onClick={() => { setMagicLinkEmail(""); setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
+            disabled={loading}
+          >
+            {t("login.useDifferentEmail")}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="lg"
+            className="w-full rounded-xl"
+            onClick={() => { clearSavedIntake(); setMagicLinkEmail(""); setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
+            disabled={loading}
+          >
+            {t("login.signOutDevice")}
+          </Button>
+        </div>
+        <div className="text-center mt-4">
+          <Button
+            type="button"
+            variant="link"
+            className="p-0 h-auto text-xs text-muted-foreground"
             onClick={() => setView("privacy")}
           >
             {t("intake.privacyLink")}
-          </button>
-            </div>
-          </div>
-        </main>
-
-        <SiteFooter
-          className={footerAuthClass}
-          supportEmail={SUPPORT_EMAIL}
-          onPrivacyClick={() => setView("privacy")}
-          showStaffSignIn
-        />
+          </Button>
+        </div>
         <EmergencyButton />
-      </div>
+      </LoginLayout>
     );
   }
 
   if (view === "intake") {
     return (
-      <div className={authPageClass}>
-        <div className="auth-github-lang-row">
-          <ThemeToggle />
-          <LanguagePicker variant={lpVariant} />
-        </div>
-
-        <main className="auth-github-main auth-github-main--split" id="main-content">
-          <div className="auth-split-inner">
-            {renderAuthAside()}
-            <div className="auth-split-form-col auth-split-form-col--intake">
-          <h1 className="auth-github-title">{t("login.createAccountTitle")}</h1>
-          <p className="auth-github-sub">{t("intake.subtitle")}</p>
-
-          <div className="auth-github-intake-role-row" role="group" aria-label={t("login.intakeLoginChoiceAria")}>
-            <button
+      <LoginLayout
+        title={t("login.createAccountTitle")}
+        subtitle={t("intake.subtitle")}
+        extras={<><ThemeToggle /><LanguagePicker variant={lpVariant} /></>}
+        footer={
+          <SiteFooter
+            className={footerAuthClass}
+            supportEmail={SUPPORT_EMAIL}
+            onPrivacyClick={() => setView("privacy")}
+          />
+        }
+      >
+        <div className="flex items-center justify-between gap-3 mb-5 pb-4 border-b border-border">
+          <div className="flex items-center gap-2" role="group" aria-label={t("login.intakeLoginChoiceAria")}>
+            <Button
               type="button"
-              className="auth-github-btn-secondary auth-github-intake-role-btn"
-              onClick={() => {
-                setMagicLinkError("");
-                setMagicVerifyError("");
-                setView("login");
-              }}
+              variant="secondary"
+              size="sm"
+              className="rounded-xl text-xs"
+              onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
               disabled={loading}
             >
               {t("login.clientLogin")}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className="auth-github-btn-secondary auth-github-intake-role-btn"
-              onClick={() => {
-                window.location.hash = "#/admin";
-              }}
+              variant="outline"
+              size="sm"
+              className="rounded-xl text-xs"
+              onClick={() => { window.location.hash = "#/admin"; }}
               disabled={loading}
             >
               {t("login.staffLogin")}
-            </button>
+            </Button>
           </div>
-
-          <p className="auth-github-returning">
-            {t("login.returningPrompt")}{" "}
-            <button
-              type="button"
-              className="auth-github-text-link"
-              onClick={() => {
-                setMagicLinkError("");
-                setMagicVerifyError("");
-                setView("login");
-              }}
-            >
-              {t("login.signInWithEmail")}
-            </button>
-          </p>
-
-          <form
-            className="auth-github-card"
-            onSubmit={(e) => {
-              e.preventDefault();
-              submitIntake();
-            }}
+          <Button
+            type="button"
+            variant="link"
+            className="p-0 h-auto text-xs"
+            onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
           >
-            <div className="intake-grid auth-github-intake-grid">
-              <input
-                className="auth-github-input"
+            {t("login.signInWithEmail")}
+          </Button>
+        </div>
+
+        <form
+          onSubmit={(e) => { e.preventDefault(); submitIntake(); }}
+          className="space-y-4"
+        >
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="intake-first-name">{t("intake.firstName")}</Label>
+              <Input
+                id="intake-first-name"
                 type="text"
                 value={intakeFirstName}
                 onChange={(e) => setIntakeFirstName(e.target.value)}
                 placeholder={t("intake.firstName")}
                 disabled={loading}
+                className="rounded-xl"
               />
-              <input
-                className="auth-github-input"
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="intake-last-name">{t("intake.lastName")}</Label>
+              <Input
+                id="intake-last-name"
                 type="text"
                 value={intakeLastName}
                 onChange={(e) => setIntakeLastName(e.target.value)}
                 placeholder={t("intake.lastName")}
                 disabled={loading}
+                className="rounded-xl"
               />
-              <input
-                className="auth-github-input"
-                type="tel"
-                value={intakePhone}
-                onChange={(e) => setIntakePhone(e.target.value)}
-                placeholder={t("intake.phone")}
-                disabled={loading}
-              />
-              <input
-                className="auth-github-input"
-                type="email"
-                value={intakeEmail}
-                onChange={(e) => setIntakeEmail(e.target.value)}
-                placeholder={t("intake.email")}
-                disabled={loading}
-              />
-              <div className="auth-password-wrap">
-                <input
-                  className="auth-github-input auth-github-input--in-password-wrap"
-                  type={showIntakePassword ? "text" : "password"}
-                  value={intakePassword}
-                  onChange={(e) => setIntakePassword(e.target.value)}
-                  placeholder={t("login.createPassword")}
-                  autoComplete="new-password"
-                  disabled={loading}
-                />
-                <button
-                  type="button"
-                  className="auth-password-toggle auth-password-toggle--icon"
-                  onClick={() => setShowIntakePassword((s) => !s)}
-                  disabled={loading}
-                  aria-label={showIntakePassword ? t("login.hidePassword") : t("login.showPassword")}
-                >
-                  {showIntakePassword ? (
-                    <EyeOff className="size-4 auth-eye-icon" aria-hidden />
-                  ) : (
-                    <Eye className="size-4 auth-eye-icon" aria-hidden />
-                  )}
-                </button>
-              </div>
-              <div className="auth-password-wrap">
-                <input
-                  className="auth-github-input auth-github-input--in-password-wrap"
-                  type={showIntakePasswordConfirm ? "text" : "password"}
-                  value={intakePasswordConfirm}
-                  onChange={(e) => setIntakePasswordConfirm(e.target.value)}
-                  placeholder={t("login.confirmAccountPassword")}
-                  autoComplete="new-password"
-                  disabled={loading}
-                />
-                <button
-                  type="button"
-                  className="auth-password-toggle auth-password-toggle--icon"
-                  onClick={() => setShowIntakePasswordConfirm((s) => !s)}
-                  disabled={loading}
-                  aria-label={showIntakePasswordConfirm ? t("login.hidePassword") : t("login.showPassword")}
-                >
-                  {showIntakePasswordConfirm ? (
-                    <EyeOff className="size-4 auth-eye-icon" aria-hidden />
-                  ) : (
-                    <Eye className="size-4 auth-eye-icon" aria-hidden />
-                  )}
-                </button>
-              </div>
-              {intakePassword ? (
-                <p className={`auth-password-strength auth-password-strength--${passwordStrengthKey(intakePassword)}`}>
-                  {t(`login.passwordStrength.${passwordStrengthKey(intakePassword)}`)}
-                </p>
-              ) : null}
-
-              <label className="consent-label auth-github-consent">
-                <input
-                  type="checkbox"
-                  checked={intakeConsent}
-                  onChange={(e) => setIntakeConsent(e.target.checked)}
-                  disabled={loading}
-                />
-                <span>
-                  {t("intake.consentText")}{" "}
-                  <button
-                    type="button"
-                    onClick={() => setView("privacy")}
-                    className="auth-github-inline-link"
-                  >
-                    {t("intake.privacyLink")}
-                  </button>
-                </span>
-              </label>
-
-              {intakeError ? (
-                <div className="auth-github-alert" role="alert">
-                  {intakeError}
-                </div>
-              ) : null}
-
-              <button className="auth-github-btn-primary" type="submit" disabled={loading}>
-                {loading
-                  ? intakeSubmitPhase === "retrying"
-                    ? t("intake.retryingDetail")
-                    : t("intake.savingDetail")
-                  : t("intake.submit")}
-              </button>
-            </div>
-          </form>
             </div>
           </div>
-        </main>
 
-        <SiteFooter
-          className={footerAuthClass}
-          supportEmail={SUPPORT_EMAIL}
-          onPrivacyClick={() => setView("privacy")}
-        />
+          <div className="space-y-1.5">
+            <Label htmlFor="intake-email">{t("intake.email")}</Label>
+            <Input
+              id="intake-email"
+              type="email"
+              value={intakeEmail}
+              onChange={(e) => setIntakeEmail(e.target.value)}
+              placeholder={t("intake.email")}
+              disabled={loading}
+              className="rounded-xl"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="intake-phone">{t("intake.phone")}</Label>
+            <Input
+              id="intake-phone"
+              type="tel"
+              value={intakePhone}
+              onChange={(e) => setIntakePhone(e.target.value)}
+              placeholder={t("intake.phone")}
+              disabled={loading}
+              className="rounded-xl"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="intake-password">{t("login.createPassword")}</Label>
+            <div className="relative">
+              <Input
+                id="intake-password"
+                type={showIntakePassword ? "text" : "password"}
+                value={intakePassword}
+                onChange={(e) => setIntakePassword(e.target.value)}
+                placeholder={t("login.createPassword")}
+                autoComplete="new-password"
+                disabled={loading}
+                className="rounded-xl pr-10"
+              />
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={() => setShowIntakePassword((s) => !s)}
+                disabled={loading}
+                aria-label={showIntakePassword ? t("login.hidePassword") : t("login.showPassword")}
+                className="absolute right-0 top-0 h-full px-3 rounded-r-xl"
+              >
+                {showIntakePassword ? <EyeOff className="w-4 h-4" aria-hidden /> : <Eye className="w-4 h-4" aria-hidden />}
+              </Button>
+            </div>
+            {intakePassword ? (
+              <p className={`text-xs mt-1 ${
+                passwordStrengthKey(intakePassword) === "weak" ? "text-destructive" :
+                passwordStrengthKey(intakePassword) === "medium" ? "text-amber-600" : "text-green-600"
+              }`}>
+                {t(`login.passwordStrength.${passwordStrengthKey(intakePassword)}`)}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="intake-password-confirm">{t("login.confirmAccountPassword")}</Label>
+            <div className="relative">
+              <Input
+                id="intake-password-confirm"
+                type={showIntakePasswordConfirm ? "text" : "password"}
+                value={intakePasswordConfirm}
+                onChange={(e) => setIntakePasswordConfirm(e.target.value)}
+                placeholder={t("login.confirmAccountPassword")}
+                autoComplete="new-password"
+                disabled={loading}
+                className="rounded-xl pr-10"
+              />
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={() => setShowIntakePasswordConfirm((s) => !s)}
+                disabled={loading}
+                aria-label={showIntakePasswordConfirm ? t("login.hidePassword") : t("login.showPassword")}
+                className="absolute right-0 top-0 h-full px-3 rounded-r-xl"
+              >
+                {showIntakePasswordConfirm ? <EyeOff className="w-4 h-4" aria-hidden /> : <Eye className="w-4 h-4" aria-hidden />}
+              </Button>
+            </div>
+          </div>
+
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={intakeConsent}
+              onChange={(e) => setIntakeConsent(e.target.checked)}
+              disabled={loading}
+              className="mt-0.5 w-4 h-4 rounded shrink-0"
+            />
+            <span className="text-sm text-muted-foreground leading-relaxed">
+              {t("intake.consentText")}{" "}
+              <button
+                type="button"
+                onClick={() => setView("privacy")}
+                className="text-foreground underline underline-offset-2 hover:no-underline"
+              >
+                {t("intake.privacyLink")}
+              </button>
+            </span>
+          </label>
+
+          {intakeError ? (
+            <div role="alert" className="rounded-xl bg-destructive/10 text-destructive px-4 py-3 text-sm border border-destructive/20">
+              {intakeError}
+            </div>
+          ) : null}
+
+          <Button type="submit" className="w-full rounded-xl" size="lg" disabled={loading}>
+            {loading
+              ? intakeSubmitPhase === "retrying"
+                ? t("intake.retryingDetail")
+                : t("intake.savingDetail")
+              : t("intake.submit")}
+          </Button>
+        </form>
         <EmergencyButton />
-      </div>
+      </LoginLayout>
     );
   }
 
   if (view === "intakeSuccess") {
     return (
-      <div className={landingClass}>
-        <div className="landing-background-accent"></div>
-        <div className="landing-header">
-          <div className="logo-container">
-            {renderHeaderLogo()}
-            <h1>{t("intake.successTitle")}</h1>
-            <p className="subtitle">{t("app.subtitle")}</p>
-            <div className="landing-lang-theme-row">
-              <ThemeToggle />
-              <LanguagePicker variant={lpVariant} />
-            </div>
+      <LoginLayout
+        title={t("intake.successTitle")}
+        extras={<><ThemeToggle /><LanguagePicker variant={lpVariant} /></>}
+        footer={
+          <SiteFooter
+            className={footerAuthClass}
+            supportEmail={SUPPORT_EMAIL}
+            onPrivacyClick={() => setView("privacy")}
+            showStaffSignIn
+          />
+        }
+      >
+        <div className="rounded-2xl border border-border bg-muted/50 p-6 text-center mb-6">
+          <div className="w-12 h-12 rounded-full bg-foreground text-background flex items-center justify-center mx-auto mb-4 text-lg font-bold">
+            ✓
           </div>
+          <p className="text-sm text-muted-foreground leading-relaxed">{t("intake.successBody")}</p>
         </div>
-
-        <main className="landing-main intake-success-main" id="main-content">
-          <div className="landing-content">
-            <p className="tagline intake-success-body">{t("intake.successBody")}</p>
-            <button
-              type="button"
-              className="btn btn-primary btn-large btn-start"
-              onClick={() => setView("cover")}
-            >
-              {t("intake.continueToPortal")}
-            </button>
-          </div>
-        </main>
-
-        <SiteFooter
-          className={footerAuthClass}
-          supportEmail={SUPPORT_EMAIL}
-          onPrivacyClick={() => setView("privacy")}
-          showStaffSignIn
-        />
+        <Button
+          type="button"
+          className="w-full rounded-xl"
+          size="lg"
+          onClick={() => setView("cover")}
+        >
+          {t("intake.continueToPortal")}
+        </Button>
         <EmergencyButton />
-      </div>
+      </LoginLayout>
     );
   }
 
@@ -2396,106 +2331,122 @@ function App() {
           </>
         }
       >
-        <div className="slack-welcome-panel" id="main-content">
+        <div className="p-6 max-w-3xl mx-auto">
           {/* Welcome hero */}
-          <div className="slack-welcome-hero">
-            <div className="slack-welcome-avatar" aria-hidden="true">
+          <div className="text-center py-8 mb-6">
+            <div
+              className="w-14 h-14 rounded-2xl bg-foreground text-background flex items-center justify-center mx-auto mb-5 text-xl font-bold"
+              aria-hidden="true"
+            >
               {intakeFirstName ? intakeFirstName.charAt(0).toUpperCase() : "⚖"}
             </div>
-            <h2 className="slack-welcome-title">
-              {intakeFirstName
-                ? `Welcome back, ${intakeFirstName}!`
-                : t("landing.welcomeTitle")}
+            <h2 className="text-2xl font-bold text-foreground mb-2">
+              {intakeFirstName ? `Welcome back, ${intakeFirstName}!` : t("landing.welcomeTitle")}
             </h2>
-            <p className="slack-welcome-sub">{t("landing.tagline")}</p>
-
-            <div className="slack-welcome-actions">
+            <p className="text-muted-foreground text-sm leading-relaxed mb-6 max-w-md mx-auto">
+              {t("landing.tagline")}
+            </p>
+            <div className="flex items-center justify-center gap-3 flex-wrap">
               {pendingTriage ? (
                 <>
-                  <button
+                  <Button
                     type="button"
-                    className="btn btn-primary btn-large btn-start"
+                    size="lg"
+                    className="rounded-2xl px-8"
                     onClick={resumeTriageFromCover}
                     disabled={loading}
                   >
                     {t("resume.continueBtn")}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
-                    className="btn btn-start btn-cover-secondary"
+                    variant="secondary"
+                    size="lg"
+                    className="rounded-2xl px-8"
                     onClick={discardPendingAndStartFresh}
                     disabled={loading}
                   >
                     {t("resume.startNewBtn")}
-                  </button>
+                  </Button>
                 </>
               ) : (
-                <button
-                  className="btn btn-primary btn-large btn-start"
+                <Button
+                  size="lg"
+                  className="rounded-2xl px-10"
                   onClick={startChatFromCover}
                   disabled={loading}
                 >
                   {t("landing.begin")}
-                </button>
+                </Button>
               )}
             </div>
           </div>
 
-          {/* Content */}
-          <div className="slack-welcome-content">
-            <TrustPanel className="trust-panel-landing" />
-
-            <LegalGlossary className="legal-glossary-landing" />
-
-            <div className="topic-cards">
+          {/* Topic cards */}
+          <div className="mb-6">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+              Browse by legal area
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {topicCards.map((card) => (
-                <div key={card.key} className="topic-card professional-topic-card">
-                  <div className="topic-card-icon">{card.icon}</div>
-                  <h3>{card.title}</h3>
-                  <p>{card.desc}</p>
-                </div>
+                <button
+                  key={card.key}
+                  type="button"
+                  className="text-left bg-card rounded-2xl border border-border p-4 shadow-sm hover:shadow-md hover:border-foreground/20 transition-all duration-150 group"
+                  onClick={() => {
+                    const topicId = card.key === "childSupport" ? "child_support" : card.key;
+                    setCurrentTopic(topicId);
+                    startChatFromCover();
+                  }}
+                >
+                  <div className="text-xl mb-2.5">{card.icon}</div>
+                  <h4 className="font-semibold text-sm text-foreground mb-1">{card.title}</h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{card.desc}</p>
+                </button>
               ))}
             </div>
+          </div>
 
-            <div className="contact-help-box">
-              <p>
-                Need help? Email:{" "}
-                <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
-              </p>
-            </div>
+          {/* Trust panel + supplementary content */}
+          <div className="space-y-4">
+            <TrustPanel className="trust-panel-landing" />
+            <LegalGlossary className="legal-glossary-landing" />
 
-            <div className="disclaimer-box">
-              <p className="disclaimer-title">{t("landing.importantNoticeTitle")}</p>
-              <p className="disclaimer-text">
-                <strong>{t("landing.infoOnly")}</strong>
+            {/* Disclaimer */}
+            <div className="rounded-2xl border border-border bg-muted/40 px-5 py-4">
+              <p className="text-xs font-semibold text-muted-foreground mb-1">{t("landing.importantNoticeTitle")}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                <strong className="text-foreground">{t("landing.infoOnly")}</strong>
               </p>
-              <p className="privacy-warning">
+              <p className="text-xs text-muted-foreground leading-relaxed mt-1">
                 ⚠️ <strong>{t("landing.privacyTitle")}</strong> {t("landing.privacyText")}
               </p>
             </div>
 
-            <div className="secondary-link-wrap secondary-link-wrap--split">
+            {/* Footer links */}
+            <div className="flex items-center gap-4 text-xs pb-4">
               <button
                 type="button"
+                className="text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
                 onClick={() => setView(intakeSaved && intakeId ? "intakeChoice" : "intake")}
-                className="link-button"
               >
                 {t("login.backToSignIn")}
               </button>
-              <span className="secondary-link-sep" aria-hidden="true">
-                ·
-              </span>
+              <span className="text-border" aria-hidden="true">·</span>
               <button
                 type="button"
-                onClick={() => {
-                  setMagicLinkError("");
-                  setMagicVerifyError("");
-                  setView("login");
-                }}
-                className="link-button"
+                className="text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+                onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
               >
                 {t("login.signInWithEmail")}
               </button>
+              <span className="text-border" aria-hidden="true">·</span>
+              <a
+                href={`mailto:${SUPPORT_EMAIL}`}
+                className="text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+              >
+                {SUPPORT_EMAIL}
+              </a>
             </div>
           </div>
         </div>
@@ -2579,27 +2530,33 @@ function App() {
       )}
 
         <div className="slack-chat-workspace">
-        <div className="safety-toolbar">
-          <button
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-background/95 shrink-0 flex-wrap">
+          <Button
             type="button"
-            className="btn btn-toolbar btn-quick-exit"
+            variant="outline"
+            size="sm"
+            className="rounded-xl h-8 text-xs gap-1.5"
             onClick={quickExit}
           >
-            <FaSignOutAlt /> Quick Exit
-          </button>
-
-          <button
+            <ShieldAlert className="w-3.5 h-3.5" aria-hidden />
+            Quick Exit
+          </Button>
+          <Button
             type="button"
-            className="btn btn-toolbar btn-clear-session"
+            variant="outline"
+            size="sm"
+            className="rounded-xl h-8 text-xs gap-1.5"
             onClick={clearSessionAndStorage}
           >
-            <FaTrashAlt /> Clear Session
-          </button>
-
+            <Trash2 className="w-3.5 h-3.5" aria-hidden />
+            Clear Session
+          </Button>
           {speechSupported && (
-            <button
+            <Button
               type="button"
-              className="btn btn-toolbar btn-read-toggle"
+              variant="outline"
+              size="sm"
+              className="rounded-xl h-8 text-xs gap-1.5"
               onClick={() => {
                 if (speechEnabled) {
                   stopSpeaking();
@@ -2610,15 +2567,11 @@ function App() {
               }}
             >
               {speechEnabled ? (
-                <>
-                  <FaStop /> Turn Off Read Aloud
-                </>
+                <><VolumeX className="w-3.5 h-3.5" aria-hidden /> Turn Off Read Aloud</>
               ) : (
-                <>
-                  <FaVolumeUp /> Turn On Read Aloud
-                </>
+                <><Volume2 className="w-3.5 h-3.5" aria-hidden /> Turn On Read Aloud</>
               )}
-            </button>
+            </Button>
           )}
         </div>
 
@@ -2968,30 +2921,17 @@ function App() {
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="input-container">
-          <button
-            onClick={handleBack}
-            className="btn btn-back"
-            title={t("chat.backTitle")}
-            disabled={loading}
-          >
-            <FaArrowLeft size={24} />
-          </button>
-
-          <button
-            onClick={handleRestart}
-            className="btn btn-restart"
-            title={t("chat.restartTitle")}
-            disabled={loading}
-          >
-            <FaRedo size={24} />
-          </button>
-
-          <form onSubmit={handleSubmit} className="input-form">
-            <input
-              type="text"
+        <div className="border-t border-border bg-background px-4 pt-3 pb-4 shrink-0">
+          <form onSubmit={handleSubmit} className="flex items-end gap-2">
+            <Textarea
               value={userInput}
               onChange={(e) => setUserInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }
+              }}
               placeholder={
                 conversationState?.step === "problem_summary"
                   ? t("chat.placeholderSummary")
@@ -3002,20 +2942,50 @@ function App() {
                     : t("chat.placeholder")
               }
               disabled={loading}
-              className="chat-input"
+              rows={1}
+              style={{ resize: "none", minHeight: "44px", maxHeight: "160px", overflowY: "auto" }}
+              className="flex-1 rounded-2xl py-2.5 text-sm leading-relaxed"
+              aria-label={t("chat.placeholder")}
             />
-            <button type="submit" className="btn btn-send" disabled={loading}>
+            <Button
+              type="submit"
+              size="icon"
+              className="rounded-xl h-11 w-11 shrink-0"
+              disabled={loading || !userInput.trim()}
+              aria-label="Send message"
+            >
               {loading ? (
-                <span className="send-loading-spinner" aria-hidden="true"></span>
+                <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
               ) : (
-                <FaPaperPlane size={20} />
+                <Send className="w-4 h-4" aria-hidden />
               )}
-            </button>
+            </Button>
           </form>
-        </div>
-
-        <div className="chat-footer">
-          <p className="footer-disclaimer">{t("landing.infoOnly")}</p>
+          <div className="flex items-center gap-1 mt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="rounded-xl h-7 text-xs text-muted-foreground gap-1.5 px-2"
+              onClick={handleBack}
+              disabled={loading}
+            >
+              <ArrowLeft className="w-3 h-3" aria-hidden />
+              {t("chat.backTitle")}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="rounded-xl h-7 text-xs text-muted-foreground gap-1.5 px-2"
+              onClick={handleRestart}
+              disabled={loading}
+            >
+              <RotateCcw className="w-3 h-3" aria-hidden />
+              {t("chat.restartTitle")}
+            </Button>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-2 text-center">{t("landing.infoOnly")}</p>
         </div>
         </main>
         </div>
