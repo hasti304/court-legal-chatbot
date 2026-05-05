@@ -37,15 +37,12 @@ def startup_event():
     ensure_tables()
     ensure_evidence_tables()
     try:
-        from .services import config_service as _cfg
+        from .services.transactional_email import email_provider_configured, email_provider_hint
     except ImportError:
-        from services import config_service as _cfg  # type: ignore
-    if not getattr(_cfg, "RESEND_API_KEY", "") and not (
-        getattr(_cfg, "SMTP_HOST", "") and getattr(_cfg, "SMTP_FROM", "")
-    ):
+        from services.transactional_email import email_provider_configured, email_provider_hint  # type: ignore
+    if not email_provider_configured():
         print(
-            "Warning: Magic link email is not configured. "
-            "Set RESEND_API_KEY (recommended) or SMTP_HOST + SMTP_FROM (+ user/password). "
+            f"Warning: Magic link email is not configured. {email_provider_hint()} "
             "Without that, sign-in links are only printed in server logs. "
             "For local testing only, set MAGIC_LINK_DEV_RETURN_TOKEN=true to return the link in the API JSON."
         )
