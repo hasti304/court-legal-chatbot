@@ -1,17 +1,16 @@
 import React from "react";
-import PrimaryNav from "./PrimaryNav";
-import WorkspaceSidebar from "./WorkspaceSidebar";
-import Topbar from "./Topbar";
+import AppSidebar from "../AppSidebar";
+import AppTopbar from "../AppTopbar";
 import "./SlackLayout.css";
 
 /**
- * Three-panel Slack-style layout wrapper.
+ * Main application layout — sidebar + topbar + scrollable content area.
  *
- * Props:
- *   isDark          – boolean, adds cal-app-dark class
- *   activeSection   – 'home' | 'chat' | 'activity' | 'files' | 'more'
+ * Props (unchanged API):
+ *   isDark          – boolean, applies dark class to root
+ *   activeSection   – 'home' | 'chat' | 'files' | 'resources' | 'settings'
  *   activeTopic     – topic ID string for sidebar highlight
- *   firstName       – user's first name (for avatar initial)
+ *   firstName       – user's first name
  *   intakeSaved     – boolean, whether the user has a saved session
  *   topbarTitle     – string shown in the topbar
  *   canGoBack       – boolean, enables the back button in topbar
@@ -40,29 +39,26 @@ export default function SlackLayout({
   children,
 }) {
   return (
-    <div className={`slack-layout${isDark ? " cal-app-dark" : ""}`}>
-      <PrimaryNav
+    <div className={`flex h-screen overflow-hidden bg-background${isDark ? " dark" : ""}`}>
+      <AppSidebar
         activeSection={activeSection}
-        onNavigate={onNavigate}
+        activeTopic={activeTopic}
         firstName={firstName}
+        intakeSaved={intakeSaved}
+        onNavigate={onNavigate}
+        onTopicSelect={onTopicSelect}
+        onStartChat={onStartChat}
         onSignOut={onSignOut}
       />
 
-      <WorkspaceSidebar
-        activeTopic={activeTopic}
-        onTopicSelect={onTopicSelect}
-        onStartChat={onStartChat}
-        intakeSaved={intakeSaved}
-      />
-
-      <div className="slack-main">
-        <Topbar
-          onBack={onBack}
-          canGoBack={canGoBack}
+      <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden">
+        <AppTopbar
           title={topbarTitle}
+          canGoBack={canGoBack}
+          onBack={onBack}
           extras={topbarExtras}
         />
-        <div className="slack-content">
+        <div className="flex-1 overflow-auto min-h-0" id="main-content">
           {children}
         </div>
       </div>
