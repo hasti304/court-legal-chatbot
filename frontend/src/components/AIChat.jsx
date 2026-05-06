@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import "./AIChat.css";
 import StatusBanner from "./StatusBanner";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
@@ -101,91 +100,94 @@ function DashboardSidebar({ topic, intakeId, onClose }) {
 
   const hasSavedSession = !!intakeId || localStorage.getItem(INTAKE_SAVED_KEY) === "1";
 
+  const stats = [
+    { value: history.length, label: "Total Queries" },
+    { value: hasSavedSession ? "Active" : "Guest", label: "Session" },
+    { value: Object.keys(topicCounts).length, label: "Topics" },
+    { value: TOPIC_LABELS[topic] || "General", label: "Current", highlight: true },
+  ];
+
   return (
-    <aside className="ai-dashboard-sidebar">
-      <div className="ai-dashboard-sidebar-header">
-        <FaBalanceScale className="db-header-icon" />
-        <span>Legal Dashboard</span>
+    <aside className="w-64 shrink-0 border-r border-border bg-card overflow-y-auto flex flex-col">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+        <FaBalanceScale className="text-foreground text-sm" />
+        <span className="font-semibold text-sm text-foreground">Legal Dashboard</span>
         {onClose && (
-          <button className="db-close-btn" onClick={onClose} type="button" aria-label="Close dashboard">
-            <FaTimes />
+          <button
+            className="ml-auto text-muted-foreground hover:text-foreground transition-colors"
+            onClick={onClose}
+            type="button"
+            aria-label="Close dashboard"
+          >
+            <FaTimes className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
 
-      {/* Stats */}
-      <div className="db-stats-grid">
-        <div className="db-stat-card">
-          <div className="db-stat-value">{history.length}</div>
-          <div className="db-stat-label">Total Queries</div>
-        </div>
-        <div className="db-stat-card">
-          <div className="db-stat-value">{hasSavedSession ? "Active" : "Guest"}</div>
-          <div className="db-stat-label">Session</div>
-        </div>
-        <div className="db-stat-card">
-          <div className="db-stat-value">{Object.keys(topicCounts).length}</div>
-          <div className="db-stat-label">Topics</div>
-        </div>
-        <div className="db-stat-card highlight">
-          <div className="db-stat-value">{TOPIC_LABELS[topic] || "General"}</div>
-          <div className="db-stat-label">Current</div>
-        </div>
+      <div className="grid grid-cols-2 gap-2 p-3">
+        {stats.map((s) => (
+          <div
+            key={s.label}
+            className={`rounded-xl p-3 text-center ${s.highlight ? "bg-foreground text-background" : "bg-muted"}`}
+          >
+            <div className={`text-sm font-bold truncate ${s.highlight ? "text-background" : "text-foreground"}`}>{s.value}</div>
+            <div className={`text-[10px] mt-0.5 ${s.highlight ? "text-background/70" : "text-muted-foreground"}`}>{s.label}</div>
+          </div>
+        ))}
       </div>
 
-      {/* Risk Alerts */}
       {riskAlerts.length > 0 && (
-        <div className="db-section">
-          <div className="db-section-title danger">
+        <div className="px-3 pb-3">
+          <p className="text-[10px] font-semibold text-destructive uppercase tracking-wide mb-2 flex items-center gap-1">
             <FaExclamationTriangle /> Risk Alerts
-          </div>
+          </p>
           {riskAlerts.map((alert, i) => (
-            <div key={i} className="db-alert-item">{alert}</div>
+            <div key={i} className="text-xs bg-destructive/10 text-destructive rounded-lg px-2 py-1.5 mb-1 leading-snug">{alert}</div>
           ))}
         </div>
       )}
 
-      {/* Recent Queries */}
       {history.length > 0 && (
-        <div className="db-section">
-          <div className="db-section-title">Recent Queries</div>
+        <div className="px-3 pb-3">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Recent Queries</p>
           {history.slice(0, 6).map((item, i) => (
-            <div key={i} className="db-query-item">
-              <span className="db-query-topic">{TOPIC_LABELS[item.topic] || item.topic}</span>
-              <span className="db-query-text">{item.snippet || "—"}</span>
-              <span className="db-query-time">{formatTimeAgo(item.ts)}</span>
+            <div key={i} className="mb-2.5">
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-xs font-medium text-foreground truncate">{TOPIC_LABELS[item.topic] || item.topic}</span>
+                <span className="text-[10px] text-muted-foreground shrink-0">{formatTimeAgo(item.ts)}</span>
+              </div>
+              <p className="text-xs text-muted-foreground truncate">{item.snippet || "—"}</p>
             </div>
           ))}
         </div>
       )}
 
-      {/* Topic Breakdown */}
       {Object.keys(topicCounts).length > 0 && (
-        <div className="db-section">
-          <div className="db-section-title">Topic Breakdown</div>
+        <div className="px-3 pb-3">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Topic Breakdown</p>
           {Object.entries(topicCounts)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 4)
             .map(([t, count]) => (
-              <div key={t} className="db-topic-row">
-                <span className="db-topic-name">{TOPIC_LABELS[t] || t}</span>
-                <div className="db-topic-bar-wrap">
-                  <div className="db-topic-bar" style={{ width: `${(count / maxCount) * 100}%` }} />
+              <div key={t} className="flex items-center gap-2 mb-2">
+                <span className="text-xs text-foreground w-20 shrink-0 truncate">{TOPIC_LABELS[t] || t}</span>
+                <div className="flex-1 bg-muted rounded-full h-1.5 overflow-hidden">
+                  <div className="h-full bg-foreground rounded-full" style={{ width: `${(count / maxCount) * 100}%` }} />
                 </div>
-                <span className="db-topic-count">{count}</span>
+                <span className="text-xs text-muted-foreground w-4 text-right">{count}</span>
               </div>
             ))}
         </div>
       )}
 
       {history.length === 0 && (
-        <div className="db-empty">
-          <div className="db-empty-icon">💼</div>
-          <p>Start a conversation to see your legal activity here.</p>
+        <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 text-center">
+          <div className="text-3xl mb-3">💼</div>
+          <p className="text-xs text-muted-foreground leading-relaxed">Start a conversation to see your legal activity here.</p>
         </div>
       )}
 
-      <div className="db-footer-note">
+      <div className="mt-auto px-4 py-3 text-[10px] text-muted-foreground border-t border-border leading-relaxed">
         AI responses are for informational purposes only and do not constitute legal advice.
       </div>
     </aside>
@@ -438,276 +440,285 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
     : "Need immediate help? Contact:";
   const orgLabel = isDiscreetMode ? "Support Team:" : "Chicago Advocate Legal, NFP:";
 
-  const urlDiscreet =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("mode") === "discreet";
-  const showCalDarkChrome = useCalDark && !isDiscreetMode && !urlDiscreet;
-
   const lastAssistantIdx = messages.map((m) => m.role).lastIndexOf("assistant");
   const hasUserMessages = messages.some((m) => m.role === "user");
   const isBusy = isLoading || streamingContent !== null;
 
+  const toolbarBtn = "flex items-center gap-1.5 text-xs rounded-lg px-2.5 py-1.5 font-medium transition-colors";
+
   return (
-    <div className={`ai-chat-page${showCalDarkChrome ? " cal-app-dark" : ""}`}>
-      <div className="ai-chat-container">
+    <div className="flex h-screen bg-background overflow-hidden">
+      {showDashboard && !isDiscreetMode && (
+        <DashboardSidebar
+          topic={topic}
+          intakeId={intakeId}
+          onClose={() => setShowDashboard(false)}
+        />
+      )}
 
-        {/* Dashboard Sidebar */}
-        {showDashboard && !isDiscreetMode && (
-          <DashboardSidebar
-            topic={topic}
-            intakeId={intakeId}
-            onClose={() => setShowDashboard(false)}
-          />
-        )}
+      <div className="flex flex-col flex-1 min-w-0">
+        {/* Header */}
+        <div className="border-b border-border bg-background/95 px-4 py-3 shrink-0">
+          <div className="flex items-center gap-3 mb-2.5">
+            <button
+              onClick={onBack}
+              type="button"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            >
+              <FaArrowLeft className="w-3 h-3" /> {t("ai.back")}
+            </button>
 
-        {/* Main chat column */}
-        <div className="ai-chat-main">
-
-          {/* Header */}
-          <div className="ai-chat-header">
-            <div className="ai-header-top">
-              <button onClick={onBack} className="back-button" type="button">
-                <FaArrowLeft /> {t("ai.back")}
-              </button>
-
-              <div className="ai-header-title-group">
-                <span className="ai-header-icon" aria-hidden>⚖️</span>
-                <h2>{headerTitle}</h2>
-                {!isDiscreetMode && (
-                  <span className="ai-header-badge">Legal AI</span>
-                )}
-              </div>
-
-              <div className="ai-header-actions">
-                {!isDiscreetMode && (
-                  <button
-                    type="button"
-                    className={`ai-toolbar-button icon-btn${showDashboard ? " active" : ""}`}
-                    onClick={() => setShowDashboard((v) => !v)}
-                    title="Toggle dashboard"
-                    aria-pressed={showDashboard}
-                  >
-                    <FaChartBar />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="ai-toolbar">
-              <button type="button" className="ai-toolbar-button danger" onClick={quickExit}>
-                <FaSignOutAlt /> Quick Exit
-              </button>
-
-              <button type="button" className="ai-toolbar-button neutral" onClick={clearAIConversation}>
-                <FaTrashAlt /> Clear
-              </button>
-
-              {hasUserMessages && !isBusy && (
-                <button type="button" className="ai-toolbar-button regen" onClick={regenerateAnswer}>
-                  <FaRedo /> Regenerate
-                </button>
-              )}
-
-              {speechSupported && (
-                <button
-                  type="button"
-                  className="ai-toolbar-button dark"
-                  onClick={() => {
-                    if (speechEnabled) { stopSpeaking(); setSpeechEnabled(false); }
-                    else setSpeechEnabled(true);
-                  }}
-                >
-                  {speechEnabled ? <><FaStop /> Mute</> : <><FaVolumeUp /> Read Aloud</>}
-                </button>
+            <div className="flex items-center gap-2 mx-auto">
+              <span aria-hidden>⚖️</span>
+              <h2 className="font-semibold text-sm text-foreground">{headerTitle}</h2>
+              {!isDiscreetMode && (
+                <span className="text-[10px] bg-foreground text-background px-2 py-0.5 rounded-full font-medium">
+                  Legal AI
+                </span>
               )}
             </div>
+
+            {!isDiscreetMode && (
+              <button
+                type="button"
+                onClick={() => setShowDashboard((v) => !v)}
+                className={`text-sm px-2 py-1 rounded-lg transition-colors shrink-0 ${showDashboard ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                title="Toggle dashboard"
+                aria-pressed={showDashboard}
+              >
+                <FaChartBar />
+              </button>
+            )}
           </div>
 
-          {/* Messages */}
-          <div className="ai-chat-messages">
-            {requestError && (
-              <StatusBanner type="error" className="ai-status-banner" role="alert">
-                {requestError}
-              </StatusBanner>
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              className={`${toolbarBtn} bg-destructive/10 text-destructive hover:bg-destructive/20`}
+              onClick={quickExit}
+            >
+              <FaSignOutAlt /> Quick Exit
+            </button>
+            <button
+              type="button"
+              className={`${toolbarBtn} bg-muted text-muted-foreground hover:text-foreground`}
+              onClick={clearAIConversation}
+            >
+              <FaTrashAlt /> Clear
+            </button>
+            {hasUserMessages && !isBusy && (
+              <button
+                type="button"
+                className={`${toolbarBtn} bg-muted text-muted-foreground hover:text-foreground`}
+                onClick={regenerateAnswer}
+              >
+                <FaRedo /> Regenerate
+              </button>
             )}
+            {speechSupported && (
+              <button
+                type="button"
+                className={`${toolbarBtn} bg-muted text-muted-foreground hover:text-foreground`}
+                onClick={() => {
+                  if (speechEnabled) { stopSpeaking(); setSpeechEnabled(false); }
+                  else setSpeechEnabled(true);
+                }}
+              >
+                {speechEnabled ? <><FaStop /> Mute</> : <><FaVolumeUp /> Read Aloud</>}
+              </button>
+            )}
+          </div>
+        </div>
 
-            {messages.map((message, index) => {
-              const isUser = message.role === "user";
-              const isLastAssistant = !isUser && index === lastAssistantIdx;
-              const confidence = !isUser ? getConfidenceLevel(message.content) : null;
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+          {requestError && (
+            <StatusBanner type="error" role="alert" className="mb-2">
+              {requestError}
+            </StatusBanner>
+          )}
 
+          {messages.map((message, index) => {
+            const isUser = message.role === "user";
+            const isLastAssistant = !isUser && index === lastAssistantIdx;
+            const confidence = !isUser ? getConfidenceLevel(message.content) : null;
+
+            if (isUser) {
               return (
-                <div
-                  key={index}
-                  className={`ai-message ${isUser ? "user-message" : "assistant-message"}`}
-                >
-                  {!isUser && (
-                    <div className="ai-avatar" aria-hidden>
-                      <FaBalanceScale />
+                <div key={index} className="flex justify-end">
+                  <div className="flex items-end gap-2 max-w-[80%] xl:max-w-2xl">
+                    <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-md px-4 py-3 text-sm leading-relaxed">
+                      {message.content}
                     </div>
-                  )}
-
-                  <div className="ai-message-body">
-                    <div
-                      className="message-content"
-                      dangerouslySetInnerHTML={renderMessageContent(message.content)}
-                    />
-
-                    {!isUser && (
-                      <div className="ai-message-meta">
-                        {confidence && !isDiscreetMode && (
-                          <span
-                            className="ai-confidence-badge"
-                            style={{ color: confidence.color, background: confidence.bg }}
-                          >
-                            ⚖️ Confidence: {confidence.level}
-                          </span>
-                        )}
-
-                        <div className="ai-message-actions">
-                          <button
-                            type="button"
-                            className={`ai-action-btn${copiedIdx === index ? " copied" : ""}`}
-                            onClick={() => copyMessage(message.content, index)}
-                            title="Copy response"
-                          >
-                            {copiedIdx === index ? <><FaCheck /> Copied</> : <><FaCopy /> Copy</>}
-                          </button>
-
-                          {speechSupported && (
-                            <button
-                              type="button"
-                              className="ai-action-btn"
-                              onClick={() => speakText(message.content)}
-                              title="Read aloud"
-                            >
-                              <FaVolumeUp /> Read
-                            </button>
-                          )}
-
-                          {isLastAssistant && hasUserMessages && !isBusy && (
-                            <button
-                              type="button"
-                              className="ai-action-btn regen"
-                              onClick={regenerateAnswer}
-                              title="Regenerate answer"
-                            >
-                              <FaRedo /> Regenerate
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {isUser && (
-                    <div className="user-avatar" aria-hidden>
+                    <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0 text-xs text-muted-foreground mb-0.5">
                       <FaUser />
                     </div>
-                  )}
+                  </div>
                 </div>
               );
-            })}
+            }
 
-            {/* Streaming message bubble */}
-            {streamingContent !== null && (
-              <div className="ai-message assistant-message streaming">
-                <div className="ai-avatar" aria-hidden>
+            return (
+              <div key={index} className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center shrink-0 mt-0.5 text-xs">
                   <FaBalanceScale />
                 </div>
-                <div className="ai-message-body">
+                <div className="max-w-[80%] xl:max-w-2xl min-w-0">
                   <div
-                    className="message-content streaming-content"
-                    dangerouslySetInnerHTML={renderMessageContent(streamingContent)}
+                    className="bg-muted rounded-2xl rounded-tl-md px-4 py-3 text-sm text-foreground leading-relaxed prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={renderMessageContent(message.content)}
                   />
-                  <span className="streaming-cursor" aria-hidden />
-                </div>
-              </div>
-            )}
-
-            {/* Typing indicator while fetching */}
-            {isLoading && streamingContent === null && (
-              <div className="ai-message assistant-message">
-                <div className="ai-avatar" aria-hidden>
-                  <FaBalanceScale />
-                </div>
-                <div className="ai-message-body">
-                  <div className="message-content">
-                    <div className="typing-indicator">
-                      <span /><span /><span />
-                    </div>
+                  <div className="flex items-center flex-wrap gap-2 mt-1.5 px-1">
+                    {confidence && !isDiscreetMode && (
+                      <span
+                        className="text-[10px] px-2 py-0.5 rounded-full font-medium border"
+                        style={{ color: confidence.color, background: confidence.bg, borderColor: confidence.color + "33" }}
+                      >
+                        ⚖️ Confidence: {confidence.level}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={() => copyMessage(message.content, index)}
+                      title="Copy response"
+                    >
+                      {copiedIdx === index ? <><FaCheck /> Copied</> : <><FaCopy /> Copy</>}
+                    </button>
+                    {speechSupported && (
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={() => speakText(message.content)}
+                        title="Read aloud"
+                      >
+                        <FaVolumeUp /> Read
+                      </button>
+                    )}
+                    {isLastAssistant && hasUserMessages && !isBusy && (
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={regenerateAnswer}
+                        title="Regenerate answer"
+                      >
+                        <FaRedo /> Regenerate
+                      </button>
+                    )}
                   </div>
-                  <div className="ai-typing-label">AI is thinking…</div>
                 </div>
               </div>
-            )}
+            );
+          })}
 
-            <div ref={messagesEndRef} />
+          {/* Streaming bubble */}
+          {streamingContent !== null && (
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center shrink-0 mt-0.5 text-xs">
+                <FaBalanceScale />
+              </div>
+              <div className="max-w-[80%] xl:max-w-2xl min-w-0">
+                <div className="bg-muted rounded-2xl rounded-tl-md px-4 py-3 text-sm text-foreground leading-relaxed prose prose-sm max-w-none relative">
+                  <div dangerouslySetInnerHTML={renderMessageContent(streamingContent)} />
+                  <span
+                    className="inline-block w-0.5 h-4 bg-foreground ml-0.5 animate-pulse align-middle"
+                    aria-hidden
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Typing indicator */}
+          {isLoading && streamingContent === null && (
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center shrink-0 mt-0.5 text-xs">
+                <FaBalanceScale />
+              </div>
+              <div className="bg-muted rounded-2xl rounded-tl-md px-4 py-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "-0.3s" }} />
+                  <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "-0.15s" }} />
+                  <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">AI is thinking…</p>
+              </div>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input */}
+        <div className="border-t border-border bg-background px-4 pt-3 pb-4 shrink-0">
+          <div className="flex items-end gap-2">
+            <textarea
+              ref={inputRef}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={t("ai.placeholder")}
+              className="flex-1 min-h-[44px] max-h-40 resize-none rounded-2xl py-2.5 px-3 text-sm leading-relaxed border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0 disabled:opacity-50"
+              rows={2}
+              disabled={isBusy}
+              aria-label="Message input"
+            />
+            <button
+              onClick={sendMessage}
+              disabled={isBusy || !inputValue.trim()}
+              type="button"
+              title="Send message"
+              aria-label="Send"
+              className="w-11 h-11 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-50 hover:bg-primary/90 transition-colors"
+            >
+              {isLoading
+                ? <span className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                : <FaPaperPlane className="w-3.5 h-3.5" />
+              }
+            </button>
           </div>
+          <p className="text-[10px] text-muted-foreground mt-2 text-center">
+            <kbd className="text-[10px] border border-border rounded px-1 py-0.5">Enter</kbd>
+            {" "}to send · {" "}
+            <kbd className="text-[10px] border border-border rounded px-1 py-0.5">Shift+Enter</kbd>
+            {" "}for new line
+          </p>
+        </div>
 
-          {/* Input */}
-          <div className="ai-chat-input-container">
-            <div className="ai-input-wrapper">
-              <textarea
-                ref={inputRef}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={t("ai.placeholder")}
-                className="ai-chat-input"
-                rows={2}
-                disabled={isBusy}
-                aria-label="Message input"
-              />
-              <button
-                onClick={sendMessage}
-                disabled={isBusy || !inputValue.trim()}
-                className="ai-send-button"
-                type="button"
-                title="Send message"
-                aria-label="Send"
+        {/* Footer */}
+        <div className="border-t border-border bg-muted/30 px-4 py-3 shrink-0">
+          <p className="text-xs text-muted-foreground mb-2">{helpText}</p>
+          <div className="space-y-1">
+            <p className="text-xs text-foreground">
+              <strong>{orgLabel}</strong>{" "}
+              <a href="tel:+13128015918" className="hover:underline">(312) 801-5918</a>
+              {" | "}
+              <a
+                href="https://www.chicagoadvocatelegal.com/intake.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline"
               >
-                {isLoading ? <span className="ai-spinner" /> : <FaPaperPlane />}
-              </button>
-            </div>
-            <div className="ai-input-hint">
-              <kbd>Enter</kbd> to send · <kbd>Shift+Enter</kbd> for new line
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="ai-chat-footer">
-            <p className="help-text">{helpText}</p>
-            <div className="footer-contacts">
-              <div className="footer-contact-item">
-                <strong>{orgLabel}</strong>{" "}
-                <a href="tel:+13128015918">(312) 801-5918</a>
-                {" | "}
-                <a
-                  href="https://www.chicagoadvocatelegal.com/intake.html"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Direct Intake Form
-                </a>
-              </div>
-              <div className="footer-contact-item">
-                <strong>Email:</strong>{" "}
-                <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
-              </div>
-              <div className="footer-contact-item">
-                <strong>Justice Entrepreneurs Project (JEP):</strong>{" "}
-                <a href="tel:+13125463282">(312) 546-3282</a>
-                {" | "}
-                <a
-                  href="https://jepchicago.org/connect-with-a-lawyer/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Find a Lawyer
-                </a>
-              </div>
-            </div>
+                Direct Intake Form
+              </a>
+            </p>
+            <p className="text-xs text-foreground">
+              <strong>Email:</strong>{" "}
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="hover:underline">{SUPPORT_EMAIL}</a>
+            </p>
+            <p className="text-xs text-foreground">
+              <strong>Justice Entrepreneurs Project (JEP):</strong>{" "}
+              <a href="tel:+13125463282" className="hover:underline">(312) 546-3282</a>
+              {" | "}
+              <a
+                href="https://jepchicago.org/connect-with-a-lawyer/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline"
+              >
+                Find a Lawyer
+              </a>
+            </p>
           </div>
         </div>
       </div>

@@ -50,6 +50,8 @@ import i18n, { setAppLanguage, getNormalizedLanguage } from "./i18n";
 import SlackLayout from "./components/layout/SlackLayout";
 import LoginLayout from "./components/LoginLayout";
 import ReferralCard from "./components/ReferralCard";
+import ChatMessage from "./components/ChatMessage";
+import CaseSummaryCard from "./components/CaseSummaryCard";
 import { Textarea } from "./components/ui/textarea";
 
 const AIChat = lazy(() => import("./components/AIChat"));
@@ -2513,17 +2515,19 @@ function App() {
       }
     >
       {messages.length > 0 && conversationState?.step !== "complete" && (
-        <div className="progress-bar-container">
-          <div className="progress-info">
-            <span className="progress-step">
-              {t("progress.stepOf", { current: progressCurrent, total: progressTotal })}
-            </span>
-            <span className="progress-label">{progressLabel}</span>
+        <div className="px-4 py-2 border-b border-border bg-background/95 shrink-0">
+          <div className="flex items-center justify-between mb-1.5 text-xs text-muted-foreground">
+            <span>{t("progress.stepOf", { current: progressCurrent, total: progressTotal })}</span>
+            <span>{progressLabel}</span>
           </div>
-          <div className="progress-bar-track">
+          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
             <div
-              className="progress-bar-fill"
+              className="h-full bg-foreground rounded-full transition-all duration-300"
               style={{ width: `${progressPercent}%` }}
+              role="progressbar"
+              aria-valuenow={progressCurrent}
+              aria-valuemin={1}
+              aria-valuemax={progressTotal}
             />
           </div>
         </div>
@@ -2595,324 +2599,137 @@ function App() {
             </div>
           )}
 
-          {messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`message-wrapper ${msg.role} ${
-                msg.role === "bot" && msg.referrals?.length ? "has-referrals" : ""
-              }`}
-            >
-              <div className={`message ${msg.role}`}>
-                <div className="message-content">
-                  {msg.role === "bot" ? renderBotText(msg) : msg.content}
+          {messages.map((msg, idx) => {
+            const isLastReferralMsg =
+              conversationState.step === "complete" &&
+              msg.referrals?.length > 0 &&
+              idx === messages.findLastIndex((m) => m.referrals && m.referrals.length);
+            return (
+              <div key={idx} className="mb-1">
+                <ChatMessage
+                  role={msg.role}
+                  content={msg.role === "bot" ? renderBotText(msg) : msg.content}
+                  speechSupported={speechSupported}
+                  onSpeak={speakText}
+                />
 
-                  {msg.role === "bot" && speechSupported && (
-                    <div className="message-tools">
-                      <button
+                {msg.role === "bot" && msg.options?.length > 0 && (
+                  <div className="flex flex-wrap gap-2 ml-11 mt-2 mb-1" role="group" aria-label="Quick replies">
+                    {msg.options.map((opt, i) => (
+                      <Button
+                        key={i}
                         type="button"
-                        className="btn btn-read-aloud"
-                        onClick={() => speakText(renderBotText(msg))}
+                        variant="outline"
+                        size="sm"
+                        className="rounded-xl text-xs h-8 font-normal"
+                        onClick={() => handleOptionClick(opt)}
+                        disabled={loading}
                       >
-                        <FaVolumeUp /> Read aloud
-                      </button>
-                    </div>
-                  )}
+                        {safeOptionLabel(opt)}
+                      </Button>
+                    ))}
+                  </div>
+                )}
 
-                  {msg.referrals && msg.referrals.length > 0 && (
-                    <div className="referrals">
-                      {msg.decision_support && (
-                        <div className="decision-support-card" role="status" aria-live="polite">
-                          <h4 className="decision-support-title">Decision support snapshot</h4>
-                          <p className="decision-support-disclaimer">
-                            Informational triage support only - not legal advice.
-                          </p>
-                          <div className="decision-support-metrics">
-                            <div className="decision-metric">
-                              <span className="decision-metric-label">Overall risk</span>
-                              <span className="decision-metric-value">
-                                {Number(msg.decision_support?.overall_risk ?? 0)}/100 (
-                                {String(msg.decision_support?.overall_band || "low")})
-                              </span>
-                            </div>
-                            <div className="decision-metric">
-                              <span className="decision-metric-label">Urgency</span>
-                              <span className="decision-metric-value">
-                                {Number(msg.decision_support?.urgency?.score ?? 0)}/100 (
-                                {String(msg.decision_support?.urgency?.band || "low")})
-                              </span>
-                            </div>
-                            <div className="decision-metric">
-                              <span className="decision-metric-label">Complexity</span>
-                              <span className="decision-metric-value">
-                                {Number(msg.decision_support?.complexity?.score ?? 0)}/100 (
-                                {String(msg.decision_support?.complexity?.band || "low")})
-                              </span>
-                            </div>
-                            <div className="decision-metric">
-                              <span className="decision-metric-label">Self-help suitability</span>
-                              <span className="decision-metric-value">
-                                {Number(msg.decision_support?.self_help?.score ?? 0)}/100 (
-                                {String(msg.decision_support?.self_help?.band || "low")})
-                              </span>
-                            </div>
-                          </div>
-                          <div className="decision-support-why">
-                            <p className="decision-support-why-title">Why these scores:</p>
-                            <ul>
-                              {[
-                                ...(Array.isArray(msg.decision_support?.urgency?.reasons)
-                                  ? msg.decision_support.urgency.reasons
-                                  : []),
-                                ...(Array.isArray(msg.decision_support?.complexity?.reasons)
-                                  ? msg.decision_support.complexity.reasons
-                                  : []),
-                                ...(Array.isArray(msg.decision_support?.self_help?.reasons)
-                                  ? msg.decision_support.self_help.reasons
-                                  : []),
-                              ]
-                                .slice(0, 5)
-                                .map((reason, rIdx) => (
-                                  <li key={`${reason}-${rIdx}`}>{String(reason)}</li>
-                                ))}
-                            </ul>
-                          </div>
-                        </div>
-                      )}
-                      <h4 className="referrals-title">{t("chat.referralsTitle")}</h4>
-                      {msg.referrals.map((ref, i) => (
-                        <div key={i} className="referral-card">
-                          <div className="referral-header">
-                            <h3>{ref.name}</h3>
-                          </div>
-                          <p className="referral-why">{referralMatchLine()}</p>
-                          <p className="referral-description">{ref.description}</p>
-
-                          <div className="referral-summary-row">
-                            {ref.phone && ref.phone !== "" && (
-                              <span className="referral-summary-pill">
-                                <FaPhone size={12} />
-                                <span>{ref.phone}</span>
-                              </span>
-                            )}
-
-                            {ref.intake_form && ref.intake_form !== "" && (
-                              <span className="referral-summary-pill">
-                                <FaFileAlt size={12} />
-                                <span>Intake Form</span>
-                              </span>
-                            )}
-
-                            {ref.url && ref.url !== "" && (
-                              <span className="referral-summary-pill">
-                                <FaInfoCircle size={12} />
-                                <span>Website Available</span>
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="referral-contact">
-                            {ref.phone && ref.phone !== "" && (
-                              <div className="contact-item">
-                                <FaPhone size={14} />
-                                <span>
-                                  <strong>Intake Phone:</strong> {ref.phone}
-                                </span>
-                              </div>
-                            )}
-
-                            {ref.intake_form && ref.intake_form !== "" && (
-                              <div className="contact-item">
-                                <FaFileAlt size={14} />
-                                <a
-                                  href={ref.intake_form}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="intake-link"
-                                >
-                                  Direct Intake Form
-                                </a>
-                              </div>
-                            )}
-
-                            {ref.intake_instructions && ref.intake_instructions !== "" && (
-                              <div className="intake-instructions">
-                                <FaInfoCircle size={14} />
-                                <span>{ref.intake_instructions}</span>
-                              </div>
-                            )}
-
-                            {ref.special_education_helpline &&
-                              ref.special_education_helpline !== "" && (
-                                <div className="contact-item">
-                                  <FaPhone size={14} />
-                                  <span>
-                                    <strong>Special Education Helpline:</strong>{" "}
-                                    {ref.special_education_helpline}
-                                  </span>
-                                </div>
-                              )}
-                          </div>
-
-                          <ReferralMap
-                            referral={ref}
-                            userZip={conversationState?.zip_code}
-                            t={t}
-                          />
-
-                          {ref.is_nfp && (
-                            <button
-                              className="btn btn-nfp-intake"
-                              onClick={() =>
-                                window.open(
-                                  ref.intake_form ||
-                                    "https://www.chicagoadvocatelegal.com/contact.html",
-                                  "_blank"
-                                )
-                              }
-                            >
-                              Connect with Chicago Advocate Legal, NFP
-                            </button>
-                          )}
-
-                          <a
-                            href={ref.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn btn-referral"
+                {msg.referrals?.length > 0 && (
+                  <div className="ml-11 mt-3 space-y-3">
+                    {msg.decision_support && (
+                      <CaseSummaryCard
+                        urgency={msg.decision_support.urgency}
+                        risk={msg.decision_support.overall_risk}
+                        nextSteps={[
+                          ...(Array.isArray(msg.decision_support.urgency?.reasons) ? msg.decision_support.urgency.reasons : []),
+                          ...(Array.isArray(msg.decision_support.complexity?.reasons) ? msg.decision_support.complexity.reasons : []),
+                          ...(Array.isArray(msg.decision_support.self_help?.reasons) ? msg.decision_support.self_help.reasons : []),
+                        ].slice(0, 5)}
+                        topic={conversationState?.topic}
+                      />
+                    )}
+                    <p className="text-sm font-semibold text-foreground">{t("chat.referralsTitle")}</p>
+                    {msg.referrals.map((ref, i) => (
+                      <div key={i} className="space-y-2">
+                        <ReferralCard referral={ref} />
+                        <ReferralMap referral={ref} userZip={conversationState?.zip_code} t={t} />
+                      </div>
+                    ))}
+                    {isLastReferralMsg && (
+                      <div className="space-y-3 pt-1">
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="rounded-xl gap-1.5"
+                            onClick={handlePrintReferrals}
                           >
-                            Visit Website →
-                          </a>
+                            <FaPrint className="w-3 h-3" /> {t("chat.printResources")}
+                          </Button>
                         </div>
-                      ))}
-
-                      {conversationState.step === "complete" &&
-                        msg.referrals?.length > 0 &&
-                        idx ===
-                          messages.findLastIndex(
-                            (m) => m.referrals && m.referrals.length
-                          ) && (
-                          <div className="post-referral-tools">
-                            <button
-                              type="button"
-                              className="btn btn-print-resources"
-                              onClick={handlePrintReferrals}
-                            >
-                              <FaPrint /> {t("chat.printResources")}
-                            </button>
-                            {triageFeedback !== "done" ? (
-                              <div
-                                className="triage-feedback"
-                                role="group"
-                                aria-label={t("chat.feedbackQuestion")}
+                        {triageFeedback !== "done" ? (
+                          <div role="group" aria-label={t("chat.feedbackQuestion")}>
+                            <p className="text-sm text-muted-foreground mb-2">{t("chat.feedbackQuestion")}</p>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="rounded-xl"
+                                onClick={() => handleTriageFeedback(true)}
+                                disabled={loading}
                               >
-                                <p className="triage-feedback-q">
-                                  {t("chat.feedbackQuestion")}
-                                </p>
-                                <div className="triage-feedback-btns">
-                                  <button
-                                    type="button"
-                                    className="btn btn-feedback"
-                                    onClick={() => handleTriageFeedback(true)}
-                                    disabled={loading}
-                                  >
-                                    {t("chat.feedbackYes")}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn btn-feedback btn-feedback-secondary"
-                                    onClick={() => handleTriageFeedback(false)}
-                                    disabled={loading}
-                                  >
-                                    {t("chat.feedbackNo")}
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <p className="triage-feedback-thanks" role="status">
-                                {t("chat.feedbackThanks")}
-                              </p>
-                            )}
+                                {t("chat.feedbackYes")}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                className="rounded-xl"
+                                onClick={() => handleTriageFeedback(false)}
+                                disabled={loading}
+                              >
+                                {t("chat.feedbackNo")}
+                              </Button>
+                            </div>
                           </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground" role="status">{t("chat.feedbackThanks")}</p>
                         )}
-
-                      {conversationState.step === "complete" &&
-                        msg.referrals?.length > 0 &&
-                        idx ===
-                          messages.findLastIndex(
-                            (m) => m.referrals && m.referrals.length
-                          ) && (
-                          <GuidedCaseTimelinePanel
-                            topic={conversationState.topic}
-                            onTrackEvent={(eventType, eventValue) =>
-                              postIntakeEvent(eventType, eventValue)
-                            }
-                          />
-                        )}
-
-                      {conversationState.step === "complete" &&
-                        msg.referrals?.length > 0 &&
-                        idx ===
-                          messages.findLastIndex(
-                            (m) => m.referrals && m.referrals.length
-                          ) && (
-                          <TopicResourcesPanel topic={conversationState.topic} />
-                        )}
-
-                      {conversationState.step === "complete" &&
-                        msg.referrals?.length > 0 &&
-                        idx ===
-                          messages.findLastIndex(
-                            (m) => m.referrals && m.referrals.length
-                          ) && (
-                          <DocumentGeneratorPanel
-                            topic={conversationState.topic}
-                            intakeId={intakeId}
-                          />
-                        )}
-
-                      {conversationState.step === "complete" && (
-                        <div className="ai-assistant-prompt">
-                          <button
-                            className="btn btn-ai-assistant"
+                        <GuidedCaseTimelinePanel
+                          topic={conversationState.topic}
+                          onTrackEvent={(eventType, eventValue) => postIntakeEvent(eventType, eventValue)}
+                        />
+                        <TopicResourcesPanel topic={conversationState.topic} />
+                        <DocumentGeneratorPanel topic={conversationState.topic} intakeId={intakeId} />
+                        <div className="rounded-2xl border border-border bg-muted/40 p-4">
+                          <Button
+                            type="button"
+                            className="w-full rounded-xl gap-2 mb-2"
                             onClick={() => {
                               postIntakeEvent("ai_assistant_opened", currentTopic || "");
                               setShowAIChat(true);
                             }}
                           >
-                            <FaRobot size={18} /> {t("chat.aiButton")}
-                          </button>
-                          <p className="ai-assistant-hint">{t("chat.aiHint")}</p>
+                            <FaRobot /> {t("chat.aiButton")}
+                          </Button>
+                          <p className="text-xs text-muted-foreground text-center">{t("chat.aiHint")}</p>
                         </div>
-                      )}
-                    </div>
-                  )}
-
-                  {msg.options && msg.options.length > 0 && (
-                    <div className="options">
-                      {msg.options.map((option, i) => (
-                        <button
-                          key={i}
-                          className="btn btn-option"
-                          onClick={() => handleOptionClick(option)}
-                          disabled={loading}
-                        >
-                          {safeOptionLabel(option)}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {loading && (
-            <div className="message-wrapper bot">
-              <div className="message bot">
-                <div className="typing-indicator">
-                  <span></span>
-                  <span></span>
-                  <span></span>
+            <div className="flex items-start gap-3 mb-1">
+              <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold">
+                ⚖
+              </div>
+              <div className="bg-muted rounded-2xl rounded-tl-md px-4 py-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "-0.3s" }} />
+                  <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "-0.15s" }} />
+                  <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" />
                 </div>
               </div>
             </div>
