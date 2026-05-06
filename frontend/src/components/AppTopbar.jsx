@@ -3,7 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
 
-export default function AppTopbar({ title, canGoBack, onBack, extras }) {
+export default function AppTopbar({ title, titleMeta, canGoBack, onBack, extras }) {
   return (
     <header
       className="h-14 flex items-center gap-3 px-4 border-b border-border bg-background/95 backdrop-blur-sm shrink-0 shadow-sm"
@@ -25,12 +25,17 @@ export default function AppTopbar({ title, canGoBack, onBack, extras }) {
       )}
 
       {title && (
-        <h1
-          className="text-sm font-semibold text-foreground flex-1 truncate"
-          aria-live="polite"
-        >
-          {title}
-        </h1>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <h1
+            className="text-sm font-semibold text-foreground truncate"
+            aria-live="polite"
+          >
+            {title}
+          </h1>
+          {titleMeta && (
+            <span className="text-sm text-muted-foreground font-normal flex-shrink-0">{titleMeta}</span>
+          )}
+        </div>
       )}
 
       {extras && (

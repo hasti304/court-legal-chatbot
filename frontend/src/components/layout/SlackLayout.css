@@ -590,6 +590,14 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  background: #f8fafc;
+  padding: 24px;
+}
+
+.slack-chat-workspace .messages-container > * {
+  max-width: 780px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* ── Topbar: override global button styles ─────────── */
@@ -641,6 +649,8 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  background: #f8fafc;
+  padding: 24px;
 }
 
 /* ── Dark mode overrides ───────────────────────────── */

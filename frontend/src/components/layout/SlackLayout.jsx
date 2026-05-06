@@ -29,6 +29,7 @@ export default function SlackLayout({
   firstName,
   intakeSaved,
   topbarTitle,
+  topbarMeta,
   canGoBack,
   onNavigate,
   onTopicSelect,
@@ -54,6 +55,7 @@ export default function SlackLayout({
       <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden">
         <AppTopbar
           title={topbarTitle}
+          titleMeta={topbarMeta}
           canGoBack={canGoBack}
           onBack={onBack}
           extras={topbarExtras}

@@ -1,14 +1,15 @@
 import React, { useState, useMemo } from "react";
 import {
   Home,
-  MessageSquare,
+  FolderOpen,
   FileText,
   Settings,
   Plus,
   LogOut,
   Hash,
-  ChevronRight,
+  ChevronDown,
   BookOpen,
+  Phone,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
@@ -29,8 +30,8 @@ const LEGAL_TOPICS = [
 ];
 
 const NAV_ITEMS = [
-  { id: "home", label: "Dashboard", icon: Home },
-  { id: "chat", label: "My Cases", icon: MessageSquare },
+  { id: "home", label: "Home", icon: Home },
+  { id: "chat", label: "My Cases", icon: FolderOpen },
   { id: "files", label: "Documents", icon: FileText },
   { id: "resources", label: "Resources", icon: BookOpen },
   { id: "settings", label: "Settings", icon: Settings },
@@ -73,54 +74,81 @@ export default function AppSidebar({
     >
       {/* Brand */}
       <div className="flex items-center gap-2.5 px-4 h-14 border-b border-sidebar-border shrink-0">
-        <img src={calLogo} alt="" className="w-7 h-7 object-contain" aria-hidden="true" />
-        <span className="font-bold text-sm tracking-tight" style={{ color: "#1a2d4a" }}>
-          Court Legal AI
-        </span>
+        <img src={calLogo} alt="" className="w-8 h-8 object-contain" aria-hidden="true" />
+        {activeSection !== "home" && (
+          <span className="font-semibold text-sm" style={{ color: "#1e293b" }}>
+            Court Legal AI
+          </span>
+        )}
       </div>
 
       <ScrollArea className="flex-1">
         <nav className="px-2 py-3 space-y-0.5" aria-label="Sidebar">
-          {/* New Case CTA */}
-          <Button
-            onClick={onStartChat}
-            className="w-full justify-start gap-2 rounded-xl mb-4 mt-1 shadow-sm"
-            size="sm"
-          >
-            <Plus className="w-4 h-4" aria-hidden />
-            New Case
-          </Button>
+          {/* Portal view: show nav items first (Home highlighted), then New Case */}
+          {/* Consultation view: show New Case first, then nav items */}
+          {activeSection === "home" ? (
+            <>
+              {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => onNavigate?.(id)}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeSection === id
+                      ? "bg-sidebar-accent text-sidebar-foreground font-semibold"
+                      : "text-sidebar-foreground/60 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground"
+                  }`}
+                  aria-current={activeSection === id ? "page" : undefined}
+                >
+                  <Icon className="w-4 h-4 shrink-0" aria-hidden />
+                  {label}
+                </button>
+              ))}
+            </>
+          ) : (
+            <>
+              {/* New Case CTA */}
+              <Button
+                onClick={onStartChat}
+                className="w-full justify-start gap-2 rounded-lg mb-3 mt-1"
+                size="sm"
+              >
+                <Plus className="w-4 h-4" aria-hidden />
+                New Case
+              </Button>
 
-          {/* Main nav */}
-          {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => onNavigate?.(id)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                activeSection === id
-                  ? "bg-sidebar-accent text-sidebar-foreground font-semibold"
-                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground"
-              }`}
-              aria-current={activeSection === id ? "page" : undefined}
-            >
-              <Icon className="w-4 h-4 shrink-0" aria-hidden />
-              {label}
-            </button>
-          ))}
+              {/* Main nav */}
+              {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => onNavigate?.(id)}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeSection === id
+                      ? "bg-sidebar-accent text-sidebar-foreground font-semibold"
+                      : "text-sidebar-foreground/60 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground"
+                  }`}
+                  aria-current={activeSection === id ? "page" : undefined}
+                >
+                  <Icon className="w-4 h-4 shrink-0" aria-hidden />
+                  {label}
+                </button>
+              ))}
+            </>
+          )}
 
           <Separator className="my-3 opacity-60" />
 
           {/* Legal areas section */}
           <button
             type="button"
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 hover:text-sidebar-foreground transition-colors rounded-lg"
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-sidebar-foreground transition-colors rounded-lg"
             onClick={() => setTopicsOpen((v) => !v)}
             aria-expanded={topicsOpen}
           >
             <span>Legal Areas</span>
-            <ChevronRight
-              className={`w-3 h-3 transition-transform duration-200 ${topicsOpen ? "rotate-90" : ""}`}
+            <ChevronDown
+              className={`w-4 h-4 transition-transform duration-200 ${topicsOpen ? "rotate-180" : ""}`}
               aria-hidden
             />
           </button>
@@ -165,36 +193,49 @@ export default function AppSidebar({
         </nav>
       </ScrollArea>
 
-      {/* User footer */}
+      {/* Footer */}
       <div className="p-3 border-t border-sidebar-border shrink-0">
-        <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-sidebar-accent/50 transition-colors group cursor-default">
-          <Avatar className="w-8 h-8 shrink-0">
-            <AvatarFallback className="text-xs font-bold bg-primary text-primary-foreground">
-              {initial}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-sidebar-foreground leading-none truncate">
-              {firstName || "Guest"}
-            </p>
-            {intakeSaved ? (
-              <p className="text-[10px] text-primary/70 mt-0.5 font-medium">Active session</p>
-            ) : (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 mt-0.5 h-auto leading-none font-medium">
-                Guest
-              </Badge>
-            )}
-          </div>
+        {activeSection === "home" ? (
           <button
             type="button"
-            onClick={onSignOut}
-            className="text-muted-foreground hover:text-destructive transition-colors p-1 rounded opacity-0 group-hover:opacity-100"
-            aria-label="Sign out"
-            title="Sign out"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white transition-colors"
+            style={{ background: "#1e293b" }}
+            onMouseEnter={e => e.currentTarget.style.background = "#334155"}
+            onMouseLeave={e => e.currentTarget.style.background = "#1e293b"}
           >
-            <LogOut className="w-3.5 h-3.5" aria-hidden />
+            <Phone className="w-4 h-4" aria-hidden />
+            Guest Support
           </button>
-        </div>
+        ) : (
+          <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-sidebar-accent/50 transition-colors group cursor-default">
+            <Avatar className="w-8 h-8 shrink-0">
+              <AvatarFallback className="text-xs font-bold bg-primary text-primary-foreground">
+                {initial}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-sidebar-foreground leading-none truncate">
+                {firstName || "Guest"}
+              </p>
+              {intakeSaved ? (
+                <p className="text-[10px] text-primary/70 mt-0.5 font-medium">Active session</p>
+              ) : (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 mt-0.5 h-auto leading-none font-medium">
+                  Guest
+                </Badge>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={onSignOut}
+              className="text-muted-foreground hover:text-destructive transition-colors p-1 rounded opacity-0 group-hover:opacity-100"
+              aria-label="Sign out"
+              title="Sign out"
+            >
+              <LogOut className="w-3.5 h-3.5" aria-hidden />
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );

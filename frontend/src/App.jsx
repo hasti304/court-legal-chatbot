@@ -1614,6 +1614,7 @@ function App() {
       <LoginLayout
         title={t("login.heading")}
         subtitle={t("login.lead")}
+        leftPanel={renderAuthAside()}
         extras={<><ThemeToggle /><LanguagePicker variant={lpVariant} /></>}
         footer={
           <SiteFooter
@@ -1625,14 +1626,15 @@ function App() {
         }
       >
         {/* Tab bar — Client / Admin login */}
-        <div className="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-border">
+        <div className="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-[#e2e8f0]">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-bold pb-0.5 border-b-2" style={{ color: "#1a2d4a", borderColor: "#1a2d4a" }}>
+            <span className="text-sm font-medium pb-3 border-b-2" style={{ color: "#1e293b", borderColor: "#1e293b" }}>
               {t("login.clientLogin")}
             </span>
             <button
               type="button"
-              className="text-sm font-medium px-3 py-1 rounded-full border border-gray-300 text-gray-500 hover:bg-gray-50 transition-colors"
+              className="text-sm font-medium px-4 py-1.5 rounded-full border-2 hover:bg-gray-50 transition-colors"
+              style={{ color: "#64748b", borderColor: "#e2e8f0" }}
               onClick={() => { window.location.hash = "#/admin"; }}
             >
               {t("login.staffLogin")}
@@ -1640,8 +1642,8 @@ function App() {
           </div>
           <button
             type="button"
-            className="text-xs font-medium hover:underline"
-            style={{ color: "#2563eb" }}
+            className="text-sm hover:underline"
+            style={{ color: "#1e293b" }}
             onClick={() => sendMagicLinkRequest(magicLinkEmail)}
             disabled={magicLinkBusy || passwordLoginBusy}
           >
@@ -1676,8 +1678,8 @@ function App() {
             </div>
           ) : null}
 
-          <div className="space-y-1.5">
-            <Label htmlFor="auth-signin-email" className="font-semibold text-sm" style={{ color: "#1a2d4a" }}>{t("login.emailLabel")}</Label>
+          <div className="space-y-2">
+            <Label htmlFor="auth-signin-email" className="font-medium text-sm" style={{ color: "#1e293b" }}>{t("login.emailLabel")}</Label>
             <Input
               id="auth-signin-email"
               type="email"
@@ -1691,12 +1693,12 @@ function App() {
                 setPasswordLoginError("");
               }}
               disabled={magicLinkBusy || passwordLoginBusy}
-              className="rounded-full"
+              className="rounded-full border-2 border-[#1e293b] h-14 px-5 text-[#1e293b] placeholder:text-[#94a3b8]"
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="auth-signin-password" className="font-semibold text-sm" style={{ color: "#1a2d4a" }}>{t("login.passwordLabel")}</Label>
+          <div className="space-y-2">
+            <Label htmlFor="auth-signin-password" className="font-medium text-sm" style={{ color: "#1e293b" }}>{t("login.passwordLabel")}</Label>
             <div className="relative">
               <Input
                 id="auth-signin-password"
@@ -1705,7 +1707,7 @@ function App() {
                 value={loginPassword}
                 onChange={(e) => { setLoginPassword(e.target.value); setPasswordLoginError(""); }}
                 disabled={magicLinkBusy || passwordLoginBusy}
-                className="rounded-full pr-10"
+                className="rounded-full border-2 border-[#1e293b] h-14 px-5 pr-14 text-[#1e293b] placeholder:text-[#94a3b8]"
               />
               <Button
                 type="button"
@@ -1714,20 +1716,20 @@ function App() {
                 onClick={() => setShowLoginPassword((s) => !s)}
                 disabled={magicLinkBusy || passwordLoginBusy}
                 aria-label={showLoginPassword ? t("login.hidePassword") : t("login.showPassword")}
-                className="absolute right-0 top-0 h-full px-3 rounded-r-full"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#64748b] hover:text-[#1e293b]"
               >
-                {showLoginPassword ? <EyeOff className="w-4 h-4" aria-hidden /> : <Eye className="w-4 h-4" aria-hidden />}
+                {showLoginPassword ? <EyeOff className="w-5 h-5" aria-hidden /> : <Eye className="w-5 h-5" aria-hidden />}
               </Button>
             </div>
           </div>
 
           {/* Remember me */}
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input type="checkbox" className="w-4 h-4 rounded" />
-            <span className="text-sm text-muted-foreground">{t("login.rememberMe") || "Remember me on this device"}</span>
+          <label className="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" className="w-5 h-5 rounded border-2 border-[#1e293b]" />
+            <span className="text-sm" style={{ color: "#1e293b" }}>{t("login.rememberMe") || "Remember me on this device"}</span>
           </label>
 
-          <Button type="submit" className="w-full rounded-full" size="lg" disabled={magicLinkBusy || passwordLoginBusy}>
+          <Button type="submit" className="w-full rounded-full h-14 text-base font-medium" size="lg" disabled={magicLinkBusy || passwordLoginBusy}>
             {passwordLoginBusy ? t("login.signingIn") : t("login.passwordLoginButton")}
           </Button>
           {magicTokenPending ? (
@@ -1743,17 +1745,18 @@ function App() {
           ) : null}
         </form>
 
-        <div className="mt-4 pt-4 border-t border-border">
-          <p className="text-xs text-muted-foreground text-center leading-relaxed mb-3">
+        <div className="mt-6 pt-6 border-t border-[#e2e8f0]">
+          <p className="text-xs leading-relaxed" style={{ color: "#64748b" }}>
             We do not share your information with third parties except as required by law or to provide requested services.{" "}
-            <button type="button" className="underline hover:no-underline" onClick={() => setView("privacy")}>
+            <button type="button" className="underline hover:no-underline" style={{ color: "#1e293b" }} onClick={() => setView("privacy")}>
               {t("intake.privacyLink")}
             </button>
           </p>
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2 mt-3">
             <button
               type="button"
-              className="text-sm text-muted-foreground hover:underline"
+              className="text-sm hover:underline"
+              style={{ color: "#64748b" }}
               disabled={magicLinkBusy || passwordLoginBusy}
               onClick={() => {
                 setForgotEmail(String(magicLinkEmail || "").trim().toLowerCase());
@@ -1763,12 +1766,12 @@ function App() {
             >
               {t("login.forgotPassword")}
             </button>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm" style={{ color: "#64748b" }}>
               {t("login.newUserPrompt")}{" "}
               <button
                 type="button"
                 className="font-semibold hover:underline"
-                style={{ color: "#1a2d4a" }}
+                style={{ color: "#1e293b" }}
                 onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("intake"); }}
               >
                 {t("login.createAccount")}
@@ -2084,30 +2087,31 @@ function App() {
         }
       >
         {/* Tab bar — Client / Admin login */}
-        <div className="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-border">
+        <div className="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-[#e2e8f0]">
           <div className="flex items-center gap-3" role="group" aria-label={t("login.intakeLoginChoiceAria")}>
             <button
               type="button"
-              className="text-sm font-bold pb-0.5 border-b-2"
-              style={{ color: "#1a2d4a", borderColor: "#1a2d4a" }}
+              className="text-sm font-medium pb-3 border-b-2"
+              style={{ color: "#1e293b", borderColor: "#1e293b" }}
               onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
               disabled={loading}
             >
               {t("login.clientLogin")}
-            </Button>
-            <Button
+            </button>
+            <button
               type="button"
-              className="text-sm font-medium px-3 py-1 rounded-full border border-gray-300 text-gray-500 hover:bg-gray-50 transition-colors"
+              className="text-sm font-medium px-4 py-1.5 rounded-full border-2 hover:bg-gray-50 transition-colors"
+              style={{ color: "#64748b", borderColor: "#e2e8f0" }}
               onClick={() => { window.location.hash = "#/admin"; }}
               disabled={loading}
             >
               {t("login.staffLogin")}
-            </Button>
+            </button>
           </div>
           <button
             type="button"
-            className="text-xs font-medium hover:underline"
-            style={{ color: "#2563eb" }}
+            className="text-sm hover:underline"
+            style={{ color: "#1e293b" }}
             onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
           >
             {t("login.signInWithEmail")}
@@ -2119,8 +2123,8 @@ function App() {
           className="space-y-4"
         >
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="intake-first-name">{t("intake.firstName")}</Label>
+            <div className="space-y-2">
+              <Label htmlFor="intake-first-name" className="font-medium" style={{ color: "#1e293b" }}>{t("intake.firstName")}</Label>
               <Input
                 id="intake-first-name"
                 type="text"
@@ -2128,11 +2132,11 @@ function App() {
                 onChange={(e) => setIntakeFirstName(e.target.value)}
                 placeholder={t("intake.firstName")}
                 disabled={loading}
-                className="rounded-full"
+                className="rounded-full border-2 border-[#1e293b] h-14 px-5 text-[#1e293b] placeholder:text-[#94a3b8]"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="intake-last-name">{t("intake.lastName")}</Label>
+            <div className="space-y-2">
+              <Label htmlFor="intake-last-name" className="font-medium" style={{ color: "#1e293b" }}>{t("intake.lastName")}</Label>
               <Input
                 id="intake-last-name"
                 type="text"
@@ -2140,13 +2144,13 @@ function App() {
                 onChange={(e) => setIntakeLastName(e.target.value)}
                 placeholder={t("intake.lastName")}
                 disabled={loading}
-                className="rounded-full"
+                className="rounded-full border-2 border-[#1e293b] h-14 px-5 text-[#1e293b] placeholder:text-[#94a3b8]"
               />
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="intake-email">{t("intake.email")}</Label>
+          <div className="space-y-2">
+            <Label htmlFor="intake-email" className="font-medium" style={{ color: "#1e293b" }}>{t("intake.email")}</Label>
             <Input
               id="intake-email"
               type="email"
@@ -2154,12 +2158,12 @@ function App() {
               onChange={(e) => setIntakeEmail(e.target.value)}
               placeholder={t("intake.email")}
               disabled={loading}
-              className="rounded-full"
+              className="rounded-full border-2 border-[#1e293b] h-14 px-5 text-[#1e293b] placeholder:text-[#94a3b8]"
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="intake-phone">{t("intake.phone")}</Label>
+          <div className="space-y-2">
+            <Label htmlFor="intake-phone" className="font-medium" style={{ color: "#1e293b" }}>{t("intake.phone")}</Label>
             <Input
               id="intake-phone"
               type="tel"
@@ -2167,12 +2171,12 @@ function App() {
               onChange={(e) => setIntakePhone(e.target.value)}
               placeholder={t("intake.phone")}
               disabled={loading}
-              className="rounded-full"
+              className="rounded-full border-2 border-[#1e293b] h-14 px-5 text-[#1e293b] placeholder:text-[#94a3b8]"
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="intake-password">{t("login.createPassword")}</Label>
+          <div className="space-y-2">
+            <Label htmlFor="intake-password" className="font-medium" style={{ color: "#1e293b" }}>{t("login.createPassword")}</Label>
             <div className="relative">
               <Input
                 id="intake-password"
@@ -2182,7 +2186,7 @@ function App() {
                 placeholder={t("login.createPassword")}
                 autoComplete="new-password"
                 disabled={loading}
-                className="rounded-full pr-10"
+                className="rounded-full border-2 border-[#1e293b] h-14 px-5 pr-14 text-[#1e293b] placeholder:text-[#94a3b8]"
               />
               <Button
                 type="button"
@@ -2191,9 +2195,9 @@ function App() {
                 onClick={() => setShowIntakePassword((s) => !s)}
                 disabled={loading}
                 aria-label={showIntakePassword ? t("login.hidePassword") : t("login.showPassword")}
-                className="absolute right-0 top-0 h-full px-3 rounded-r-full"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#64748b] hover:text-[#1e293b]"
               >
-                {showIntakePassword ? <EyeOff className="w-4 h-4" aria-hidden /> : <Eye className="w-4 h-4" aria-hidden />}
+                {showIntakePassword ? <EyeOff className="w-5 h-5" aria-hidden /> : <Eye className="w-5 h-5" aria-hidden />}
               </Button>
             </div>
             {intakePassword ? (
@@ -2206,8 +2210,8 @@ function App() {
             ) : null}
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="intake-password-confirm">{t("login.confirmAccountPassword")}</Label>
+          <div className="space-y-2">
+            <Label htmlFor="intake-password-confirm" className="font-medium" style={{ color: "#1e293b" }}>{t("login.confirmAccountPassword")}</Label>
             <div className="relative">
               <Input
                 id="intake-password-confirm"
@@ -2217,7 +2221,7 @@ function App() {
                 placeholder={t("login.confirmAccountPassword")}
                 autoComplete="new-password"
                 disabled={loading}
-                className="rounded-full pr-10"
+                className="rounded-full border-2 border-[#1e293b] h-14 px-5 pr-14 text-[#1e293b] placeholder:text-[#94a3b8]"
               />
               <Button
                 type="button"
@@ -2226,9 +2230,9 @@ function App() {
                 onClick={() => setShowIntakePasswordConfirm((s) => !s)}
                 disabled={loading}
                 aria-label={showIntakePasswordConfirm ? t("login.hidePassword") : t("login.showPassword")}
-                className="absolute right-0 top-0 h-full px-3 rounded-r-full"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#64748b] hover:text-[#1e293b]"
               >
-                {showIntakePasswordConfirm ? <EyeOff className="w-4 h-4" aria-hidden /> : <Eye className="w-4 h-4" aria-hidden />}
+                {showIntakePasswordConfirm ? <EyeOff className="w-5 h-5" aria-hidden /> : <Eye className="w-5 h-5" aria-hidden />}
               </Button>
             </div>
           </div>
@@ -2239,14 +2243,14 @@ function App() {
               checked={intakeConsent}
               onChange={(e) => setIntakeConsent(e.target.checked)}
               disabled={loading}
-              className="mt-0.5 w-4 h-4 rounded shrink-0"
+              className="mt-0.5 w-5 h-5 rounded border-2 border-[#1e293b] shrink-0"
             />
-            <span className="text-sm text-muted-foreground leading-relaxed">
+            <span className="text-sm leading-relaxed" style={{ color: "#1e293b" }}>
               {t("intake.consentText")}{" "}
               <button
                 type="button"
                 onClick={() => setView("privacy")}
-                className="text-foreground underline underline-offset-2 hover:no-underline"
+                className="underline underline-offset-2 hover:no-underline"
               >
                 {t("intake.privacyLink")}
               </button>
@@ -2259,7 +2263,7 @@ function App() {
             </div>
           ) : null}
 
-          <Button type="submit" className="w-full rounded-full" size="lg" disabled={loading}>
+          <Button type="submit" className="w-full rounded-full h-14 text-base font-medium" size="lg" disabled={loading}>
             {loading
               ? intakeSubmitPhase === "retrying"
                 ? t("intake.retryingDetail")
@@ -2268,12 +2272,12 @@ function App() {
           </Button>
         </form>
 
-        <p className="text-sm text-center text-muted-foreground mt-4">
+        <p className="text-sm text-center mt-6" style={{ color: "#64748b" }}>
           {t("login.alreadyHaveAccount")}{" "}
           <button
             type="button"
             className="font-semibold hover:underline"
-            style={{ color: "#1a2d4a" }}
+            style={{ color: "#1e293b" }}
             onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
           >
             {t("login.signIn")}
@@ -2325,7 +2329,7 @@ function App() {
         activeTopic={currentTopic}
         firstName={intakeFirstName}
         intakeSaved={intakeSaved}
-        topbarTitle="Home"
+        topbarTitle=""
         canGoBack={false}
         onNavigate={(section) => {
           if (section === "chat") startChatFromCover();
@@ -2340,28 +2344,31 @@ function App() {
           setView("login");
         }}
         onBack={() => {}}
-        topbarExtras={
-          <>
-            <ThemeToggle />
-            <LanguagePicker variant={lpVariant} />
-          </>
-        }
+        topbarExtras={<ThemeToggle />}
       >
-        <div className="p-6 max-w-3xl mx-auto">
-          {/* Welcome hero */}
-          <div className="text-center py-10 mb-6">
-            <div
-              className="w-16 h-16 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center mx-auto mb-5 text-2xl font-extrabold shadow-lg"
-              style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #4f46e5 100%)" }}
-              aria-hidden="true"
+        <div className="p-8 max-w-5xl mx-auto">
+          {/* Language Selector */}
+          <div className="flex justify-end mb-6">
+            <select
+              className="px-4 py-2 border-2 border-[#e2e8f0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e293b]"
+              style={{ color: "#1e293b" }}
+              value={normalizedLang}
+              onChange={(e) => setAppLanguage(e.target.value)}
             >
-              {intakeFirstName ? intakeFirstName.charAt(0).toUpperCase() : "⚖"}
-            </div>
-            <h2 className="text-2xl font-extrabold text-foreground mb-2">
-              {intakeFirstName ? `Welcome back, ${intakeFirstName}!` : t("landing.welcomeTitle")}
+              <option value="en">Language / Idioma: English</option>
+              <option value="es">Español</option>
+            </select>
+          </div>
+
+          {/* Welcome hero */}
+          <div className="text-center mb-12">
+            <h2 className="text-4xl mb-3" style={{ color: "#1e293b" }}>
+              {intakeFirstName ? `Welcome back, ${intakeFirstName}!` : "Welcome to the Legal Resource Portal"}
             </h2>
-            <p className="text-muted-foreground text-sm leading-relaxed mb-7 max-w-md mx-auto">
-              {t("landing.tagline")}
+            <p className="text-lg mb-6" style={{ color: "#64748b" }}>
+              This website contains{" "}
+              <span style={{ color: "#2563eb" }}>Illinois</span>{" "}
+              legal information and resources
             </p>
             <div className="flex items-center justify-center gap-3 flex-wrap">
               {pendingTriage ? (
@@ -2369,7 +2376,7 @@ function App() {
                   <Button
                     type="button"
                     size="lg"
-                    className="rounded-2xl px-8 shadow-md"
+                    className="rounded-lg px-8"
                     onClick={resumeTriageFromCover}
                     disabled={loading}
                   >
@@ -2379,7 +2386,7 @@ function App() {
                     type="button"
                     variant="secondary"
                     size="lg"
-                    className="rounded-2xl px-8"
+                    className="rounded-lg px-8"
                     onClick={discardPendingAndStartFresh}
                     disabled={loading}
                   >
@@ -2389,7 +2396,7 @@ function App() {
               ) : (
                 <Button
                   size="lg"
-                  className="rounded-2xl px-10 shadow-md"
+                  className="rounded-lg px-10"
                   onClick={startChatFromCover}
                   disabled={loading}
                 >
@@ -2400,71 +2407,78 @@ function App() {
           </div>
 
           {/* Topic cards */}
-          <div className="mb-6">
-            <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 mb-3 px-0.5">
+          <div className="mb-12">
+            <h3 className="text-xs font-semibold uppercase tracking-widest mb-6 px-0.5" style={{ color: "#64748b" }}>
               Browse by legal area
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               {topicCards.map((card) => (
                 <button
                   key={card.key}
                   type="button"
-                  className="text-left bg-card rounded-2xl border border-border p-4 shadow-sm hover:shadow-md hover:border-primary/30 hover:bg-primary/5 transition-all duration-150 group"
+                  className="text-left bg-white rounded-xl border-2 p-6 hover:border-[#1e293b] transition-all duration-150 group"
+                  style={{ borderColor: "#e2e8f0" }}
                   onClick={() => {
                     const topicId = card.key === "childSupport" ? "child_support" : card.key;
                     setCurrentTopic(topicId);
                     startChatFromCover();
                   }}
                 >
-                  <div className="text-xl mb-3 text-primary group-hover:scale-110 transition-transform duration-150">{card.icon}</div>
-                  <h4 className="font-bold text-sm text-foreground mb-1 group-hover:text-primary transition-colors">{card.title}</h4>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{card.desc}</p>
+                  <div className="text-2xl mb-3" style={{ color: "#1e293b" }}>{card.icon}</div>
+                  <h4 className="font-medium text-lg mb-2" style={{ color: "#1e293b" }}>{card.title}</h4>
+                  <p className="text-sm leading-relaxed" style={{ color: "#64748b" }}>{card.desc}</p>
                 </button>
               ))}
             </div>
+            <div className="text-center">
+              <Button
+                size="lg"
+                className="rounded-lg px-8"
+                style={{ background: "#2563eb" }}
+                onClick={startChatFromCover}
+                disabled={loading}
+              >
+                What&apos;s Next?
+              </Button>
+            </div>
           </div>
 
-          {/* Trust panel + supplementary content */}
-          <div className="space-y-4">
-            <TrustPanel className="trust-panel-landing" />
-            <LegalGlossary className="legal-glossary-landing" />
-
-            {/* Disclaimer */}
-            <div className="rounded-2xl border border-border bg-muted/40 px-5 py-4">
-              <p className="text-xs font-semibold text-muted-foreground mb-1">{t("landing.importantNoticeTitle")}</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                <strong className="text-foreground">{t("landing.infoOnly")}</strong>
-              </p>
-              <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-                ⚠️ <strong>{t("landing.privacyTitle")}</strong> {t("landing.privacyText")}
+          {/* Common Legal Terms */}
+          <div className="bg-white border-2 rounded-xl p-6 mb-8" style={{ borderColor: "#e2e8f0" }}>
+            <h2 className="font-medium mb-4" style={{ color: "#1e293b" }}>Common legal terms (plain language)</h2>
+            <div className="border-l-4 p-4 rounded" style={{ background: "#fef3c7", borderColor: "#f59e0b" }}>
+              <p className="text-sm" style={{ color: "#92400e" }}>
+                <strong>Important Legal Notice:</strong> Legal information and resources only, not legal advice. Legal information you provide could be discoverable. For more details, see our{" "}
+                <button type="button" className="underline hover:no-underline" onClick={() => setView("privacy")}>
+                  Privacy Notice
+                </button>
+                .
               </p>
             </div>
+          </div>
 
-            {/* Footer links */}
-            <div className="flex items-center gap-4 text-xs pb-4">
-              <button
-                type="button"
-                className="text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
-                onClick={() => setView(intakeSaved && intakeId ? "intakeChoice" : "intake")}
-              >
-                {t("login.backToSignIn")}
-              </button>
-              <span className="text-border" aria-hidden="true">·</span>
-              <button
-                type="button"
-                className="text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
-                onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
-              >
-                {t("login.signInWithEmail")}
-              </button>
-              <span className="text-border" aria-hidden="true">·</span>
-              <a
-                href={`mailto:${SUPPORT_EMAIL}`}
-                className="text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
-              >
-                {SUPPORT_EMAIL}
-              </a>
-            </div>
+          {/* Footer links */}
+          <div className="flex flex-wrap items-center justify-between gap-4 text-sm pb-8" style={{ color: "#64748b" }}>
+            <button
+              type="button"
+              className="hover:text-[#1e293b] transition-colors"
+              onClick={() => setView(intakeSaved && intakeId ? "intakeChoice" : "intake")}
+            >
+              Back to start
+            </button>
+            <button
+              type="button"
+              className="hover:text-[#1e293b] transition-colors"
+              onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
+            >
+              Click here to chat with staff
+            </button>
+            <a
+              href={`mailto:${SUPPORT_EMAIL}`}
+              className="hover:text-[#1e293b] transition-colors"
+            >
+              {SUPPORT_EMAIL}
+            </a>
           </div>
         </div>
         <EmergencyButton />
@@ -2500,7 +2514,8 @@ function App() {
       activeTopic={currentTopic}
       firstName={intakeFirstName}
       intakeSaved={intakeSaved}
-      topbarTitle={currentTopic ? `# ${currentTopic.replace(/_/g, " ")}` : "Legal Consultation"}
+      topbarTitle="Legal Consultation"
+      topbarMeta={messages.length > 0 ? `Step ${progressCurrent} of ${progressTotal}` : ""}
       canGoBack={conversationHistory.length > 1}
       onNavigate={(section) => {
         if (section === "home") goToCover();
@@ -2515,17 +2530,15 @@ function App() {
       onBack={handleBack}
       topbarExtras={
         <>
+          <LanguagePicker variant={lpVariant} />
           <button
             type="button"
-            className="slack-topbar-icon-btn"
-            onClick={() => setLargeText((v) => !v)}
-            aria-pressed={largeText}
-            title={largeText ? t("accessibility.largeTextOff") : t("accessibility.largeText")}
+            className="text-sm font-medium hover:underline"
+            style={{ color: "#2563eb" }}
+            onClick={() => goToCover()}
           >
-            <span style={{ fontSize: "11px", fontWeight: 700 }}>Aa</span>
+            Select Topic
           </button>
-          <ThemeToggle />
-          <LanguagePicker variant={lpVariant} />
         </>
       }
     >
@@ -2549,25 +2562,25 @@ function App() {
       )}
 
         <div className="slack-chat-workspace">
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-background/95 shrink-0 flex-wrap">
+        <div className="flex items-center gap-3 px-6 py-3 border-b border-[#e2e8f0] bg-white shrink-0 flex-wrap">
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="rounded-xl h-8 text-xs gap-1.5"
+            className="rounded-full gap-1.5 border-2 border-[#e2e8f0] text-[#1e293b] hover:bg-[#f1f5f9]"
             onClick={quickExit}
           >
-            <ShieldAlert className="w-3.5 h-3.5" aria-hidden />
+            <ArrowLeft className="w-4 h-4" aria-hidden />
             Quick Exit
           </Button>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="rounded-xl h-8 text-xs gap-1.5"
+            className="rounded-full gap-1.5 border-2 border-[#e2e8f0] text-[#1e293b] hover:bg-[#f1f5f9]"
             onClick={clearSessionAndStorage}
           >
-            <Trash2 className="w-3.5 h-3.5" aria-hidden />
+            <RotateCcw className="w-4 h-4" aria-hidden />
             Clear Session
           </Button>
           {speechSupported && (
@@ -2575,7 +2588,11 @@ function App() {
               type="button"
               variant="outline"
               size="sm"
-              className="rounded-xl h-8 text-xs gap-1.5"
+              className={`rounded-full gap-1.5 border-2 transition-colors ${
+                speechEnabled
+                  ? "bg-[#1e293b] text-white border-[#1e293b] hover:bg-[#334155]"
+                  : "border-[#e2e8f0] text-[#1e293b] hover:bg-[#f1f5f9]"
+              }`}
               onClick={() => {
                 if (speechEnabled) {
                   stopSpeaking();
@@ -2586,9 +2603,9 @@ function App() {
               }}
             >
               {speechEnabled ? (
-                <><VolumeX className="w-3.5 h-3.5" aria-hidden /> Turn Off Read Aloud</>
+                <><VolumeX className="w-4 h-4" aria-hidden /> Turn Off Read Aloud</>
               ) : (
-                <><Volume2 className="w-3.5 h-3.5" aria-hidden /> Turn On Read Aloud</>
+                <><Volume2 className="w-4 h-4" aria-hidden /> Turn On Read Aloud</>
               )}
             </Button>
           )}
@@ -2596,6 +2613,7 @@ function App() {
 
         <main className="chat-main" id="main-content">
         <div className="messages-container" ref={messagesContainerRef}>
+          <div className="text-right text-sm mb-4" style={{ color: "#94a3b8" }}>start</div>
           {chatError && (
             <StatusBanner type="error" className="chat-status-banner" role="alert">
               {chatError}
@@ -2629,14 +2647,14 @@ function App() {
                 />
 
                 {msg.role === "bot" && msg.options?.length > 0 && (
-                  <div className="flex flex-wrap gap-2 ml-11 mt-2 mb-1" role="group" aria-label="Quick replies">
+                  <div className="flex flex-wrap gap-2 ml-11 mt-3 mb-1" role="group" aria-label="Quick replies">
                     {msg.options.map((opt, i) => (
                       <Button
                         key={i}
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="rounded-xl text-xs h-8 font-normal"
+                        className="rounded-full border-2 border-[#1e293b] text-[#1e293b] text-sm font-normal hover:bg-[#1e293b] hover:text-white transition-colors"
                         onClick={() => handleOptionClick(opt)}
                         disabled={loading}
                       >
@@ -2753,71 +2771,73 @@ function App() {
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="border-t border-border bg-background px-4 pt-3 pb-4 shrink-0">
-          <form onSubmit={handleSubmit} className="flex items-end gap-2">
-            <Textarea
-              value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit(e);
+        <div className="border-t border-[#e2e8f0] bg-white px-6 py-4 shrink-0">
+          <div className="max-w-3xl mx-auto">
+            <form onSubmit={handleSubmit} className="relative">
+              <Textarea
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit(e);
+                  }
+                }}
+                placeholder={
+                  conversationState?.step === "problem_summary"
+                    ? t("chat.placeholderSummary")
+                    : ["summary_topic_confirm", "topic_reconfirm"].includes(
+                        String(conversationState?.step || "").toLowerCase()
+                      )
+                      ? t("chat.placeholderTopicAlign")
+                      : t("chat.placeholder")
                 }
-              }}
-              placeholder={
-                conversationState?.step === "problem_summary"
-                  ? t("chat.placeholderSummary")
-                  : ["summary_topic_confirm", "topic_reconfirm"].includes(
-                      String(conversationState?.step || "").toLowerCase()
-                    )
-                    ? t("chat.placeholderTopicAlign")
-                    : t("chat.placeholder")
-              }
-              disabled={loading}
-              rows={1}
-              style={{ resize: "none", minHeight: "44px", maxHeight: "160px", overflowY: "auto" }}
-              className="flex-1 rounded-2xl py-2.5 text-sm leading-relaxed"
-              aria-label={t("chat.placeholder")}
-            />
-            <Button
-              type="submit"
-              size="icon"
-              className="rounded-xl h-11 w-11 shrink-0"
-              disabled={loading || !userInput.trim()}
-              aria-label="Send message"
-            >
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
-              ) : (
-                <Send className="w-4 h-4" aria-hidden />
-              )}
-            </Button>
-          </form>
-          <div className="flex items-center gap-1 mt-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="rounded-xl h-7 text-xs text-muted-foreground gap-1.5 px-2"
-              onClick={handleBack}
-              disabled={loading}
-            >
-              <ArrowLeft className="w-3 h-3" aria-hidden />
-              {t("chat.backTitle")}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="rounded-xl h-7 text-xs text-muted-foreground gap-1.5 px-2"
-              onClick={handleRestart}
-              disabled={loading}
-            >
-              <RotateCcw className="w-3 h-3" aria-hidden />
-              {t("chat.restartTitle")}
-            </Button>
+                disabled={loading}
+                rows={1}
+                style={{ resize: "none", minHeight: "52px", maxHeight: "160px", overflowY: "auto" }}
+                className="w-full rounded-full py-3 px-5 pr-14 border-2 border-[#e2e8f0] text-[#1e293b] placeholder:text-[#94a3b8] text-sm leading-relaxed focus:outline-none focus:border-[#1e293b]"
+                aria-label={t("chat.placeholder")}
+              />
+              <Button
+                type="submit"
+                size="icon"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full h-10 w-10 shrink-0 bg-[#1e293b] hover:bg-[#334155]"
+                disabled={loading || !userInput.trim()}
+                aria-label="Send message"
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
+                ) : (
+                  <Send className="w-4 h-4" aria-hidden />
+                )}
+              </Button>
+            </form>
+            <div className="flex items-center gap-4 mt-3">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-xs gap-1.5 px-0 h-auto text-[#64748b] hover:text-[#1e293b]"
+                onClick={handleBack}
+                disabled={loading}
+              >
+                <ArrowLeft className="w-3 h-3" aria-hidden />
+                {t("chat.backTitle")}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-xs gap-1.5 px-0 h-auto text-[#64748b] hover:text-[#1e293b]"
+                onClick={handleRestart}
+                disabled={loading}
+              >
+                <RotateCcw className="w-3 h-3" aria-hidden />
+                {t("chat.restartTitle")}
+              </Button>
+            </div>
+            <p className="text-xs text-center mt-3" style={{ color: "#94a3b8" }}>Legal information and resources only, not legal advice.</p>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-2 text-center">{t("landing.infoOnly")}</p>
         </div>
         </main>
         </div>

@@ -1,39 +1,68 @@
 import React from "react";
 import calLogo from "../assets/cal_logo.png";
 
-export default function LoginLayout({ title, subtitle, children, extras, footer }) {
+export default function LoginLayout({ title, subtitle, children, extras, footer, leftPanel }) {
+  if (leftPanel) {
+    return (
+      <div className="auth-github-page auth-github-page--light min-h-screen flex flex-col">
+        {extras && (
+          <div className="flex items-center justify-end gap-2 px-6 pt-4 shrink-0">
+            {extras}
+          </div>
+        )}
+        <div className="flex-1 flex auth-split-inner">
+          {leftPanel}
+          <div className="auth-split-form-col flex flex-col justify-center">
+            {(title || subtitle) && (
+              <div className="mb-6">
+                {title && (
+                  <h1 className="text-3xl mb-2" style={{ color: "#1e293b" }}>
+                    {title}
+                  </h1>
+                )}
+                {subtitle && (
+                  <p className="text-base leading-relaxed" style={{ color: "#1e293b" }}>
+                    {subtitle}
+                  </p>
+                )}
+              </div>
+            )}
+            {children}
+          </div>
+        </div>
+        {footer}
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "#f0f2f5" }}>
-      {/* Top-right extras (theme toggle, lang picker) */}
+    <div className="min-h-screen flex flex-col" style={{ background: "#f5f5f7" }}>
       {extras && (
         <div className="flex items-center justify-end gap-2 px-6 pt-4 shrink-0">
           {extras}
         </div>
       )}
 
-      {/* Centered content */}
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-8">
-        {/* Logo above card */}
         <img
           src={calLogo}
           alt="Court Legal AI"
-          className="h-24 w-auto object-contain mb-6 drop-shadow-sm"
+          className="h-32 w-auto object-contain mb-8"
         />
 
-        {/* Card */}
         <div
-          className="w-full bg-white rounded-2xl p-8"
-          style={{ maxWidth: 540, boxShadow: "0 4px 24px rgba(0,0,0,0.09)" }}
+          className="w-full bg-white rounded-2xl p-8 md:p-12"
+          style={{ maxWidth: 672, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
         >
           {(title || subtitle) && (
             <div className="mb-6">
               {title && (
-                <h1 className="text-2xl font-bold mb-1.5" style={{ color: "#1a2d4a" }}>
+                <h1 className="text-3xl mb-2" style={{ color: "#1e293b" }}>
                   {title}
                 </h1>
               )}
               {subtitle && (
-                <p className="text-sm leading-relaxed" style={{ color: "#c05621" }}>
+                <p className="text-base leading-relaxed" style={{ color: "#1e293b" }}>
                   {subtitle}
                 </p>
               )}
