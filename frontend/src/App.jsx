@@ -1624,6 +1624,31 @@ function App() {
           />
         }
       >
+        {/* Tab bar — Client / Admin login */}
+        <div className="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-border">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-bold pb-0.5 border-b-2" style={{ color: "#1a2d4a", borderColor: "#1a2d4a" }}>
+              {t("login.clientLogin")}
+            </span>
+            <button
+              type="button"
+              className="text-sm font-medium px-3 py-1 rounded-full border border-gray-300 text-gray-500 hover:bg-gray-50 transition-colors"
+              onClick={() => { window.location.hash = "#/admin"; }}
+            >
+              {t("login.staffLogin")}
+            </button>
+          </div>
+          <button
+            type="button"
+            className="text-xs font-medium hover:underline"
+            style={{ color: "#2563eb" }}
+            onClick={() => sendMagicLinkRequest(magicLinkEmail)}
+            disabled={magicLinkBusy || passwordLoginBusy}
+          >
+            {t("login.signInWithEmail")}
+          </button>
+        </div>
+
         <form onSubmit={handlePasswordLoginSubmit} className="space-y-4">
           {magicVerifyError ? (
             <div role="alert" className="rounded-xl bg-destructive/10 text-destructive px-4 py-3 text-sm border border-destructive/20">
@@ -1652,7 +1677,7 @@ function App() {
           ) : null}
 
           <div className="space-y-1.5">
-            <Label htmlFor="auth-signin-email">{t("login.emailLabel")}</Label>
+            <Label htmlFor="auth-signin-email" className="font-semibold text-sm" style={{ color: "#1a2d4a" }}>{t("login.emailLabel")}</Label>
             <Input
               id="auth-signin-email"
               type="email"
@@ -1666,12 +1691,12 @@ function App() {
                 setPasswordLoginError("");
               }}
               disabled={magicLinkBusy || passwordLoginBusy}
-              className="rounded-xl"
+              className="rounded-full"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="auth-signin-password">{t("login.passwordLabel")}</Label>
+            <Label htmlFor="auth-signin-password" className="font-semibold text-sm" style={{ color: "#1a2d4a" }}>{t("login.passwordLabel")}</Label>
             <div className="relative">
               <Input
                 id="auth-signin-password"
@@ -1680,7 +1705,7 @@ function App() {
                 value={loginPassword}
                 onChange={(e) => { setLoginPassword(e.target.value); setPasswordLoginError(""); }}
                 disabled={magicLinkBusy || passwordLoginBusy}
-                className="rounded-xl pr-10"
+                className="rounded-full pr-10"
               />
               <Button
                 type="button"
@@ -1689,88 +1714,67 @@ function App() {
                 onClick={() => setShowLoginPassword((s) => !s)}
                 disabled={magicLinkBusy || passwordLoginBusy}
                 aria-label={showLoginPassword ? t("login.hidePassword") : t("login.showPassword")}
-                className="absolute right-0 top-0 h-full px-3 rounded-r-xl"
+                className="absolute right-0 top-0 h-full px-3 rounded-r-full"
               >
                 {showLoginPassword ? <EyeOff className="w-4 h-4" aria-hidden /> : <Eye className="w-4 h-4" aria-hidden />}
               </Button>
             </div>
-            {loginPassword ? (
-              <p className={`text-xs mt-1 ${
-                passwordStrengthKey(loginPassword) === "weak" ? "text-destructive" :
-                passwordStrengthKey(loginPassword) === "medium" ? "text-amber-600" : "text-green-600"
-              }`}>
-                {t(`login.passwordStrength.${passwordStrengthKey(loginPassword)}`)}
-              </p>
-            ) : null}
           </div>
 
-          <div className="space-y-2 pt-1">
-            <Button type="submit" className="w-full rounded-xl" size="lg" disabled={magicLinkBusy || passwordLoginBusy}>
-              {passwordLoginBusy ? t("login.signingIn") : t("login.passwordLoginButton")}
+          {/* Remember me */}
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input type="checkbox" className="w-4 h-4 rounded" />
+            <span className="text-sm text-muted-foreground">{t("login.rememberMe") || "Remember me on this device"}</span>
+          </label>
+
+          <Button type="submit" className="w-full rounded-full" size="lg" disabled={magicLinkBusy || passwordLoginBusy}>
+            {passwordLoginBusy ? t("login.signingIn") : t("login.passwordLoginButton")}
+          </Button>
+          {magicTokenPending ? (
+            <Button
+              type="button"
+              className="w-full rounded-full"
+              size="lg"
+              disabled={magicLinkBusy || passwordLoginBusy || magicVerifyBusy}
+              onClick={() => void verifyPendingMagicLink()}
+            >
+              {magicVerifyBusy ? "Verifying link..." : "Complete sign-in from email link"}
             </Button>
-            {magicTokenPending ? (
-              <Button
-                type="button"
-                className="w-full rounded-xl"
-                size="lg"
-                disabled={magicLinkBusy || passwordLoginBusy || magicVerifyBusy}
-                onClick={() => void verifyPendingMagicLink()}
-              >
-                {magicVerifyBusy ? "Verifying link..." : "Complete sign-in from email link"}
-              </Button>
-            ) : null}
-          </div>
+          ) : null}
         </form>
 
-        <div className="flex flex-col gap-2 mt-3">
-          <Button
-            type="button"
-            variant="secondary"
-            size="lg"
-            className="w-full rounded-xl"
-            disabled={magicLinkBusy || passwordLoginBusy}
-            onClick={() => {
-              setForgotEmail(String(magicLinkEmail || "").trim().toLowerCase());
-              setForgotError("");
-              setForgotNotice("");
-              setForgotDevLink("");
-              setView("forgotPassword");
-            }}
-          >
-            {t("login.forgotPassword")}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="lg"
-            className="w-full rounded-xl"
-            disabled={magicLinkBusy || passwordLoginBusy}
-            onClick={() => sendMagicLinkRequest(magicLinkEmail)}
-          >
-            {magicLinkBusy ? t("login.sending") : t("login.emailLoginButton")}
-          </Button>
-        </div>
-
-        <div className="mt-6 pt-5 border-t border-border flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">{t("login.newUserPrompt")}</span>
-          <Button
-            type="button"
-            variant="link"
-            className="p-0 h-auto font-medium"
-            onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("intake"); }}
-          >
-            {t("login.createAccount")}
-          </Button>
-        </div>
-        <div className="text-center mt-3">
-          <Button
-            type="button"
-            variant="link"
-            className="p-0 h-auto text-xs text-muted-foreground"
-            onClick={() => setView("privacy")}
-          >
-            {t("intake.privacyLink")}
-          </Button>
+        <div className="mt-4 pt-4 border-t border-border">
+          <p className="text-xs text-muted-foreground text-center leading-relaxed mb-3">
+            We do not share your information with third parties except as required by law or to provide requested services.{" "}
+            <button type="button" className="underline hover:no-underline" onClick={() => setView("privacy")}>
+              {t("intake.privacyLink")}
+            </button>
+          </p>
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              className="text-sm text-muted-foreground hover:underline"
+              disabled={magicLinkBusy || passwordLoginBusy}
+              onClick={() => {
+                setForgotEmail(String(magicLinkEmail || "").trim().toLowerCase());
+                setForgotError(""); setForgotNotice(""); setForgotDevLink("");
+                setView("forgotPassword");
+              }}
+            >
+              {t("login.forgotPassword")}
+            </button>
+            <p className="text-sm text-muted-foreground">
+              {t("login.newUserPrompt")}{" "}
+              <button
+                type="button"
+                className="font-semibold hover:underline"
+                style={{ color: "#1a2d4a" }}
+                onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("intake"); }}
+              >
+                {t("login.createAccount")}
+              </button>
+            </p>
+          </div>
         </div>
         <EmergencyButton />
       </LoginLayout>
@@ -2079,37 +2083,35 @@ function App() {
           />
         }
       >
-        <div className="flex items-center justify-between gap-3 mb-5 pb-4 border-b border-border">
-          <div className="flex items-center gap-2" role="group" aria-label={t("login.intakeLoginChoiceAria")}>
-            <Button
+        {/* Tab bar — Client / Admin login */}
+        <div className="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-border">
+          <div className="flex items-center gap-3" role="group" aria-label={t("login.intakeLoginChoiceAria")}>
+            <button
               type="button"
-              variant="secondary"
-              size="sm"
-              className="rounded-xl text-xs"
+              className="text-sm font-bold pb-0.5 border-b-2"
+              style={{ color: "#1a2d4a", borderColor: "#1a2d4a" }}
               onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
               disabled={loading}
             >
               {t("login.clientLogin")}
-            </Button>
-            <Button
+            </button>
+            <button
               type="button"
-              variant="outline"
-              size="sm"
-              className="rounded-xl text-xs"
+              className="text-sm font-medium px-3 py-1 rounded-full border border-gray-300 text-gray-500 hover:bg-gray-50 transition-colors"
               onClick={() => { window.location.hash = "#/admin"; }}
               disabled={loading}
             >
               {t("login.staffLogin")}
-            </Button>
+            </button>
           </div>
-          <Button
+          <button
             type="button"
-            variant="link"
-            className="p-0 h-auto text-xs"
+            className="text-xs font-medium hover:underline"
+            style={{ color: "#2563eb" }}
             onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
           >
             {t("login.signInWithEmail")}
-          </Button>
+          </button>
         </div>
 
         <form
@@ -2126,7 +2128,7 @@ function App() {
                 onChange={(e) => setIntakeFirstName(e.target.value)}
                 placeholder={t("intake.firstName")}
                 disabled={loading}
-                className="rounded-xl"
+                className="rounded-full"
               />
             </div>
             <div className="space-y-1.5">
@@ -2138,7 +2140,7 @@ function App() {
                 onChange={(e) => setIntakeLastName(e.target.value)}
                 placeholder={t("intake.lastName")}
                 disabled={loading}
-                className="rounded-xl"
+                className="rounded-full"
               />
             </div>
           </div>
@@ -2152,7 +2154,7 @@ function App() {
               onChange={(e) => setIntakeEmail(e.target.value)}
               placeholder={t("intake.email")}
               disabled={loading}
-              className="rounded-xl"
+              className="rounded-full"
             />
           </div>
 
@@ -2165,7 +2167,7 @@ function App() {
               onChange={(e) => setIntakePhone(e.target.value)}
               placeholder={t("intake.phone")}
               disabled={loading}
-              className="rounded-xl"
+              className="rounded-full"
             />
           </div>
 
@@ -2180,7 +2182,7 @@ function App() {
                 placeholder={t("login.createPassword")}
                 autoComplete="new-password"
                 disabled={loading}
-                className="rounded-xl pr-10"
+                className="rounded-full pr-10"
               />
               <Button
                 type="button"
@@ -2189,7 +2191,7 @@ function App() {
                 onClick={() => setShowIntakePassword((s) => !s)}
                 disabled={loading}
                 aria-label={showIntakePassword ? t("login.hidePassword") : t("login.showPassword")}
-                className="absolute right-0 top-0 h-full px-3 rounded-r-xl"
+                className="absolute right-0 top-0 h-full px-3 rounded-r-full"
               >
                 {showIntakePassword ? <EyeOff className="w-4 h-4" aria-hidden /> : <Eye className="w-4 h-4" aria-hidden />}
               </Button>
@@ -2215,7 +2217,7 @@ function App() {
                 placeholder={t("login.confirmAccountPassword")}
                 autoComplete="new-password"
                 disabled={loading}
-                className="rounded-xl pr-10"
+                className="rounded-full pr-10"
               />
               <Button
                 type="button"
@@ -2224,7 +2226,7 @@ function App() {
                 onClick={() => setShowIntakePasswordConfirm((s) => !s)}
                 disabled={loading}
                 aria-label={showIntakePasswordConfirm ? t("login.hidePassword") : t("login.showPassword")}
-                className="absolute right-0 top-0 h-full px-3 rounded-r-xl"
+                className="absolute right-0 top-0 h-full px-3 rounded-r-full"
               >
                 {showIntakePasswordConfirm ? <EyeOff className="w-4 h-4" aria-hidden /> : <Eye className="w-4 h-4" aria-hidden />}
               </Button>
@@ -2257,7 +2259,7 @@ function App() {
             </div>
           ) : null}
 
-          <Button type="submit" className="w-full rounded-xl" size="lg" disabled={loading}>
+          <Button type="submit" className="w-full rounded-full" size="lg" disabled={loading}>
             {loading
               ? intakeSubmitPhase === "retrying"
                 ? t("intake.retryingDetail")
@@ -2265,6 +2267,18 @@ function App() {
               : t("intake.submit")}
           </Button>
         </form>
+
+        <p className="text-sm text-center text-muted-foreground mt-4">
+          {t("login.alreadyHaveAccount")}{" "}
+          <button
+            type="button"
+            className="font-semibold hover:underline"
+            style={{ color: "#1a2d4a" }}
+            onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
+          >
+            {t("login.signIn")}
+          </button>
+        </p>
         <EmergencyButton />
       </LoginLayout>
     );

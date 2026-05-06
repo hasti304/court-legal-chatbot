@@ -74,7 +74,7 @@ export default function AppSidebar({
       {/* Brand */}
       <div className="flex items-center gap-2.5 px-4 h-14 border-b border-sidebar-border shrink-0">
         <img src={calLogo} alt="" className="w-7 h-7 object-contain" aria-hidden="true" />
-        <span className="font-bold text-sm text-sidebar-primary tracking-tight">
+        <span className="font-bold text-sm tracking-tight" style={{ color: "#1a2d4a" }}>
           Court Legal AI
         </span>
       </div>
@@ -97,10 +97,10 @@ export default function AppSidebar({
               key={id}
               type="button"
               onClick={() => onNavigate?.(id)}
-              className={`w-full flex items-center gap-2.5 py-2 rounded-xl text-sm font-medium transition-all ${
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
                 activeSection === id
-                  ? "bg-primary/10 text-primary font-semibold pl-[10px] border-l-[3px] border-primary rounded-l-none"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground px-3 border-l-[3px] border-transparent rounded-l-none"
+                  ? "bg-sidebar-accent text-sidebar-foreground font-semibold"
+                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground"
               }`}
               aria-current={activeSection === id ? "page" : undefined}
             >
@@ -131,10 +131,10 @@ export default function AppSidebar({
                 key={id}
                 type="button"
                 onClick={() => onTopicSelect?.(id)}
-                className={`w-full flex items-center gap-2 py-1.5 rounded-xl text-sm transition-all ${
+                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm transition-all ${
                   activeTopic === id
-                    ? "bg-primary/10 text-primary font-semibold pl-[10px] border-l-[3px] border-primary rounded-l-none"
-                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground px-3 border-l-[3px] border-transparent rounded-l-none"
+                    ? "bg-sidebar-accent text-sidebar-foreground font-medium"
+                    : "text-sidebar-foreground/55 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                 }`}
               >
                 <Hash className="w-3.5 h-3.5 shrink-0" aria-hidden />

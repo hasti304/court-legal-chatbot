@@ -444,7 +444,7 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
   const hasUserMessages = messages.some((m) => m.role === "user");
   const isBusy = isLoading || streamingContent !== null;
 
-  const toolbarBtn = "flex items-center gap-1.5 text-xs rounded-lg px-2.5 py-1.5 font-medium transition-colors";
+  const toolbarBtn = "flex items-center gap-1.5 text-xs rounded-full border px-3 py-1.5 font-medium transition-colors";
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -494,22 +494,22 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
           <div className="flex flex-wrap gap-1.5">
             <button
               type="button"
-              className={`${toolbarBtn} bg-destructive/10 text-destructive hover:bg-destructive/20`}
+              className={`${toolbarBtn} border-destructive/40 text-destructive hover:bg-destructive/10`}
               onClick={quickExit}
             >
               <FaSignOutAlt /> Quick Exit
             </button>
             <button
               type="button"
-              className={`${toolbarBtn} bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80`}
+              className={`${toolbarBtn} border-border text-muted-foreground hover:text-foreground hover:bg-muted`}
               onClick={clearAIConversation}
             >
-              <FaTrashAlt /> Clear
+              <FaTrashAlt /> Clear Session
             </button>
             {hasUserMessages && !isBusy && (
               <button
                 type="button"
-                className={`${toolbarBtn} bg-muted text-muted-foreground hover:text-primary hover:bg-primary/10`}
+                className={`${toolbarBtn} border-border text-muted-foreground hover:text-primary hover:border-primary/40`}
                 onClick={regenerateAnswer}
               >
                 <FaRedo /> Regenerate
@@ -518,13 +518,13 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
             {speechSupported && (
               <button
                 type="button"
-                className={`${toolbarBtn} ${speechEnabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground hover:text-primary hover:bg-primary/10"}`}
+                className={`${toolbarBtn} ${speechEnabled ? "border-primary/50 text-primary bg-primary/5" : "border-border text-muted-foreground hover:text-primary hover:border-primary/40"}`}
                 onClick={() => {
                   if (speechEnabled) { stopSpeaking(); setSpeechEnabled(false); }
                   else setSpeechEnabled(true);
                 }}
               >
-                {speechEnabled ? <><FaStop /> Mute</> : <><FaVolumeUp /> Read Aloud</>}
+                {speechEnabled ? <><FaStop /> Turn Off Read Aloud</> : <><FaVolumeUp /> Turn On Read Aloud</>}
               </button>
             )}
           </div>
@@ -651,14 +651,14 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
 
         {/* Input */}
         <div className="border-t border-border bg-background/95 px-4 pt-3 pb-4 shrink-0">
-          <div className="flex items-end gap-2 bg-card border border-border/80 rounded-2xl shadow-md px-3 py-2 focus-within:border-primary/50 focus-within:shadow-lg transition-all">
+          <div className="flex items-center gap-2 bg-card border border-border/80 rounded-full shadow-sm px-4 py-2.5 focus-within:border-primary/50 focus-within:shadow-md transition-all">
             <textarea
               ref={inputRef}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask about your legal issue…"
-              className="flex-1 min-h-[40px] max-h-36 resize-none py-1.5 text-sm leading-relaxed bg-transparent border-none focus:outline-none focus:ring-0 disabled:opacity-50 placeholder:text-muted-foreground/60"
+              className="flex-1 min-h-[28px] max-h-36 resize-none text-sm leading-relaxed bg-transparent border-none focus:outline-none focus:ring-0 disabled:opacity-50 placeholder:text-muted-foreground/60 py-0"
               rows={1}
               disabled={isBusy}
               aria-label="Message input"
@@ -669,7 +669,7 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
               type="button"
               title="Send message"
               aria-label="Send"
-              className="w-9 h-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-40 hover:bg-primary/85 shadow-sm self-end mb-0.5"
+              className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-40 hover:bg-primary/85 shadow-sm"
             >
               {isLoading
                 ? <span className="w-3.5 h-3.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
