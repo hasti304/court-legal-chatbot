@@ -2094,15 +2094,15 @@ function App() {
               disabled={loading}
             >
               {t("login.clientLogin")}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               className="text-sm font-medium px-3 py-1 rounded-full border border-gray-300 text-gray-500 hover:bg-gray-50 transition-colors"
               onClick={() => { window.location.hash = "#/admin"; }}
               disabled={loading}
             >
               {t("login.staffLogin")}
-            </button>
+            </Button>
           </div>
           <button
             type="button"
