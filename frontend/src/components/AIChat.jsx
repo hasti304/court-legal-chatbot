@@ -458,21 +458,21 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
 
       <div className="flex flex-col flex-1 min-w-0">
         {/* Header */}
-        <div className="border-b border-border bg-background/95 px-4 py-3 shrink-0">
+        <div className="border-b border-border bg-background/95 backdrop-blur-sm px-4 py-3 shrink-0 shadow-sm">
           <div className="flex items-center gap-3 mb-2.5">
             <button
               onClick={onBack}
               type="button"
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors shrink-0"
             >
               <FaArrowLeft className="w-3 h-3" /> {t("ai.back")}
             </button>
 
             <div className="flex items-center gap-2 mx-auto">
               <span aria-hidden>⚖️</span>
-              <h2 className="font-semibold text-sm text-foreground">{headerTitle}</h2>
+              <h2 className="font-bold text-sm text-foreground">{headerTitle}</h2>
               {!isDiscreetMode && (
-                <span className="text-[10px] bg-foreground text-background px-2 py-0.5 rounded-full font-medium">
+                <span className="text-[10px] bg-primary text-primary-foreground px-2 py-0.5 rounded-full font-semibold tracking-wide">
                   Legal AI
                 </span>
               )}
@@ -482,7 +482,7 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
               <button
                 type="button"
                 onClick={() => setShowDashboard((v) => !v)}
-                className={`text-sm px-2 py-1 rounded-lg transition-colors shrink-0 ${showDashboard ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                className={`text-sm px-2 py-1 rounded-lg transition-colors shrink-0 ${showDashboard ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-primary hover:bg-primary/10"}`}
                 title="Toggle dashboard"
                 aria-pressed={showDashboard}
               >
@@ -501,7 +501,7 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
             </button>
             <button
               type="button"
-              className={`${toolbarBtn} bg-muted text-muted-foreground hover:text-foreground`}
+              className={`${toolbarBtn} bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80`}
               onClick={clearAIConversation}
             >
               <FaTrashAlt /> Clear
@@ -509,7 +509,7 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
             {hasUserMessages && !isBusy && (
               <button
                 type="button"
-                className={`${toolbarBtn} bg-muted text-muted-foreground hover:text-foreground`}
+                className={`${toolbarBtn} bg-muted text-muted-foreground hover:text-primary hover:bg-primary/10`}
                 onClick={regenerateAnswer}
               >
                 <FaRedo /> Regenerate
@@ -518,7 +518,7 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
             {speechSupported && (
               <button
                 type="button"
-                className={`${toolbarBtn} bg-muted text-muted-foreground hover:text-foreground`}
+                className={`${toolbarBtn} ${speechEnabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground hover:text-primary hover:bg-primary/10"}`}
                 onClick={() => {
                   if (speechEnabled) { stopSpeaking(); setSpeechEnabled(false); }
                   else setSpeechEnabled(true);
@@ -547,10 +547,10 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
               return (
                 <div key={index} className="flex justify-end">
                   <div className="flex items-end gap-2 max-w-[80%] xl:max-w-2xl">
-                    <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-md px-4 py-3 text-sm leading-relaxed">
+                    <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed shadow-md">
                       {message.content}
                     </div>
-                    <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0 text-xs text-muted-foreground mb-0.5">
+                    <div className="w-7 h-7 rounded-full bg-primary/15 flex items-center justify-center shrink-0 text-xs text-primary mb-0.5">
                       <FaUser />
                     </div>
                   </div>
@@ -560,35 +560,35 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
 
             return (
               <div key={index} className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center shrink-0 mt-0.5 text-xs">
+                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 mt-0.5 text-xs shadow-sm">
                   <FaBalanceScale />
                 </div>
                 <div className="max-w-[80%] xl:max-w-2xl min-w-0">
                   <div
-                    className="bg-muted rounded-2xl rounded-tl-md px-4 py-3 text-sm text-foreground leading-relaxed prose prose-sm max-w-none"
+                    className="bg-card border border-border/60 shadow-sm rounded-2xl rounded-tl-md px-4 py-3 text-sm text-foreground leading-relaxed prose prose-sm max-w-none"
                     dangerouslySetInnerHTML={renderMessageContent(message.content)}
                   />
                   <div className="flex items-center flex-wrap gap-2 mt-1.5 px-1">
                     {confidence && !isDiscreetMode && (
                       <span
-                        className="text-[10px] px-2 py-0.5 rounded-full font-medium border"
+                        className="text-[10px] px-2 py-0.5 rounded-full font-semibold border"
                         style={{ color: confidence.color, background: confidence.bg, borderColor: confidence.color + "33" }}
                       >
-                        ⚖️ Confidence: {confidence.level}
+                        ⚖️ {confidence.level} confidence
                       </span>
                     )}
                     <button
                       type="button"
-                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
                       onClick={() => copyMessage(message.content, index)}
                       title="Copy response"
                     >
-                      {copiedIdx === index ? <><FaCheck /> Copied</> : <><FaCopy /> Copy</>}
+                      {copiedIdx === index ? <><FaCheck className="text-green-600" /> Copied</> : <><FaCopy /> Copy</>}
                     </button>
                     {speechSupported && (
                       <button
                         type="button"
-                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
                         onClick={() => speakText(message.content)}
                         title="Read aloud"
                       >
@@ -598,7 +598,7 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
                     {isLastAssistant && hasUserMessages && !isBusy && (
                       <button
                         type="button"
-                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
                         onClick={regenerateAnswer}
                         title="Regenerate answer"
                       >
@@ -614,14 +614,14 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
           {/* Streaming bubble */}
           {streamingContent !== null && (
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center shrink-0 mt-0.5 text-xs">
+              <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 mt-0.5 text-xs shadow-sm">
                 <FaBalanceScale />
               </div>
               <div className="max-w-[80%] xl:max-w-2xl min-w-0">
-                <div className="bg-muted rounded-2xl rounded-tl-md px-4 py-3 text-sm text-foreground leading-relaxed prose prose-sm max-w-none relative">
+                <div className="bg-card border border-border/60 shadow-sm rounded-2xl rounded-tl-md px-4 py-3 text-sm text-foreground leading-relaxed prose prose-sm max-w-none relative">
                   <div dangerouslySetInnerHTML={renderMessageContent(streamingContent)} />
                   <span
-                    className="inline-block w-0.5 h-4 bg-foreground ml-0.5 animate-pulse align-middle"
+                    className="inline-block w-0.5 h-4 bg-primary ml-0.5 animate-pulse align-middle"
                     aria-hidden
                   />
                 </div>
@@ -632,16 +632,16 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
           {/* Typing indicator */}
           {isLoading && streamingContent === null && (
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center shrink-0 mt-0.5 text-xs">
+              <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 mt-0.5 text-xs shadow-sm">
                 <FaBalanceScale />
               </div>
-              <div className="bg-muted rounded-2xl rounded-tl-md px-4 py-3">
+              <div className="bg-card border border-border/60 shadow-sm rounded-2xl rounded-tl-md px-4 py-3">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "-0.3s" }} />
-                  <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "-0.15s" }} />
-                  <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" />
+                  <span className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "-0.3s" }} />
+                  <span className="w-2 h-2 rounded-full bg-primary/70 animate-bounce" style={{ animationDelay: "-0.15s" }} />
+                  <span className="w-2 h-2 rounded-full bg-primary/40 animate-bounce" />
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">AI is thinking…</p>
+                <p className="text-xs text-muted-foreground mt-1.5">Analyzing your legal question…</p>
               </div>
             </div>
           )}
@@ -650,16 +650,16 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
         </div>
 
         {/* Input */}
-        <div className="border-t border-border bg-background px-4 pt-3 pb-4 shrink-0">
-          <div className="flex items-end gap-2">
+        <div className="border-t border-border bg-background/95 px-4 pt-3 pb-4 shrink-0">
+          <div className="flex items-end gap-2 bg-card border border-border/80 rounded-2xl shadow-md px-3 py-2 focus-within:border-primary/50 focus-within:shadow-lg transition-all">
             <textarea
               ref={inputRef}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={t("ai.placeholder")}
-              className="flex-1 min-h-[44px] max-h-40 resize-none rounded-2xl py-2.5 px-3 text-sm leading-relaxed border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0 disabled:opacity-50"
-              rows={2}
+              placeholder="Ask about your legal issue…"
+              className="flex-1 min-h-[40px] max-h-36 resize-none py-1.5 text-sm leading-relaxed bg-transparent border-none focus:outline-none focus:ring-0 disabled:opacity-50 placeholder:text-muted-foreground/60"
+              rows={1}
               disabled={isBusy}
               aria-label="Message input"
             />
@@ -669,18 +669,18 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
               type="button"
               title="Send message"
               aria-label="Send"
-              className="w-11 h-11 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-50 hover:bg-primary/90 transition-colors"
+              className="w-9 h-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-40 hover:bg-primary/85 shadow-sm self-end mb-0.5"
             >
               {isLoading
-                ? <span className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-                : <FaPaperPlane className="w-3.5 h-3.5" />
+                ? <span className="w-3.5 h-3.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                : <FaPaperPlane className="w-3 h-3" />
               }
             </button>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-2 text-center">
-            <kbd className="text-[10px] border border-border rounded px-1 py-0.5">Enter</kbd>
+          <p className="text-[10px] text-muted-foreground/60 mt-2 text-center">
+            <kbd className="text-[10px] border border-border rounded px-1 py-0.5 bg-muted/50">Enter</kbd>
             {" "}to send · {" "}
-            <kbd className="text-[10px] border border-border rounded px-1 py-0.5">Shift+Enter</kbd>
+            <kbd className="text-[10px] border border-border rounded px-1 py-0.5 bg-muted/50">Shift+Enter</kbd>
             {" "}for new line
           </p>
         </div>

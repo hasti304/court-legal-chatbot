@@ -127,7 +127,7 @@
   height: 36px;
   min-height: unset;
   border-radius: 10px;
-  background: var(--primary, #1f4fa8);
+  background: var(--primary, #1e3a8a);
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -272,7 +272,7 @@
 }
 
 .workspace-nav-item.workspace-nav-item--active {
-  background: var(--primary, #1f4fa8);
+  background: var(--primary, #1e3a8a);
   color: #ffffff;
   border-radius: 4px;
   margin: 1px 8px;
@@ -282,7 +282,7 @@
 }
 
 .workspace-nav-item.workspace-nav-item--active:hover {
-  background: var(--primary-hover, #173d82);
+  background: var(--primary-hover, #1e40af);
 }
 
 .workspace-nav-icon {
@@ -438,7 +438,7 @@
 }
 
 .slack-topbar-search:focus-within {
-  border-color: var(--primary, #1f4fa8);
+  border-color: var(--primary, #1e3a8a);
   background: var(--bg-surface, #ffffff);
 }
 
@@ -527,7 +527,7 @@
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: var(--primary, #1f4fa8);
+  background: linear-gradient(135deg, #1e3a8a 0%, #4f46e5 100%);
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -535,7 +535,7 @@
   font-weight: 800;
   font-size: 1.65rem;
   margin-bottom: 16px;
-  box-shadow: var(--shadow-md, 0 10px 24px rgba(15, 23, 42, 0.08));
+  box-shadow: 0 10px 24px rgba(30, 58, 138, 0.22);
   flex-shrink: 0;
 }
 

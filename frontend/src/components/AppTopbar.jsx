@@ -6,7 +6,7 @@ import { Separator } from "./ui/separator";
 export default function AppTopbar({ title, canGoBack, onBack, extras }) {
   return (
     <header
-      className="h-14 flex items-center gap-3 px-4 border-b border-border bg-background shrink-0"
+      className="h-14 flex items-center gap-3 px-4 border-b border-border bg-background/95 backdrop-blur-sm shrink-0 shadow-sm"
       role="banner"
     >
       {canGoBack && (
@@ -15,12 +15,12 @@ export default function AppTopbar({ title, canGoBack, onBack, extras }) {
             variant="ghost"
             size="icon"
             onClick={onBack}
-            className="rounded-xl w-8 h-8 shrink-0"
+            className="rounded-xl w-8 h-8 shrink-0 hover:bg-primary/10 hover:text-primary"
             aria-label="Go back"
           >
             <ArrowLeft className="w-4 h-4" aria-hidden />
           </Button>
-          <Separator orientation="vertical" className="h-5 shrink-0" />
+          <Separator orientation="vertical" className="h-5 shrink-0 opacity-50" />
         </>
       )}
 

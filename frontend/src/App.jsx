@@ -2335,17 +2335,18 @@ function App() {
       >
         <div className="p-6 max-w-3xl mx-auto">
           {/* Welcome hero */}
-          <div className="text-center py-8 mb-6">
+          <div className="text-center py-10 mb-6">
             <div
-              className="w-14 h-14 rounded-2xl bg-foreground text-background flex items-center justify-center mx-auto mb-5 text-xl font-bold"
+              className="w-16 h-16 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center mx-auto mb-5 text-2xl font-extrabold shadow-lg"
+              style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #4f46e5 100%)" }}
               aria-hidden="true"
             >
               {intakeFirstName ? intakeFirstName.charAt(0).toUpperCase() : "⚖"}
             </div>
-            <h2 className="text-2xl font-bold text-foreground mb-2">
+            <h2 className="text-2xl font-extrabold text-foreground mb-2">
               {intakeFirstName ? `Welcome back, ${intakeFirstName}!` : t("landing.welcomeTitle")}
             </h2>
-            <p className="text-muted-foreground text-sm leading-relaxed mb-6 max-w-md mx-auto">
+            <p className="text-muted-foreground text-sm leading-relaxed mb-7 max-w-md mx-auto">
               {t("landing.tagline")}
             </p>
             <div className="flex items-center justify-center gap-3 flex-wrap">
@@ -2354,7 +2355,7 @@ function App() {
                   <Button
                     type="button"
                     size="lg"
-                    className="rounded-2xl px-8"
+                    className="rounded-2xl px-8 shadow-md"
                     onClick={resumeTriageFromCover}
                     disabled={loading}
                   >
@@ -2374,7 +2375,7 @@ function App() {
               ) : (
                 <Button
                   size="lg"
-                  className="rounded-2xl px-10"
+                  className="rounded-2xl px-10 shadow-md"
                   onClick={startChatFromCover}
                   disabled={loading}
                 >
@@ -2386,7 +2387,7 @@ function App() {
 
           {/* Topic cards */}
           <div className="mb-6">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 mb-3 px-0.5">
               Browse by legal area
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -2394,15 +2395,15 @@ function App() {
                 <button
                   key={card.key}
                   type="button"
-                  className="text-left bg-card rounded-2xl border border-border p-4 shadow-sm hover:shadow-md hover:border-foreground/20 transition-all duration-150 group"
+                  className="text-left bg-card rounded-2xl border border-border p-4 shadow-sm hover:shadow-md hover:border-primary/30 hover:bg-primary/5 transition-all duration-150 group"
                   onClick={() => {
                     const topicId = card.key === "childSupport" ? "child_support" : card.key;
                     setCurrentTopic(topicId);
                     startChatFromCover();
                   }}
                 >
-                  <div className="text-xl mb-2.5">{card.icon}</div>
-                  <h4 className="font-semibold text-sm text-foreground mb-1">{card.title}</h4>
+                  <div className="text-xl mb-3 text-primary group-hover:scale-110 transition-transform duration-150">{card.icon}</div>
+                  <h4 className="font-bold text-sm text-foreground mb-1 group-hover:text-primary transition-colors">{card.title}</h4>
                   <p className="text-xs text-muted-foreground leading-relaxed">{card.desc}</p>
                 </button>
               ))}

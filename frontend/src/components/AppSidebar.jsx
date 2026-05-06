@@ -74,17 +74,17 @@ export default function AppSidebar({
       {/* Brand */}
       <div className="flex items-center gap-2.5 px-4 h-14 border-b border-sidebar-border shrink-0">
         <img src={calLogo} alt="" className="w-7 h-7 object-contain" aria-hidden="true" />
-        <span className="font-semibold text-sm text-sidebar-foreground tracking-tight">
+        <span className="font-bold text-sm text-sidebar-primary tracking-tight">
           Court Legal AI
         </span>
       </div>
 
       <ScrollArea className="flex-1">
-        <nav className="p-3 space-y-0.5" aria-label="Sidebar">
+        <nav className="px-2 py-3 space-y-0.5" aria-label="Sidebar">
           {/* New Case CTA */}
           <Button
             onClick={onStartChat}
-            className="w-full justify-start gap-2 rounded-xl mb-4 mt-1"
+            className="w-full justify-start gap-2 rounded-xl mb-4 mt-1 shadow-sm"
             size="sm"
           >
             <Plus className="w-4 h-4" aria-hidden />
@@ -97,10 +97,10 @@ export default function AppSidebar({
               key={id}
               type="button"
               onClick={() => onNavigate?.(id)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors duration-100 ${
+              className={`w-full flex items-center gap-2.5 py-2 rounded-xl text-sm font-medium transition-all ${
                 activeSection === id
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+                  ? "bg-primary/10 text-primary font-semibold pl-[10px] border-l-[3px] border-primary rounded-l-none"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground px-3 border-l-[3px] border-transparent rounded-l-none"
               }`}
               aria-current={activeSection === id ? "page" : undefined}
             >
@@ -109,18 +109,18 @@ export default function AppSidebar({
             </button>
           ))}
 
-          <Separator className="my-3" />
+          <Separator className="my-3 opacity-60" />
 
           {/* Legal areas section */}
           <button
             type="button"
-            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-sidebar-foreground transition-colors rounded-lg"
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 hover:text-sidebar-foreground transition-colors rounded-lg"
             onClick={() => setTopicsOpen((v) => !v)}
             aria-expanded={topicsOpen}
           >
             <span>Legal Areas</span>
             <ChevronRight
-              className={`w-3 h-3 transition-transform duration-150 ${topicsOpen ? "rotate-90" : ""}`}
+              className={`w-3 h-3 transition-transform duration-200 ${topicsOpen ? "rotate-90" : ""}`}
               aria-hidden
             />
           </button>
@@ -131,10 +131,10 @@ export default function AppSidebar({
                 key={id}
                 type="button"
                 onClick={() => onTopicSelect?.(id)}
-                className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-colors duration-100 ${
+                className={`w-full flex items-center gap-2 py-1.5 rounded-xl text-sm transition-all ${
                   activeTopic === id
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                    ? "bg-primary/10 text-primary font-semibold pl-[10px] border-l-[3px] border-primary rounded-l-none"
+                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground px-3 border-l-[3px] border-transparent rounded-l-none"
                 }`}
               >
                 <Hash className="w-3.5 h-3.5 shrink-0" aria-hidden />
@@ -145,8 +145,8 @@ export default function AppSidebar({
           {/* Recent sessions */}
           {recentSessions.length > 0 && (
             <>
-              <Separator className="my-3" />
-              <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <Separator className="my-3 opacity-60" />
+              <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
                 Recent
               </p>
               {recentSessions.map((session) => (
@@ -154,7 +154,7 @@ export default function AppSidebar({
                   key={session.topic}
                   type="button"
                   onClick={() => onTopicSelect?.(session.topic)}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors duration-100"
+                  className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition-all"
                 >
                   <Hash className="w-3.5 h-3.5 shrink-0" aria-hidden />
                   {String(session.topic || "").replace(/_/g, " ")}
@@ -167,18 +167,20 @@ export default function AppSidebar({
 
       {/* User footer */}
       <div className="p-3 border-t border-sidebar-border shrink-0">
-        <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-sidebar-accent/40 transition-colors group">
+        <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-sidebar-accent/50 transition-colors group cursor-default">
           <Avatar className="w-8 h-8 shrink-0">
-            <AvatarFallback className="text-xs font-semibold bg-primary text-primary-foreground">
+            <AvatarFallback className="text-xs font-bold bg-primary text-primary-foreground">
               {initial}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-sidebar-foreground leading-none truncate">
+            <p className="text-sm font-semibold text-sidebar-foreground leading-none truncate">
               {firstName || "Guest"}
             </p>
-            {!intakeSaved && (
-              <Badge variant="secondary" className="text-[10px] px-1 py-0 mt-0.5 h-auto leading-none">
+            {intakeSaved ? (
+              <p className="text-[10px] text-primary/70 mt-0.5 font-medium">Active session</p>
+            ) : (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 mt-0.5 h-auto leading-none font-medium">
                 Guest
               </Badge>
             )}
@@ -186,7 +188,7 @@ export default function AppSidebar({
           <button
             type="button"
             onClick={onSignOut}
-            className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded opacity-0 group-hover:opacity-100"
+            className="text-muted-foreground hover:text-destructive transition-colors p-1 rounded opacity-0 group-hover:opacity-100"
             aria-label="Sign out"
             title="Sign out"
           >
