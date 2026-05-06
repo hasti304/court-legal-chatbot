@@ -1128,3 +1128,114 @@
 .admin-portal-page--light .admin-portal-empty-cell {
   color: #64748b;
 }
+
+/* ── Light-mode login card improvements ── */
+.admin-portal-page--light .admin-portal-login-card {
+  max-width: 460px;
+  padding: 36px;
+  border-radius: 20px;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
+}
+
+.admin-portal-page--light .admin-portal-login-card h2 {
+  font-size: 1.5rem;
+  margin-bottom: 4px;
+  color: #0f172a;
+}
+
+.admin-portal-page--light .admin-portal-field label {
+  font-size: 0.88rem;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.admin-portal-page--light .admin-portal-input {
+  border-radius: 9999px;
+  min-height: 52px;
+  padding-left: 20px;
+  border: 2px solid #e2e8f0;
+  font-size: 0.95rem;
+  color: #0f172a;
+}
+
+.admin-portal-page--light .admin-portal-input:focus {
+  border-color: #1e293b;
+  box-shadow: 0 0 0 3px rgba(30, 41, 59, 0.1);
+  outline: none;
+}
+
+.admin-portal-page--light .admin-portal-password-toggle {
+  border-radius: 9999px;
+  width: 52px;
+  min-height: 52px;
+  border: 2px solid #e2e8f0;
+}
+
+.admin-portal-page--light .admin-portal-password-toggle:hover {
+  border-color: #94a3b8;
+}
+
+.admin-portal-page--light .admin-portal-login-card .admin-portal-btn-primary {
+  border-radius: 9999px;
+  min-height: 52px;
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+}
+
+/* ── Light-mode dashboard sidebar (dark navy) ── */
+.admin-portal-page--light .admin-portal-sidebar {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+}
+
+.admin-portal-page--light .admin-portal-sidebar h1 {
+  color: #f8fafc;
+}
+
+.admin-portal-page--light .admin-portal-sidebar p {
+  color: #94a3b8;
+}
+
+.admin-portal-page--light .admin-portal-sidebar .admin-portal-tab {
+  color: #94a3b8;
+}
+
+.admin-portal-page--light .admin-portal-sidebar .admin-portal-tab:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: transparent;
+}
+
+.admin-portal-page--light .admin-portal-sidebar .admin-portal-tab.active {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #f8fafc;
+}
+
+.admin-portal-page--light .admin-portal-sidebar .admin-portal-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #f8fafc;
+}
+
+.admin-portal-page--light .admin-portal-sidebar .admin-portal-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: none;
+  transform: none;
+}
+
+.admin-portal-page--light .admin-portal-sidebar .admin-portal-theme-toggle {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #f8fafc;
+}
+
+.admin-portal-page--light .admin-portal-sidebar .admin-portal-theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.admin-portal-page--light .admin-portal-sidebar .admin-portal-link {
+  color: #93c5fd;
+}
