@@ -1048,7 +1048,7 @@ export default function AdminPortal() {
             </button>
             <button
               type="button"
-              className="admin-portal-btn"
+              className="admin-portal-btn admin-portal-btn-primary"
               onClick={() => void runHealthChecks()}
               disabled={healthBusy}
               style={{ marginBottom: 16, marginLeft: 8 }}
@@ -1478,7 +1478,7 @@ export default function AdminPortal() {
             </button>
             <button
               type="button"
-              className="admin-portal-btn"
+              className="admin-portal-btn admin-portal-btn-primary"
               onClick={() => void createTestSubmission()}
               disabled={loading}
               style={{ marginBottom: 16, marginLeft: 8 }}

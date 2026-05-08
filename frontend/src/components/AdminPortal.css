@@ -357,9 +357,10 @@
 .admin-portal-panel {
   background: var(--admin-surface-dark);
   border: 1px solid var(--admin-border-dark);
+  border-top: 2px solid #2a54a0;
   border-radius: 14px;
-  padding: 22px;
-  box-shadow: 0 14px 34px rgba(2, 11, 24, 0.3);
+  padding: 24px;
+  box-shadow: 0 10px 28px rgba(2, 11, 24, 0.26);
 }
 
 .admin-portal-metrics {
@@ -370,25 +371,29 @@
 }
 
 .admin-portal-metric {
-  background: #112138;
-  border: 1px solid var(--admin-border-dark);
+  background: #0e1d30;
+  border: 1px solid #2a3f5e;
+  border-left: 3px solid #2a54a0;
   border-radius: 12px;
-  padding: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(2, 11, 24, 0.18);
 }
 
 .admin-portal-metric .label {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--admin-text-dark-muted);
+  letter-spacing: 0.06em;
+  color: #7a96b8;
   font-weight: 700;
+  margin-bottom: 2px;
 }
 
 .admin-portal-metric .value {
-  margin-top: 6px;
-  font-size: 1.24rem;
+  margin-top: 8px;
+  font-size: 1.4rem;
   font-weight: 800;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
+  color: #e8f0fb;
 }
 
 .admin-portal-table-wrap {
@@ -454,15 +459,18 @@
 }
 
 .admin-portal-table th {
-  background: #112138;
-  color: #b8c7d9;
-  font-weight: 800;
+  background: #0e1d30;
+  color: #7a96b8;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.035em;
-  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  font-size: 0.72rem;
   position: sticky;
   top: 0;
   z-index: 1;
+  border-bottom: 2px solid #2a3f5e;
+  padding-top: 13px;
+  padding-bottom: 13px;
 }
 
 .admin-portal-table td {
@@ -941,7 +949,14 @@
   color: var(--admin-text-light);
 }
 
-.admin-portal-page--light .admin-portal-panel,
+.admin-portal-page--light .admin-portal-panel {
+  background: var(--admin-surface-light);
+  border-color: var(--admin-border-light);
+  border-top-color: #2a54a0;
+  color: var(--admin-text-light);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.07);
+}
+
 .admin-portal-page--light .admin-portal-modal {
   background: var(--admin-surface-light);
   border-color: var(--admin-border-light);
@@ -960,12 +975,14 @@
 }
 
 .admin-portal-page--light .admin-portal-metric {
-  background: var(--admin-surface-light-soft);
-  border-color: var(--admin-border-light);
+  background: #f7f9fc;
+  border: 1px solid #d5e3f4;
+  border-left: 3px solid #2a54a0;
+  box-shadow: 0 1px 6px rgba(15, 23, 42, 0.06);
 }
 
 .admin-portal-page--light .admin-portal-metric .label {
-  color: #64748b;
+  color: #4a6380;
 }
 
 .admin-portal-page--light .admin-portal-table th,
@@ -975,10 +992,12 @@
 
 .admin-portal-page--light .admin-portal-table th {
   background: #edf3fb;
-  color: #475b76;
+  color: #3d5270;
   text-transform: uppercase;
-  letter-spacing: 0.035em;
-  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-bottom: 2px solid #c3d5ea;
 }
 
 .admin-portal-page--light .admin-portal-table td {
