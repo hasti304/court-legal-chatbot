@@ -43,7 +43,7 @@ import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
 import calLogo from "./assets/cal_logo.png";
-import { Eye, EyeOff, Send, RotateCcw, Loader2, ArrowLeft, ShieldAlert, Trash2, Volume2, VolumeX } from "lucide-react";
+import { Eye, EyeOff, Send, RotateCcw, Loader2, ArrowLeft, ShieldAlert, Trash2, Volume2, VolumeX, Check } from "lucide-react";
 
 import { useTranslation } from "react-i18next";
 import i18n, { setAppLanguage, getNormalizedLanguage } from "./i18n";
@@ -1504,16 +1504,35 @@ function App() {
 
   const renderAuthAside = () => (
     <aside className="auth-split-aside" aria-label={t("login.authAside.ariaLabel")}>
-      <div className="auth-split-aside-brand">{renderHeaderLogo()}</div>
-      <p className="auth-split-aside-kicker">{t("login.authAside.kicker")}</p>
+      <div className="auth-split-aside-brand">
+        <img src={calLogo} alt="Chicago Advocate Legal, NFP logo" className="auth-split-aside-logo" />
+        <p className="auth-split-aside-kicker">{t("login.authAside.kicker")}</p>
+      </div>
       <h2 className="auth-split-aside-headline">{t("login.authAside.headline")}</h2>
       <p className="auth-split-aside-body">{t("login.authAside.body")}</p>
       <ul className="auth-split-aside-list">
-        <li>{t("login.authAside.item1")}</li>
-        <li>{t("login.authAside.item2")}</li>
-        <li>{t("login.authAside.item3")}</li>
-        <li>{t("login.authAside.item4")}</li>
+        {[
+          t("login.authAside.item1"),
+          t("login.authAside.item2"),
+          t("login.authAside.item3"),
+          t("login.authAside.item4"),
+        ].map((item) => (
+          <li key={item} className="auth-split-aside-list-item">
+            <span className="auth-split-aside-check" aria-hidden="true">
+              <Check size={14} strokeWidth={3} />
+            </span>
+            {item}
+          </li>
+        ))}
       </ul>
+      <blockquote className="auth-split-aside-testimonial">
+        <p className="auth-split-aside-testimonial-quote">
+          &ldquo;{t("login.authAside.testimonial")}&rdquo;
+        </p>
+        <footer className="auth-split-aside-testimonial-source">
+          {t("login.authAside.testimonialSource")}
+        </footer>
+      </blockquote>
     </aside>
   );
 
@@ -1602,7 +1621,6 @@ function App() {
         <SiteFooter
           className={footerAuthClass}
           supportEmail={SUPPORT_EMAIL}
-          showStaffSignIn
         />
         <EmergencyButton />
       </div>
@@ -1621,33 +1639,21 @@ function App() {
             className={footerAuthClass}
             supportEmail={SUPPORT_EMAIL}
             onPrivacyClick={() => setView("privacy")}
-            showStaffSignIn
           />
         }
       >
         {/* Tab bar — Client / Admin login */}
-        <div className="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-[#e2e8f0]">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium pb-3 border-b-2" style={{ color: "#1e293b", borderColor: "#1e293b" }}>
-              {t("login.clientLogin")}
-            </span>
-            <button
-              type="button"
-              className="text-sm font-medium px-4 py-1.5 rounded-full border-2 hover:bg-gray-50 transition-colors"
-              style={{ color: "#64748b", borderColor: "#e2e8f0" }}
-              onClick={() => { window.location.hash = "#/admin"; }}
-            >
-              {t("login.staffLogin")}
-            </button>
-          </div>
+        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-[#e2e8f0]">
+          <span className="text-sm font-medium pb-3 border-b-2" style={{ color: "#1e293b", borderColor: "#1e293b" }}>
+            {t("login.clientLogin")}
+          </span>
           <button
             type="button"
-            className="text-sm hover:underline"
-            style={{ color: "#1e293b" }}
-            onClick={() => sendMagicLinkRequest(magicLinkEmail)}
-            disabled={magicLinkBusy || passwordLoginBusy}
+            className="text-sm font-medium px-4 py-1.5 rounded-full border-2 hover:bg-gray-50 transition-colors"
+            style={{ color: "#64748b", borderColor: "#e2e8f0" }}
+            onClick={() => { window.location.hash = "#/admin"; }}
           >
-            {t("login.signInWithEmail")}
+            {t("login.staffLogin")}
           </button>
         </div>
 
@@ -1726,7 +1732,7 @@ function App() {
           {/* Remember me */}
           <label className="flex items-center gap-3 cursor-pointer select-none">
             <input type="checkbox" className="w-5 h-5 rounded border-2 border-[#1e293b]" />
-            <span className="text-sm" style={{ color: "#1e293b" }}>{t("login.rememberMe") || "Remember me on this device"}</span>
+            <span className="text-sm" style={{ color: "#1e293b" }}>{t("login.rememberMe")}</span>
           </label>
 
           <Button type="submit" className="w-full rounded-full h-14 text-base font-medium" size="lg" disabled={magicLinkBusy || passwordLoginBusy}>
@@ -1795,7 +1801,6 @@ function App() {
             className={footerAuthClass}
             supportEmail={SUPPORT_EMAIL}
             onPrivacyClick={() => setView("privacy")}
-            showStaffSignIn
           />
         }
       >
@@ -1853,7 +1858,6 @@ function App() {
             className={footerAuthClass}
             supportEmail={SUPPORT_EMAIL}
             onPrivacyClick={() => setView("privacy")}
-            showStaffSignIn
           />
         }
       >
@@ -1920,7 +1924,6 @@ function App() {
             className={footerAuthClass}
             supportEmail={SUPPORT_EMAIL}
             onPrivacyClick={() => setView("privacy")}
-            showStaffSignIn
           />
         }
       >
@@ -2022,7 +2025,6 @@ function App() {
             className={footerAuthClass}
             supportEmail={SUPPORT_EMAIL}
             onPrivacyClick={() => setView("privacy")}
-            showStaffSignIn
           />
         }
       >
@@ -2298,7 +2300,6 @@ function App() {
             className={footerAuthClass}
             supportEmail={SUPPORT_EMAIL}
             onPrivacyClick={() => setView("privacy")}
-            showStaffSignIn
           />
         }
       >

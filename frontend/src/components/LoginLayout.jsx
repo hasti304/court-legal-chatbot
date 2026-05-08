@@ -12,8 +12,8 @@ export default function LoginLayout({ title, subtitle, children, extras, footer,
             style={{
               width: "42%",
               minWidth: 280,
-              background: "linear-gradient(145deg, #1a3560 0%, #1e419c 60%, #2355b8 100%)",
-              padding: "40px 48px",
+              background: "linear-gradient(160deg, #0f2447 0%, #1a3560 45%, #1e419c 100%)",
+              padding: "48px 52px",
               display: "flex",
               flexDirection: "column",
             }}
