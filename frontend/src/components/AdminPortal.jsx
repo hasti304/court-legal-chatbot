@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { FaMoon, FaSun } from "react-icons/fa";
 import { Eye, EyeOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import StatusBanner from "./StatusBanner";
@@ -12,7 +11,19 @@ import {
 } from "../utils/adminAuth";
 import { getStoredTheme, persistTheme } from "../utils/themeStorage";
 import { getApiBaseUrl } from "../utils/apiBase";
+import calLogo from "../assets/cal_logo.png";
 const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+
+const TAB_LABELS = { overview: "Overview", intakes: "Intakes", submissions: "Submissions", export: "Export CSV" };
+
+function decodeJwtEmail(tok) {
+  try {
+    const payload = JSON.parse(atob(tok.split(".")[1]));
+    return payload.sub || payload.email || "";
+  } catch {
+    return "";
+  }
+}
 
 function initialTabFromHash() {
   try {
@@ -182,6 +193,7 @@ export default function AdminPortal() {
   const [token, setToken] = useState(() => getAdminToken());
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [adminEmail, setAdminEmail] = useState(() => { const t = getAdminToken(); return t ? decodeJwtEmail(t) : ""; });
   const [showStaffPassword, setShowStaffPassword] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
@@ -228,7 +240,6 @@ export default function AdminPortal() {
   const [summaryPickById, setSummaryPickById] = useState({});
 
   const portalClass = `admin-portal-page${theme === "light" ? " admin-portal-page--light" : ""}`;
-  const isDark = theme === "dark";
 
   useLayoutEffect(() => {
     persistTheme(theme);
@@ -264,6 +275,7 @@ export default function AdminPortal() {
     }
     clearAdminToken();
     setToken("");
+    setAdminEmail("");
     setBasic(null);
     setDetailed(null);
     setIntakes([]);
@@ -308,6 +320,7 @@ export default function AdminPortal() {
       }
       setAdminToken(data.access_token);
       setToken(data.access_token);
+      setAdminEmail(email.trim());
       setPassword("");
     } catch (err) {
       setLoginError(
@@ -875,89 +888,86 @@ export default function AdminPortal() {
 
   if (!token) {
     return (
-      <div className={portalClass} data-admin-entry-url={staffAdminUrl}>
-        <div className="admin-portal-header">
-          <div>
-            <h1>Staff admin</h1>
-            <p>Sign in with your staff credentials.</p>
+      <div className="admin-login-split" data-admin-entry-url={staffAdminUrl}>
+        {/* Left panel — CAL branding */}
+        <div className="admin-login-left">
+          <div className="admin-login-left-brand">
+            <img src={calLogo} alt="Chicago Advocate Legal, NFP logo" className="admin-login-logo" />
+            <p className="admin-login-left-kicker">Chicago Advocate Legal, NFP</p>
           </div>
-          <div className="admin-portal-toolbar">
-            <button
-              type="button"
-              className="admin-portal-theme-toggle"
-              onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
-              aria-pressed={isDark}
-              title={isDark ? t("theme.useLight") : t("theme.useDark")}
-              aria-label={isDark ? t("theme.useLight") : t("theme.useDark")}
-            >
-              {isDark ? <FaSun size={15} aria-hidden /> : <FaMoon size={15} aria-hidden />}
-            </button>
-            <div className="admin-portal-actions">
-              <a className="admin-portal-link" href="#/">
+          <h2 className="admin-login-left-headline">Staff Admin Portal</h2>
+          <p className="admin-login-left-body">
+            Secure staff access to manage intakes, submissions, and client data for Chicago Advocate Legal, NFP.
+          </p>
+        </div>
+
+        {/* Right panel — sign-in form */}
+        <div className="admin-login-right">
+          <div className="admin-login-right-inner">
+            <h1 className="admin-login-heading">Admin Sign In</h1>
+            <p className="admin-login-subheading">Sign in with your staff credentials.</p>
+
+            {loginError ? (
+              <StatusBanner type="error" role="alert" style={{ marginBottom: 14 }}>
+                {loginError}
+              </StatusBanner>
+            ) : null}
+
+            <form onSubmit={login}>
+              <div className="admin-portal-field">
+                <label htmlFor="admin-email">Email</label>
+                <input
+                  id="admin-email"
+                  className="admin-portal-input"
+                  type="email"
+                  autoComplete="username"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="admin-portal-field">
+                <label htmlFor="admin-password">Password</label>
+                <div className="admin-portal-password-wrap">
+                  <input
+                    id="admin-password"
+                    className="admin-portal-input admin-portal-input--with-toggle"
+                    type={showStaffPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="admin-portal-password-toggle"
+                    onClick={() => setShowStaffPassword((s) => !s)}
+                    aria-label={showStaffPassword ? t("login.hidePassword") : t("login.showPassword")}
+                    title={showStaffPassword ? t("login.hidePassword") : t("login.showPassword")}
+                  >
+                    {showStaffPassword ? (
+                      <EyeOff className="admin-eye-icon" size={16} aria-hidden />
+                    ) : (
+                      <Eye className="admin-eye-icon" size={16} aria-hidden />
+                    )}
+                  </button>
+                </div>
+              </div>
+              <button
+                type="submit"
+                className="admin-portal-btn admin-portal-btn-primary"
+                disabled={loggingIn}
+              >
+                {loggingIn ? "Signing in…" : "Sign in"}
+              </button>
+            </form>
+
+            <div className="admin-login-back">
+              <a className="admin-login-back-link" href="#/">
                 ← Back to app
               </a>
             </div>
           </div>
-        </div>
-
-        <div className="admin-portal-login-card">
-          <h2>Sign in</h2>
-
-          {loginError ? (
-            <StatusBanner type="error" role="alert" style={{ marginBottom: 14 }}>
-              {loginError}
-            </StatusBanner>
-          ) : null}
-
-          <form onSubmit={login}>
-            <div className="admin-portal-field">
-              <label htmlFor="admin-email">Email</label>
-              <input
-                id="admin-email"
-                className="admin-portal-input"
-                type="email"
-                autoComplete="username"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="admin-portal-field">
-              <label htmlFor="admin-password">Password</label>
-              <div className="admin-portal-password-wrap">
-                <input
-                  id="admin-password"
-                  className="admin-portal-input admin-portal-input--with-toggle"
-                  type={showStaffPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <button
-                  type="button"
-                  className="admin-portal-password-toggle"
-                  onClick={() => setShowStaffPassword((s) => !s)}
-                  aria-label={showStaffPassword ? t("login.hidePassword") : t("login.showPassword")}
-                  title={showStaffPassword ? t("login.hidePassword") : t("login.showPassword")}
-                >
-                  {showStaffPassword ? (
-                    <EyeOff className="admin-eye-icon" size={16} aria-hidden />
-                  ) : (
-                    <Eye className="admin-eye-icon" size={16} aria-hidden />
-                  )}
-                </button>
-              </div>
-            </div>
-            <button
-              type="submit"
-              className="admin-portal-btn admin-portal-btn-primary"
-              disabled={loggingIn}
-              style={{ width: "100%", marginTop: 8 }}
-            >
-              {loggingIn ? "Signing in…" : "Sign in"}
-            </button>
-          </form>
         </div>
       </div>
     );
@@ -967,9 +977,9 @@ export default function AdminPortal() {
     <div className={portalClass}>
       <div className="admin-portal-layout" aria-busy={loading || healthBusy ? "true" : "false"}>
         <aside className="admin-portal-sidebar" aria-label="Admin navigation">
-          <div>
-            <h1>Staff admin</h1>
-            <p>Case list, triage topic, and review status. Analytics and export are available from the other tabs.</p>
+          <div className="admin-portal-sidebar-brand">
+            <img src={calLogo} alt="Chicago Advocate Legal, NFP logo" className="admin-portal-sidebar-logo" />
+            <span className="admin-portal-sidebar-brand-name">Chicago Advocate Legal, NFP</span>
           </div>
           <div className="admin-portal-sidebar-tabs" role="tablist">
             {[
@@ -991,16 +1001,6 @@ export default function AdminPortal() {
             ))}
           </div>
           <div className="admin-portal-sidebar-actions">
-            <button
-              type="button"
-              className="admin-portal-theme-toggle"
-              onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
-              aria-pressed={isDark}
-              title={isDark ? t("theme.useLight") : t("theme.useDark")}
-              aria-label={isDark ? t("theme.useLight") : t("theme.useDark")}
-            >
-              {isDark ? <FaSun size={15} aria-hidden /> : <FaMoon size={15} aria-hidden />}
-            </button>
             <button type="button" className="admin-portal-btn" onClick={() => void logout()}>
               Sign out
             </button>
@@ -1009,6 +1009,17 @@ export default function AdminPortal() {
             </a>
           </div>
         </aside>
+
+        <div className="admin-portal-main">
+          <header className="admin-portal-topbar">
+            <span className="admin-portal-topbar-page">{TAB_LABELS[tab] || "Dashboard"}</span>
+            <div className="admin-portal-topbar-user">
+              {adminEmail && <span className="admin-portal-topbar-email">{adminEmail}</span>}
+              <button type="button" className="admin-portal-topbar-signout" onClick={() => void logout()}>
+                Sign out
+              </button>
+            </div>
+          </header>
 
         <div className="admin-portal-shell">
 
@@ -1526,6 +1537,7 @@ export default function AdminPortal() {
             </button>
           </div>
         )}
+        </div>
         </div>
       </div>
 

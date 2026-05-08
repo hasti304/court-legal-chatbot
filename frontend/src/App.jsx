@@ -1643,17 +1643,28 @@ function App() {
         }
       >
         {/* Tab bar — Client / Admin login */}
-        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-[#e2e8f0]">
-          <span className="text-sm font-medium pb-3 border-b-2" style={{ color: "#1e293b", borderColor: "#1e293b" }}>
-            {t("login.clientLogin")}
-          </span>
+        <div className="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-[#e2e8f0]">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium pb-3 border-b-2" style={{ color: "#1e293b", borderColor: "#1e293b" }}>
+              {t("login.clientLogin")}
+            </span>
+            <button
+              type="button"
+              className="text-sm font-medium px-4 py-1.5 rounded-full border-2 hover:bg-gray-50 transition-colors"
+              style={{ color: "#64748b", borderColor: "#e2e8f0" }}
+              onClick={() => { window.location.hash = "#/admin"; }}
+            >
+              {t("login.staffLogin")}
+            </button>
+          </div>
           <button
             type="button"
-            className="text-sm font-medium px-4 py-1.5 rounded-full border-2 hover:bg-gray-50 transition-colors"
-            style={{ color: "#64748b", borderColor: "#e2e8f0" }}
-            onClick={() => { window.location.hash = "#/admin"; }}
+            className="text-sm hover:underline"
+            style={{ color: "#1e293b" }}
+            onClick={() => sendMagicLinkRequest(magicLinkEmail)}
+            disabled={magicLinkBusy || passwordLoginBusy}
           >
-            {t("login.staffLogin")}
+            {t("login.signInWithEmail")}
           </button>
         </div>
 
