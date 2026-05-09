@@ -1,5 +1,6 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
+import authTranslationsData from "./auth-translations.js";
 
 const LANG_STORAGE_KEY = "cal_lang_v1";
 const SUPPORTED = ["en", "es"];
@@ -500,6 +501,7 @@ const resources = {
             "I'm not sure I understood that. Click one of the buttons above, use Restart to begin again, or type your ZIP code if requested. How can I assist you?",
         },
       },
+      auth: authTranslationsData.en,
     },
   },
 
@@ -998,6 +1000,7 @@ const resources = {
             "No estoy seguro/a de haber entendido. Haga clic en uno de los botones, use Reiniciar para comenzar de nuevo, o escriba su ZIP si se lo pedí. ¿Cómo puedo ayudarle?",
         },
       },
+      auth: authTranslationsData.es,
     },
   },
 };

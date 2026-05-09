@@ -3361,3 +3361,655 @@ a:focus-visible,
 .site-footer.site-footer--auth-dark .site-footer-staff-link:hover {
   color: #93c5fd;
 }
+
+/* ================================================================
+   CAL AUTH LAYOUT — New Design (2026)
+   ================================================================ */
+
+/* Root: full viewport, two-column, no scroll */
+.cal-auth-root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cal-auth-columns {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* LEFT PANEL */
+.cal-auth-left {
+  width: 45%;
+  min-width: 280px;
+  position: relative;
+  overflow: hidden;
+  background: #1B2A4A;
+  flex-shrink: 0;
+}
+
+.cal-auth-left-bg {
+  position: absolute;
+  inset: 0;
+  background-image: var(--auth-bg-image, none);
+  background-color: #1B2A4A;
+  background-size: cover;
+  background-position: center;
+  animation: calKenBurns 12s ease-in-out infinite alternate;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+@keyframes calKenBurns {
+  0%   { transform: scale(1) translate(0, 0); }
+  100% { transform: scale(1.08) translate(-1%, -1%); }
+}
+
+.cal-auth-left-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(27, 42, 74, 0.82);
+  z-index: 1;
+}
+
+.cal-auth-left-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 40px 44px;
+  box-sizing: border-box;
+}
+
+.cal-auth-left-logo-wrap {
+  flex-shrink: 0;
+}
+
+.cal-auth-left-logo {
+  height: 48px;
+  width: auto;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  opacity: 0.92;
+  display: block;
+}
+
+.cal-auth-left-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cal-auth-left-text-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cal-auth-left-heading {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.cal-auth-left-subtext {
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
+}
+
+.cal-auth-left-bullets {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cal-auth-left-bullet-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.cal-auth-bullet-dot {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(201, 168, 76, 0.22);
+  color: #C9A84C;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.cal-auth-trust-badge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.78rem;
+}
+
+.cal-auth-trust-badge svg {
+  flex-shrink: 0;
+}
+
+/* RIGHT PANEL */
+.cal-auth-right {
+  flex: 1;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.cal-auth-right-topbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 40px 0;
+  flex-shrink: 0;
+}
+
+.cal-auth-right-scroll {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 48px;
+  min-height: 0;
+}
+
+.cal-auth-right-inner {
+  width: 100%;
+  max-width: 460px;
+}
+
+.cal-auth-form-title {
+  font-size: 2rem !important;
+  font-weight: 700 !important;
+  color: #1A1A1A !important;
+  margin-bottom: 4px !important;
+  line-height: 1.2 !important;
+}
+
+.cal-auth-form-subtitle {
+  font-size: 0.9rem;
+  color: #6B7280;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+/* Input fields */
+.cal-auth-right input[type="text"].cal-auth-field,
+.cal-auth-right input[type="email"].cal-auth-field,
+.cal-auth-right input[type="password"].cal-auth-field,
+.cal-auth-right input[type="tel"].cal-auth-field {
+  background: #F4F5F7 !important;
+  border: 1px solid #E5E7EB !important;
+  border-radius: 8px !important;
+  color: #1A1A1A !important;
+  height: 48px !important;
+  font-size: 0.95rem !important;
+  padding: 0 44px 0 14px !important;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+  width: 100%;
+  outline: none !important;
+}
+
+.cal-auth-right input.cal-auth-field::placeholder {
+  color: #9CA3AF !important;
+}
+
+.cal-auth-right input.cal-auth-field:focus {
+  border-color: #C9A84C !important;
+  box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.15) !important;
+  outline: none !important;
+}
+
+.cal-auth-right input.cal-auth-field:focus-visible {
+  outline: 2px solid #C9A84C !important;
+  outline-offset: 2px !important;
+}
+
+.cal-auth-right input.cal-auth-field[data-valid="true"] {
+  border-color: #16A34A !important;
+}
+
+.cal-auth-right input.cal-auth-field[data-invalid="true"] {
+  border-color: #DC2626 !important;
+}
+
+/* Submit button */
+.cal-auth-submit-btn {
+  width: 100%;
+  height: 48px;
+  background: #C9A84C;
+  color: #1A1A1A;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cal-auth-submit-btn:hover:not(:disabled) {
+  background: #b8943f;
+  box-shadow: 0 4px 12px rgba(201, 168, 76, 0.28);
+}
+
+.cal-auth-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cal-auth-submit-btn:focus-visible {
+  outline: 2px solid #C9A84C;
+  outline-offset: 2px;
+}
+
+/* Tab bar */
+.cal-auth-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.cal-auth-tab-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cal-auth-tab-active {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1A1A1A;
+  background: none;
+  border: none;
+  border-bottom: 2px solid #C9A84C;
+  padding: 0 0 14px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.cal-auth-tab-active:focus-visible {
+  outline: 2px solid #C9A84C;
+  outline-offset: 2px;
+}
+
+.cal-auth-tab-inactive {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6B7280;
+  background: none;
+  border: 1px solid #E5E7EB;
+  border-radius: 20px;
+  padding: 5px 14px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  line-height: 1;
+}
+
+.cal-auth-tab-inactive:hover {
+  background: #F4F5F7;
+}
+
+.cal-auth-tab-inactive:focus-visible {
+  outline: 2px solid #C9A84C;
+  outline-offset: 2px;
+}
+
+/* Gold links */
+.cal-auth-link {
+  color: #C9A84C !important;
+  font-weight: 600;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: inherit;
+  padding: 0;
+  line-height: inherit;
+}
+
+.cal-auth-link:hover {
+  text-decoration: underline;
+}
+
+.cal-auth-link:focus-visible {
+  outline: 2px solid #C9A84C;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Checkbox */
+.cal-auth-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: #C9A84C;
+  border-radius: 4px;
+  flex-shrink: 0;
+  cursor: pointer;
+  margin-top: 2px;
+}
+
+.cal-auth-checkbox:focus-visible {
+  outline: 2px solid #C9A84C;
+  outline-offset: 2px;
+}
+
+/* Progress indicator */
+.cal-auth-progress-wrap {
+  margin-bottom: 16px;
+}
+
+.cal-auth-step-label {
+  font-size: 0.78rem;
+  color: #6B7280;
+  margin: 0 0 6px;
+}
+
+.cal-auth-progress-track {
+  display: flex;
+  gap: 4px;
+  height: 4px;
+}
+
+.cal-auth-progress-seg {
+  flex: 1;
+  border-radius: 2px;
+}
+
+.cal-auth-progress-seg--active {
+  background: #C9A84C;
+}
+
+.cal-auth-progress-seg--inactive {
+  background: #E5E7EB;
+}
+
+/* Password strength */
+.cal-auth-strength-wrap {
+  margin-top: 6px;
+}
+
+.cal-auth-strength-track {
+  display: flex;
+  gap: 4px;
+  height: 4px;
+  margin-bottom: 4px;
+}
+
+.cal-auth-strength-seg {
+  flex: 1;
+  border-radius: 2px;
+  transition: background 0.2s ease;
+}
+
+.cal-auth-strength-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Field validation */
+.cal-auth-field-wrap {
+  position: relative;
+}
+
+.cal-auth-field-valid-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #16A34A;
+  font-size: 0.9rem;
+  pointer-events: none;
+  font-weight: 700;
+}
+
+/* For password fields with eye icon, valid icon goes further left */
+.cal-auth-field-wrap--password .cal-auth-field-valid-icon {
+  right: 44px;
+}
+
+.cal-auth-field-error {
+  font-size: 0.78rem;
+  color: #DC2626;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+/* Tooltip */
+.cal-auth-tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.cal-auth-tooltip-trigger {
+  background: none;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  color: #9CA3AF;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.cal-auth-tooltip-trigger:hover {
+  color: #6B7280;
+}
+
+.cal-auth-tooltip-trigger:focus-visible {
+  outline: 2px solid #C9A84C;
+  outline-offset: 2px;
+}
+
+.cal-auth-tooltip-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  background: #ffffff;
+  border: 1.5px solid #C9A84C;
+  border-radius: 8px;
+  padding: 12px 14px;
+  max-width: 260px;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: #1A1A1A;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  white-space: normal;
+  text-align: left;
+}
+
+/* Email verification screen */
+.cal-auth-email-verify {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.cal-auth-email-verify-icon {
+  width: 52px;
+  height: 52px;
+  background: rgba(201, 168, 76, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  color: #C9A84C;
+}
+
+.cal-auth-email-verify h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1A1A1A;
+  margin-bottom: 10px;
+}
+
+.cal-auth-email-verify p {
+  font-size: 0.9rem;
+  color: #6B7280;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+/* Session timeout modal */
+.cal-session-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cal-session-modal {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 28px 32px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.18);
+}
+
+.cal-session-modal h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1A1A1A;
+  margin-bottom: 10px;
+}
+
+.cal-session-modal p {
+  font-size: 0.9rem;
+  color: #6B7280;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.cal-session-modal-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cal-session-stay-btn {
+  width: 100%;
+  height: 44px;
+  background: #C9A84C;
+  color: #1A1A1A;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.cal-session-stay-btn:hover {
+  background: #b8943f;
+}
+
+.cal-session-stay-btn:focus-visible {
+  outline: 2px solid #C9A84C;
+  outline-offset: 2px;
+}
+
+.cal-session-signout-link {
+  background: none;
+  border: none;
+  color: #6B7280;
+  font-size: 0.88rem;
+  cursor: pointer;
+  text-align: center;
+  padding: 6px;
+  text-decoration: underline;
+}
+
+/* Inactivity toast */
+.cal-inactivity-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1A1A1A;
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 0.88rem;
+  z-index: 9998;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+}
+
+/* Auth footer */
+.cal-auth-root .site-footer {
+  background: #F9FAFB;
+  border-top: 1px solid #E5E7EB;
+  flex-shrink: 0;
+}
+
+/* Responsive: stack on small screens */
+@media (max-width: 768px) {
+  .cal-auth-root {
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
+  }
+  .cal-auth-left {
+    width: 100%;
+    min-height: 160px;
+    height: auto;
+  }
+  .cal-auth-left-content {
+    padding: 24px;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    min-height: 140px;
+  }
+  .cal-auth-left-bottom {
+    display: none;
+  }
+  .cal-auth-right-scroll {
+    padding: 24px 20px;
+    align-items: flex-start;
+  }
+  .cal-auth-right-topbar {
+    padding: 16px 20px 0;
+  }
+}

@@ -397,6 +397,15 @@ function App() {
   const [showIntakePassword, setShowIntakePassword] = useState(false);
   const [showIntakePasswordConfirm, setShowIntakePasswordConfirm] = useState(false);
 
+  const [intakeFieldTouched, setIntakeFieldTouched] = useState({});
+  const [intakeFieldErrors, setIntakeFieldErrors] = useState({});
+  const [showEmailSent, setShowEmailSent] = useState(false);
+  const [emailSentResendBusy, setEmailSentResendBusy] = useState(false);
+  const [showNextTooltip, setShowNextTooltip] = useState(false);
+  const [showSessionWarning, setShowSessionWarning] = useState(false);
+  const [inactivityToast, setInactivityToast] = useState(false);
+  const sessionTimers = useRef({ warning: null, signout: null });
+
   const [largeText, setLargeText] = useState(
     () => localStorage.getItem(LARGE_TEXT_KEY) === "1"
   );
@@ -431,6 +440,82 @@ function App() {
     if (score <= 2) return "weak";
     if (score <= 4) return "medium";
     return "strong";
+  };
+
+  const formatPhoneInput = (raw) => {
+    const digits = String(raw || "").replace(/\D/g, "").slice(0, 10);
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  };
+
+  const passwordStrength4 = (pw) => {
+    const p = String(pw || "");
+    if (!p) return 0;
+    let score = 0;
+    if (p.length >= 8) score++;
+    if (/[A-Z]/.test(p)) score++;
+    if (/\d/.test(p)) score++;
+    if (/[^A-Za-z0-9]/.test(p)) score++;
+    return score;
+  };
+
+  const getStrengthInfo = (score) => {
+    const s4 = [
+      { label: t("auth.register.strengthWeak"), color: "#DC2626" },
+      { label: t("auth.register.strengthFair"), color: "#F97316" },
+      { label: t("auth.register.strengthStrong"), color: "#EAB308" },
+      { label: t("auth.register.strengthVeryStrong"), color: "#16A34A" },
+    ];
+    return s4[Math.max(0, Math.min(3, score - 1))] || s4[0];
+  };
+
+  const validateIntakeField = (name, value, extra) => {
+    switch (name) {
+      case "firstName":
+        if (!String(value || "").trim()) return t("auth.register.fieldFirstNameRequired");
+        if (/\d/.test(value)) return t("auth.register.fieldFirstNameNoNumbers");
+        return "";
+      case "lastName":
+        if (!String(value || "").trim()) return t("auth.register.fieldLastNameRequired");
+        if (/\d/.test(value)) return t("auth.register.fieldLastNameNoNumbers");
+        return "";
+      case "email":
+        if (!String(value || "").trim()) return t("auth.register.fieldEmailRequired");
+        if (!isValidEmail(value)) return t("auth.register.fieldEmailInvalid");
+        return "";
+      case "phone":
+        if (!String(value || "").trim()) return t("auth.register.fieldPhoneRequired");
+        if (!isValidUSPhone(value)) return t("auth.register.fieldPhoneInvalid");
+        return "";
+      case "password":
+        if (String(value || "").length < 8) return t("auth.register.fieldPasswordMin");
+        return "";
+      case "confirmPassword":
+        if (value !== extra) return t("auth.register.fieldPasswordMismatch");
+        return "";
+      default:
+        return "";
+    }
+  };
+
+  const handleIntakeBlur = (name, value, extra) => {
+    setIntakeFieldTouched((prev) => ({ ...prev, [name]: true }));
+    const err = validateIntakeField(name, value, extra);
+    setIntakeFieldErrors((prev) => ({ ...prev, [name]: err }));
+  };
+
+  const handleResendVerification = async () => {
+    if (emailSentResendBusy) return;
+    setEmailSentResendBusy(true);
+    try {
+      await fetchWithTimeout(
+        apiUrl("/auth/magic-link/request"),
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: intakeEmail.trim().toLowerCase() }) },
+        INTAKE_FETCH_TIMEOUT_MS
+      );
+    } catch { /* ignore */ }
+    setEmailSentResendBusy(false);
   };
 
   const speechSupported =
@@ -605,6 +690,40 @@ function App() {
     if (!["cover", "intake", "intakeChoice", "login", "magicSent", "forgotPassword", "resetPassword"].includes(view)) return;
     fetchWithTimeout(apiUrl("/health"), {}, WARMUP_TIMEOUT_MS).catch(() => null);
   }, [view]);
+
+  const SESSION_WARNING_DELAY = 25 * 60 * 1000;
+  const SESSION_SIGNOUT_DELAY = 5 * 60 * 1000;
+  useEffect(() => {
+    const authViews = ["intake", "login", "magicSent", "forgotPassword", "resetPassword", "intakeChoice", "intakeSuccess"];
+    const isActive = intakeSaved && intakeId && !authViews.includes(view);
+    if (!isActive) return undefined;
+    const reset = () => {
+      clearTimeout(sessionTimers.current.warning);
+      clearTimeout(sessionTimers.current.signout);
+      setShowSessionWarning(false);
+      sessionTimers.current.warning = setTimeout(() => {
+        setShowSessionWarning(true);
+        sessionTimers.current.signout = setTimeout(() => {
+          setShowSessionWarning(false);
+          clearSavedIntake();
+          setView("login");
+          setInactivityToast(true);
+          setTimeout(() => setInactivityToast(false), 5000);
+        }, SESSION_SIGNOUT_DELAY);
+      }, SESSION_WARNING_DELAY);
+    };
+    reset();
+    window.addEventListener("mousemove", reset, { passive: true });
+    window.addEventListener("keypress", reset, { passive: true });
+    window.addEventListener("click", reset, { passive: true });
+    return () => {
+      clearTimeout(sessionTimers.current.warning);
+      clearTimeout(sessionTimers.current.signout);
+      window.removeEventListener("mousemove", reset);
+      window.removeEventListener("keypress", reset);
+      window.removeEventListener("click", reset);
+    };
+  }, [view, intakeSaved, intakeId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -1479,7 +1598,7 @@ function App() {
       setIntakePassword("");
       setIntakePasswordConfirm("");
 
-      setView("intakeSuccess");
+      setShowEmailSent(true);
     } catch (e) {
       setIntakeError(
         e?.message && String(e.message).trim().length > 0
@@ -1503,37 +1622,29 @@ function App() {
   );
 
   const renderAuthAside = () => (
-    <aside className="auth-split-aside" aria-label={t("login.authAside.ariaLabel")}>
-      <div className="auth-split-aside-brand">
-        <img src={calLogo} alt="Chicago Advocate Legal, NFP logo" className="auth-split-aside-logo" />
-        <p className="auth-split-aside-kicker">{t("login.authAside.kicker")}</p>
-      </div>
-      <h2 className="auth-split-aside-headline">{t("login.authAside.headline")}</h2>
-      <p className="auth-split-aside-body">{t("login.authAside.body")}</p>
-      <ul className="auth-split-aside-list">
+    <div className="cal-auth-left-text-content">
+      <h2 className="cal-auth-left-heading">{t("login.authAside.headline")}</h2>
+      <ul className="cal-auth-left-bullets" aria-label={t("login.authAside.ariaLabel")}>
         {[
           t("login.authAside.item1"),
           t("login.authAside.item2"),
           t("login.authAside.item3"),
           t("login.authAside.item4"),
         ].map((item) => (
-          <li key={item} className="auth-split-aside-list-item">
-            <span className="auth-split-aside-check" aria-hidden="true">
-              <Check size={14} strokeWidth={3} />
-            </span>
+          <li key={item} className="cal-auth-left-bullet-item">
+            <span className="cal-auth-bullet-dot" aria-hidden="true">✓</span>
             {item}
           </li>
         ))}
       </ul>
-      <blockquote className="auth-split-aside-testimonial">
-        <p className="auth-split-aside-testimonial-quote">
-          &ldquo;{t("login.authAside.testimonial")}&rdquo;
-        </p>
-        <footer className="auth-split-aside-testimonial-source">
-          {t("login.authAside.testimonialSource")}
-        </footer>
-      </blockquote>
-    </aside>
+    </div>
+  );
+
+  const renderRegisterAside = () => (
+    <div className="cal-auth-left-text-content">
+      <h2 className="cal-auth-left-heading">{t("auth.register.leftHeading")}</h2>
+      <p className="cal-auth-left-subtext">{t("auth.register.leftSubtext")}</p>
+    </div>
   );
 
   const topicCards = [
@@ -1633,6 +1744,7 @@ function App() {
         title={t("login.heading")}
         subtitle={t("login.lead")}
         leftPanel={renderAuthAside()}
+        showTrustBadge={true}
         extras={<><ThemeToggle /><LanguagePicker variant={lpVariant} /></>}
         footer={
           <SiteFooter
@@ -1643,27 +1755,16 @@ function App() {
         }
       >
         {/* Tab bar — Client / Admin login */}
-        <div className="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-[#e2e8f0]">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium pb-3 border-b-2" style={{ color: "#1e293b", borderColor: "#1e293b" }}>
+        <div className="cal-auth-tabs">
+          <div className="cal-auth-tab-group">
+            <button type="button" className="cal-auth-tab-active" onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); }} disabled={magicLinkBusy || passwordLoginBusy}>
               {t("login.clientLogin")}
-            </span>
-            <button
-              type="button"
-              className="text-sm font-medium px-4 py-1.5 rounded-full border-2 hover:bg-gray-50 transition-colors"
-              style={{ color: "#64748b", borderColor: "#e2e8f0" }}
-              onClick={() => { window.location.hash = "#/admin"; }}
-            >
+            </button>
+            <button type="button" className="cal-auth-tab-inactive" onClick={() => { window.location.hash = "#/admin"; }} disabled={magicLinkBusy || passwordLoginBusy}>
               {t("login.staffLogin")}
             </button>
           </div>
-          <button
-            type="button"
-            className="text-sm hover:underline"
-            style={{ color: "#1e293b" }}
-            onClick={() => sendMagicLinkRequest(magicLinkEmail)}
-            disabled={magicLinkBusy || passwordLoginBusy}
-          >
+          <button type="button" className="cal-auth-link" style={{ fontSize: "0.88rem" }} onClick={() => sendMagicLinkRequest(magicLinkEmail)} disabled={magicLinkBusy || passwordLoginBusy}>
             {t("login.signInWithEmail")}
           </button>
         </div>
@@ -1696,7 +1797,7 @@ function App() {
           ) : null}
 
           <div className="space-y-2">
-            <Label htmlFor="auth-signin-email" className="font-medium text-sm" style={{ color: "#1e293b" }}>{t("login.emailLabel")}</Label>
+            <Label htmlFor="auth-signin-email" className="font-medium text-sm" style={{ color: "#1A1A1A" }}>{t("login.emailLabel")}</Label>
             <Input
               id="auth-signin-email"
               type="email"
@@ -1710,12 +1811,12 @@ function App() {
                 setPasswordLoginError("");
               }}
               disabled={magicLinkBusy || passwordLoginBusy}
-              className="rounded-full border-2 border-[#1e293b] h-14 px-5 text-[#1e293b] placeholder:text-[#94a3b8]"
+              className="cal-auth-field"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="auth-signin-password" className="font-medium text-sm" style={{ color: "#1e293b" }}>{t("login.passwordLabel")}</Label>
+            <Label htmlFor="auth-signin-password" className="font-medium text-sm" style={{ color: "#1A1A1A" }}>{t("login.passwordLabel")}</Label>
             <div className="relative">
               <Input
                 id="auth-signin-password"
@@ -1724,7 +1825,7 @@ function App() {
                 value={loginPassword}
                 onChange={(e) => { setLoginPassword(e.target.value); setPasswordLoginError(""); }}
                 disabled={magicLinkBusy || passwordLoginBusy}
-                className="rounded-full border-2 border-[#1e293b] h-14 px-5 pr-14 text-[#1e293b] placeholder:text-[#94a3b8]"
+                className="cal-auth-field pr-12"
               />
               <Button
                 type="button"
@@ -1742,13 +1843,13 @@ function App() {
 
           {/* Remember me */}
           <label className="flex items-center gap-3 cursor-pointer select-none">
-            <input type="checkbox" className="w-5 h-5 rounded border-2 border-[#1e293b]" />
-            <span className="text-sm" style={{ color: "#1e293b" }}>{t("login.rememberMe")}</span>
+            <input type="checkbox" className="cal-auth-checkbox" />
+            <span className="text-sm" style={{ color: "#1A1A1A" }}>{t("login.rememberMe")}</span>
           </label>
 
-          <Button type="submit" className="w-full rounded-full h-14 text-base font-medium" size="lg" disabled={magicLinkBusy || passwordLoginBusy}>
+          <button type="submit" className="cal-auth-submit-btn" disabled={magicLinkBusy || passwordLoginBusy}>
             {passwordLoginBusy ? t("login.signingIn") : t("login.passwordLoginButton")}
-          </Button>
+          </button>
           {magicTokenPending ? (
             <Button
               type="button"
@@ -1763,17 +1864,17 @@ function App() {
         </form>
 
         <div className="mt-6 pt-6 border-t border-[#e2e8f0]">
-          <p className="text-xs leading-relaxed" style={{ color: "#64748b" }}>
+          <p className="text-xs leading-relaxed" style={{ color: "#6B7280" }}>
             We do not share your information with third parties except as required by law or to provide requested services.{" "}
-            <button type="button" className="underline hover:no-underline" style={{ color: "#1e293b" }} onClick={() => setView("privacy")}>
+            <button type="button" className="cal-auth-link" onClick={() => setView("privacy")}>
               {t("intake.privacyLink")}
             </button>
           </p>
           <div className="flex items-center justify-between gap-2 mt-3">
             <button
               type="button"
-              className="text-sm hover:underline"
-              style={{ color: "#64748b" }}
+              className="cal-auth-link"
+              style={{ fontSize: "0.88rem" }}
               disabled={magicLinkBusy || passwordLoginBusy}
               onClick={() => {
                 setForgotEmail(String(magicLinkEmail || "").trim().toLowerCase());
@@ -1783,12 +1884,11 @@ function App() {
             >
               {t("login.forgotPassword")}
             </button>
-            <p className="text-sm" style={{ color: "#64748b" }}>
+            <p className="text-sm" style={{ color: "#6B7280" }}>
               {t("login.newUserPrompt")}{" "}
               <button
                 type="button"
-                className="font-semibold hover:underline"
-                style={{ color: "#1e293b" }}
+                className="cal-auth-link font-semibold"
                 onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("intake"); }}
               >
                 {t("login.createAccount")}
@@ -2086,10 +2186,52 @@ function App() {
   }
 
   if (view === "intake") {
+    if (showEmailSent) {
+      return (
+        <LoginLayout
+          leftPanel={renderRegisterAside()}
+          showTrustBadge={true}
+          extras={<><ThemeToggle /><LanguagePicker variant={lpVariant} /></>}
+          footer={<SiteFooter className={footerAuthClass} supportEmail={SUPPORT_EMAIL} onPrivacyClick={() => setView("privacy")} />}
+        >
+          <div className="cal-auth-email-verify">
+            <div className="cal-auth-email-verify-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
+                <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <h2>{t("auth.register.checkEmailHeading")}</h2>
+            <p>{t("auth.register.checkEmailBody", { email: intakeEmail })}</p>
+            <button type="button" className="cal-auth-link" style={{ display: "block", marginBottom: 12 }} onClick={handleResendVerification} disabled={emailSentResendBusy}>
+              {emailSentResendBusy ? "Sending..." : t("auth.register.resendEmail")}
+            </button>
+            <p style={{ fontSize: "0.88rem", color: "#6B7280" }}>
+              {t("auth.register.wrongEmailPrefix")}{" "}
+              <button type="button" className="cal-auth-link" onClick={() => setShowEmailSent(false)}>
+                {t("auth.register.goBackLink")}
+              </button>
+            </p>
+          </div>
+          <EmergencyButton />
+        </LoginLayout>
+      );
+    }
+
     return (
       <LoginLayout
         title={t("login.createAccountTitle")}
         subtitle={t("intake.subtitle")}
+        leftPanel={renderRegisterAside()}
+        showTrustBadge={true}
+        progressContent={
+          <div className="cal-auth-progress-wrap">
+            <p className="cal-auth-step-label">{t("auth.register.stepIndicator")}</p>
+            <div className="cal-auth-progress-track">
+              <div className="cal-auth-progress-seg cal-auth-progress-seg--active" />
+              <div className="cal-auth-progress-seg cal-auth-progress-seg--inactive" />
+            </div>
+          </div>
+        }
         extras={<><ThemeToggle /><LanguagePicker variant={lpVariant} /></>}
         footer={
           <SiteFooter
@@ -2100,12 +2242,11 @@ function App() {
         }
       >
         {/* Tab bar — Client / Admin login */}
-        <div className="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-[#e2e8f0]">
-          <div className="flex items-center gap-3" role="group" aria-label={t("login.intakeLoginChoiceAria")}>
+        <div className="cal-auth-tabs">
+          <div className="cal-auth-tab-group" role="group" aria-label={t("login.intakeLoginChoiceAria")}>
             <button
               type="button"
-              className="text-sm font-medium pb-3 border-b-2"
-              style={{ color: "#1e293b", borderColor: "#1e293b" }}
+              className="cal-auth-tab-inactive"
               onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
               disabled={loading}
             >
@@ -2113,8 +2254,7 @@ function App() {
             </button>
             <button
               type="button"
-              className="text-sm font-medium px-4 py-1.5 rounded-full border-2 hover:bg-gray-50 transition-colors"
-              style={{ color: "#64748b", borderColor: "#e2e8f0" }}
+              className="cal-auth-tab-inactive"
               onClick={() => { window.location.hash = "#/admin"; }}
               disabled={loading}
             >
@@ -2123,8 +2263,8 @@ function App() {
           </div>
           <button
             type="button"
-            className="text-sm hover:underline"
-            style={{ color: "#1e293b" }}
+            className="cal-auth-link"
+            style={{ fontSize: "0.88rem" }}
             onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
           >
             {t("login.signInWithEmail")}
@@ -2136,70 +2276,139 @@ function App() {
           className="space-y-4"
         >
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="intake-first-name" className="font-medium" style={{ color: "#1e293b" }}>{t("intake.firstName")}</Label>
-              <Input
-                id="intake-first-name"
-                type="text"
-                value={intakeFirstName}
-                onChange={(e) => setIntakeFirstName(e.target.value)}
-                placeholder={t("intake.firstName")}
-                disabled={loading}
-                className="rounded-full border-2 border-[#1e293b] h-14 px-5 text-[#1e293b] placeholder:text-[#94a3b8]"
-              />
+            <div className="space-y-1">
+              <Label htmlFor="intake-first-name" className="auth-label" style={{ color: "#1A1A1A" }}>{t("intake.firstName")}</Label>
+              <div className="cal-auth-field-wrap">
+                <Input
+                  id="intake-first-name"
+                  type="text"
+                  value={intakeFirstName}
+                  onChange={(e) => setIntakeFirstName(e.target.value)}
+                  onBlur={() => handleIntakeBlur("firstName", intakeFirstName)}
+                  placeholder={t("intake.firstName")}
+                  disabled={loading}
+                  className="cal-auth-field"
+                  aria-label={t("intake.firstName")}
+                  aria-describedby={intakeFieldErrors.firstName ? "err-firstName" : undefined}
+                  aria-invalid={intakeFieldTouched.firstName && !!intakeFieldErrors.firstName}
+                  data-valid={intakeFieldTouched.firstName && !intakeFieldErrors.firstName ? "true" : undefined}
+                  data-invalid={intakeFieldTouched.firstName && !!intakeFieldErrors.firstName ? "true" : undefined}
+                />
+                {intakeFieldTouched.firstName && !intakeFieldErrors.firstName && (
+                  <span className="cal-auth-field-valid-icon" aria-hidden="true">✓</span>
+                )}
+              </div>
+              {intakeFieldTouched.firstName && intakeFieldErrors.firstName && (
+                <p id="err-firstName" className="cal-auth-field-error" role="alert" aria-live="polite">
+                  {intakeFieldErrors.firstName}
+                </p>
+              )}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="intake-last-name" className="font-medium" style={{ color: "#1e293b" }}>{t("intake.lastName")}</Label>
-              <Input
-                id="intake-last-name"
-                type="text"
-                value={intakeLastName}
-                onChange={(e) => setIntakeLastName(e.target.value)}
-                placeholder={t("intake.lastName")}
-                disabled={loading}
-                className="rounded-full border-2 border-[#1e293b] h-14 px-5 text-[#1e293b] placeholder:text-[#94a3b8]"
-              />
+            <div className="space-y-1">
+              <Label htmlFor="intake-last-name" className="auth-label" style={{ color: "#1A1A1A" }}>{t("intake.lastName")}</Label>
+              <div className="cal-auth-field-wrap">
+                <Input
+                  id="intake-last-name"
+                  type="text"
+                  value={intakeLastName}
+                  onChange={(e) => setIntakeLastName(e.target.value)}
+                  onBlur={() => handleIntakeBlur("lastName", intakeLastName)}
+                  placeholder={t("intake.lastName")}
+                  disabled={loading}
+                  className="cal-auth-field"
+                  aria-label={t("intake.lastName")}
+                  aria-describedby={intakeFieldErrors.lastName ? "err-lastName" : undefined}
+                  aria-invalid={intakeFieldTouched.lastName && !!intakeFieldErrors.lastName}
+                  data-valid={intakeFieldTouched.lastName && !intakeFieldErrors.lastName ? "true" : undefined}
+                  data-invalid={intakeFieldTouched.lastName && !!intakeFieldErrors.lastName ? "true" : undefined}
+                />
+                {intakeFieldTouched.lastName && !intakeFieldErrors.lastName && (
+                  <span className="cal-auth-field-valid-icon" aria-hidden="true">✓</span>
+                )}
+              </div>
+              {intakeFieldTouched.lastName && intakeFieldErrors.lastName && (
+                <p id="err-lastName" className="cal-auth-field-error" role="alert" aria-live="polite">
+                  {intakeFieldErrors.lastName}
+                </p>
+              )}
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="intake-email" className="font-medium" style={{ color: "#1e293b" }}>{t("intake.email")}</Label>
-            <Input
-              id="intake-email"
-              type="email"
-              value={intakeEmail}
-              onChange={(e) => setIntakeEmail(e.target.value)}
-              placeholder={t("intake.email")}
-              disabled={loading}
-              className="rounded-full border-2 border-[#1e293b] h-14 px-5 text-[#1e293b] placeholder:text-[#94a3b8]"
-            />
+          <div className="space-y-1">
+            <Label htmlFor="intake-email" className="auth-label" style={{ color: "#1A1A1A" }}>{t("intake.email")}</Label>
+            <div className="cal-auth-field-wrap">
+              <Input
+                id="intake-email"
+                type="email"
+                value={intakeEmail}
+                onChange={(e) => setIntakeEmail(e.target.value)}
+                onBlur={() => handleIntakeBlur("email", intakeEmail)}
+                placeholder={t("intake.email")}
+                disabled={loading}
+                className="cal-auth-field"
+                aria-label={t("intake.email")}
+                aria-describedby={intakeFieldErrors.email ? "err-email" : undefined}
+                aria-invalid={intakeFieldTouched.email && !!intakeFieldErrors.email}
+                data-valid={intakeFieldTouched.email && !intakeFieldErrors.email ? "true" : undefined}
+                data-invalid={intakeFieldTouched.email && !!intakeFieldErrors.email ? "true" : undefined}
+              />
+              {intakeFieldTouched.email && !intakeFieldErrors.email && (
+                <span className="cal-auth-field-valid-icon" aria-hidden="true">✓</span>
+              )}
+            </div>
+            {intakeFieldTouched.email && intakeFieldErrors.email && (
+              <p id="err-email" className="cal-auth-field-error" role="alert" aria-live="polite">
+                {intakeFieldErrors.email}
+              </p>
+            )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="intake-phone" className="font-medium" style={{ color: "#1e293b" }}>{t("intake.phone")}</Label>
-            <Input
-              id="intake-phone"
-              type="tel"
-              value={intakePhone}
-              onChange={(e) => setIntakePhone(e.target.value)}
-              placeholder={t("intake.phone")}
-              disabled={loading}
-              className="rounded-full border-2 border-[#1e293b] h-14 px-5 text-[#1e293b] placeholder:text-[#94a3b8]"
-            />
+          <div className="space-y-1">
+            <Label htmlFor="intake-phone" className="auth-label" style={{ color: "#1A1A1A" }}>{t("intake.phone")}</Label>
+            <div className="cal-auth-field-wrap">
+              <Input
+                id="intake-phone"
+                type="tel"
+                value={intakePhone}
+                onChange={(e) => setIntakePhone(formatPhoneInput(e.target.value))}
+                onBlur={() => handleIntakeBlur("phone", intakePhone)}
+                placeholder={t("intake.phone")}
+                disabled={loading}
+                className="cal-auth-field"
+                aria-label={t("intake.phone")}
+                aria-describedby={intakeFieldErrors.phone ? "err-phone" : undefined}
+                aria-invalid={intakeFieldTouched.phone && !!intakeFieldErrors.phone}
+                data-valid={intakeFieldTouched.phone && !intakeFieldErrors.phone ? "true" : undefined}
+                data-invalid={intakeFieldTouched.phone && !!intakeFieldErrors.phone ? "true" : undefined}
+              />
+              {intakeFieldTouched.phone && !intakeFieldErrors.phone && (
+                <span className="cal-auth-field-valid-icon" aria-hidden="true">✓</span>
+              )}
+            </div>
+            {intakeFieldTouched.phone && intakeFieldErrors.phone && (
+              <p id="err-phone" className="cal-auth-field-error" role="alert" aria-live="polite">
+                {intakeFieldErrors.phone}
+              </p>
+            )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="intake-password" className="font-medium" style={{ color: "#1e293b" }}>{t("login.createPassword")}</Label>
-            <div className="relative">
+          <div className="space-y-1">
+            <Label htmlFor="intake-password" className="auth-label" style={{ color: "#1A1A1A" }}>{t("login.createPassword")}</Label>
+            <div className="cal-auth-field-wrap cal-auth-field-wrap--password">
               <Input
                 id="intake-password"
                 type={showIntakePassword ? "text" : "password"}
                 value={intakePassword}
                 onChange={(e) => setIntakePassword(e.target.value)}
+                onBlur={() => handleIntakeBlur("password", intakePassword)}
                 placeholder={t("login.createPassword")}
                 autoComplete="new-password"
                 disabled={loading}
-                className="rounded-full border-2 border-[#1e293b] h-14 px-5 pr-14 text-[#1e293b] placeholder:text-[#94a3b8]"
+                className="cal-auth-field pr-12"
+                aria-describedby={intakeFieldErrors.password ? "err-password" : undefined}
+                aria-invalid={intakeFieldTouched.password && !!intakeFieldErrors.password}
+                data-valid={intakeFieldTouched.password && !intakeFieldErrors.password ? "true" : undefined}
+                data-invalid={intakeFieldTouched.password && !!intakeFieldErrors.password ? "true" : undefined}
               />
               <Button
                 type="button"
@@ -2212,29 +2421,48 @@ function App() {
               >
                 {showIntakePassword ? <EyeOff className="w-5 h-5" aria-hidden /> : <Eye className="w-5 h-5" aria-hidden />}
               </Button>
+              {intakeFieldTouched.password && !intakeFieldErrors.password && (
+                <span className="cal-auth-field-valid-icon" style={{ right: 44 }} aria-hidden="true">✓</span>
+              )}
             </div>
-            {intakePassword ? (
-              <p className={`text-xs mt-1 ${
-                passwordStrengthKey(intakePassword) === "weak" ? "text-destructive" :
-                passwordStrengthKey(intakePassword) === "medium" ? "text-amber-600" : "text-green-600"
-              }`}>
-                {t(`login.passwordStrength.${passwordStrengthKey(intakePassword)}`)}
+            {intakePassword && (
+              <div className="cal-auth-strength-wrap" aria-live="polite">
+                <div className="cal-auth-strength-track" aria-hidden="true">
+                  {[1,2,3,4].map((level) => {
+                    const score = passwordStrength4(intakePassword);
+                    const strengthColor = level <= score ? getStrengthInfo(score).color : "#E5E7EB";
+                    return <div key={level} className="cal-auth-strength-seg" style={{ background: strengthColor }} />;
+                  })}
+                </div>
+                <span className="cal-auth-strength-label" style={{ color: getStrengthInfo(passwordStrength4(intakePassword)).color }}>
+                  {getStrengthInfo(passwordStrength4(intakePassword)).label}
+                </span>
+              </div>
+            )}
+            {intakeFieldTouched.password && intakeFieldErrors.password && (
+              <p id="err-password" className="cal-auth-field-error" role="alert" aria-live="polite">
+                {intakeFieldErrors.password}
               </p>
-            ) : null}
+            )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="intake-password-confirm" className="font-medium" style={{ color: "#1e293b" }}>{t("login.confirmAccountPassword")}</Label>
-            <div className="relative">
+          <div className="space-y-1">
+            <Label htmlFor="intake-password-confirm" className="auth-label" style={{ color: "#1A1A1A" }}>{t("login.confirmAccountPassword")}</Label>
+            <div className="cal-auth-field-wrap cal-auth-field-wrap--password">
               <Input
                 id="intake-password-confirm"
                 type={showIntakePasswordConfirm ? "text" : "password"}
                 value={intakePasswordConfirm}
                 onChange={(e) => setIntakePasswordConfirm(e.target.value)}
+                onBlur={() => handleIntakeBlur("confirmPassword", intakePasswordConfirm, intakePassword)}
                 placeholder={t("login.confirmAccountPassword")}
                 autoComplete="new-password"
                 disabled={loading}
-                className="rounded-full border-2 border-[#1e293b] h-14 px-5 pr-14 text-[#1e293b] placeholder:text-[#94a3b8]"
+                className="cal-auth-field pr-12"
+                aria-describedby={intakeFieldErrors.confirmPassword ? "err-confirmPassword" : undefined}
+                aria-invalid={intakeFieldTouched.confirmPassword && !!intakeFieldErrors.confirmPassword}
+                data-valid={intakeFieldTouched.confirmPassword && !intakeFieldErrors.confirmPassword ? "true" : undefined}
+                data-invalid={intakeFieldTouched.confirmPassword && !!intakeFieldErrors.confirmPassword ? "true" : undefined}
               />
               <Button
                 type="button"
@@ -2247,23 +2475,31 @@ function App() {
               >
                 {showIntakePasswordConfirm ? <EyeOff className="w-5 h-5" aria-hidden /> : <Eye className="w-5 h-5" aria-hidden />}
               </Button>
+              {intakeFieldTouched.confirmPassword && !intakeFieldErrors.confirmPassword && (
+                <span className="cal-auth-field-valid-icon" style={{ right: 44 }} aria-hidden="true">✓</span>
+              )}
             </div>
+            {intakeFieldTouched.confirmPassword && intakeFieldErrors.confirmPassword && (
+              <p id="err-confirmPassword" className="cal-auth-field-error" role="alert" aria-live="polite">
+                {intakeFieldErrors.confirmPassword}
+              </p>
+            )}
           </div>
 
           <label className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
+              className="cal-auth-checkbox"
               checked={intakeConsent}
               onChange={(e) => setIntakeConsent(e.target.checked)}
               disabled={loading}
-              className="mt-0.5 w-5 h-5 rounded border-2 border-[#1e293b] shrink-0"
             />
-            <span className="text-sm leading-relaxed" style={{ color: "#1e293b" }}>
+            <span className="text-sm leading-relaxed" style={{ color: "#1A1A1A" }}>
               {t("intake.consentText")}{" "}
               <button
                 type="button"
+                className="cal-auth-link"
                 onClick={() => setView("privacy")}
-                className="underline underline-offset-2 hover:no-underline"
               >
                 {t("intake.privacyLink")}
               </button>
@@ -2276,21 +2512,34 @@ function App() {
             </div>
           ) : null}
 
-          <Button type="submit" className="w-full rounded-full h-14 text-base font-medium" size="lg" disabled={loading}>
-            {loading
-              ? intakeSubmitPhase === "retrying"
-                ? t("intake.retryingDetail")
-                : t("intake.savingDetail")
-              : t("intake.submit")}
-          </Button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button type="submit" className="cal-auth-submit-btn" style={{ flex: 1 }} disabled={loading}>
+              {loading ? (intakeSubmitPhase === "retrying" ? t("intake.retryingDetail") : t("intake.savingDetail")) : t("intake.submit")}
+            </button>
+            <div className="cal-auth-tooltip-wrap">
+              <button
+                type="button"
+                className="cal-auth-tooltip-trigger"
+                aria-label="What happens next"
+                onClick={() => setShowNextTooltip((v) => !v)}
+                onBlur={() => setShowNextTooltip(false)}
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+              </button>
+              {showNextTooltip && (
+                <div className="cal-auth-tooltip-popover" role="tooltip">
+                  {t("auth.register.whatHappensNextTooltip")}
+                </div>
+              )}
+            </div>
+          </div>
         </form>
 
-        <p className="text-sm text-center mt-6" style={{ color: "#64748b" }}>
+        <p className="text-sm text-center mt-6" style={{ color: "#6B7280" }}>
           {t("login.alreadyHaveAccount")}{" "}
           <button
             type="button"
-            className="font-semibold hover:underline"
-            style={{ color: "#1e293b" }}
+            className="cal-auth-link font-semibold"
             onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
           >
             {t("login.signIn")}
@@ -2494,6 +2743,27 @@ function App() {
           </div>
         </div>
         <EmergencyButton />
+        {showSessionWarning && (
+          <div className="cal-session-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="session-heading">
+            <div className="cal-session-modal">
+              <h2 id="session-heading">{t("auth.sessionTimeout.heading")}</h2>
+              <p>{t("auth.sessionTimeout.body")}</p>
+              <div className="cal-session-modal-btns">
+                <button type="button" className="cal-session-stay-btn" onClick={() => { clearTimeout(sessionTimers.current.warning); clearTimeout(sessionTimers.current.signout); setShowSessionWarning(false); }}>
+                  {t("auth.sessionTimeout.staySignedIn")}
+                </button>
+                <button type="button" className="cal-session-signout-link" onClick={() => { clearSavedIntake(); setShowSessionWarning(false); setView("login"); }}>
+                  {t("auth.sessionTimeout.signOutNow")}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {inactivityToast && (
+          <div className="cal-inactivity-toast" role="alert" aria-live="assertive">
+            {t("auth.sessionTimeout.inactivityToast")}
+          </div>
+        )}
       </SlackLayout>
     );
   }

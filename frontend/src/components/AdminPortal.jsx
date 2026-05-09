@@ -889,19 +889,22 @@ export default function AdminPortal() {
   if (!token) {
     return (
       <div className="admin-login-split" data-admin-entry-url={staffAdminUrl}>
-        {/* Left panel — CAL branding */}
+        {/* Left panel */}
         <div className="admin-login-left">
-          <div className="admin-login-left-brand">
-            <img src={calLogo} alt="Chicago Advocate Legal, NFP logo" className="admin-login-logo" />
-            <p className="admin-login-left-kicker">Chicago Advocate Legal, NFP</p>
+          <div className="admin-login-left-inner">
+            <div className="admin-login-left-brand">
+              <img src={calLogo} alt="Chicago Advocate Legal, NFP logo" className="admin-login-logo" />
+            </div>
+            <div className="admin-login-left-text">
+              <h2 className="admin-login-left-headline">Staff Admin Portal</h2>
+              <p className="admin-login-left-body">
+                Secure staff access to manage intakes, submissions, and client data for Chicago Advocate Legal, NFP.
+              </p>
+            </div>
           </div>
-          <h2 className="admin-login-left-headline">Staff Admin Portal</h2>
-          <p className="admin-login-left-body">
-            Secure staff access to manage intakes, submissions, and client data for Chicago Advocate Legal, NFP.
-          </p>
         </div>
 
-        {/* Right panel — sign-in form */}
+        {/* Right panel */}
         <div className="admin-login-right">
           <div className="admin-login-right-inner">
             <h1 className="admin-login-heading">Admin Sign In</h1>
@@ -923,10 +926,11 @@ export default function AdminPortal() {
                   autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  aria-label="Email address"
                   required
                 />
               </div>
-              <div className="admin-portal-field">
+              <div className="admin-portal-field" style={{ marginBottom: 20 }}>
                 <label htmlFor="admin-password">Password</label>
                 <div className="admin-portal-password-wrap">
                   <input
@@ -936,6 +940,7 @@ export default function AdminPortal() {
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    aria-label="Password"
                     required
                   />
                   <button
