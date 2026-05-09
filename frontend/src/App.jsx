@@ -2222,6 +2222,21 @@ function App() {
         title={t("login.createAccountTitle")}
         subtitle={t("intake.subtitle")}
         leftPanel={renderRegisterAside()}
+        leftCenterPanel={
+          <ul className="cal-auth-left-bullets" aria-label={t("login.authAside.ariaLabel")}>
+            {[
+              t("login.authAside.item1"),
+              t("login.authAside.item2"),
+              t("login.authAside.item3"),
+              t("login.authAside.item4"),
+            ].map((item) => (
+              <li key={item} className="cal-auth-left-bullet-item">
+                <span className="cal-auth-bullet-dot" aria-hidden="true">✓</span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        }
         showTrustBadge={true}
         progressContent={
           <div className="cal-auth-progress-wrap">

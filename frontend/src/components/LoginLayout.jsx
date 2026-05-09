@@ -9,6 +9,7 @@ export default function LoginLayout({
   extras,
   footer,
   leftPanel,
+  leftCenterPanel = null,
   showTrustBadge = false,
   progressContent = null,
 }) {
@@ -31,6 +32,11 @@ export default function LoginLayout({
                   className="cal-auth-left-logo"
                 />
               </div>
+
+              {/* Center content (value props / bullets) */}
+              {leftCenterPanel && (
+                <div className="cal-auth-left-center">{leftCenterPanel}</div>
+              )}
 
               {/* Bottom content */}
               <div className="cal-auth-left-bottom">
