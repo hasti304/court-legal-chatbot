@@ -22,6 +22,7 @@ import {
 } from "react-icons/fa";
 import "./App.css";
 import "./cal-app-dark.css";
+import "./HomeCover.css";
 import EmergencyButton from "./components/EmergencyButton";
 import StatusBanner from "./components/StatusBanner";
 import SiteFooter from "./components/SiteFooter";
@@ -43,7 +44,7 @@ import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
 import calLogo from "./assets/cal_logo.png";
-import { Eye, EyeOff, Send, RotateCcw, Loader2, ArrowLeft, ShieldAlert, Trash2, Volume2, VolumeX, Check } from "lucide-react";
+import { Eye, EyeOff, Send, RotateCcw, Loader2, ArrowLeft, ShieldAlert, Trash2, Volume2, VolumeX, Check, Shield, Lock, Clock } from "lucide-react";
 
 import { useTranslation } from "react-i18next";
 import i18n, { setAppLanguage, getNormalizedLanguage } from "./i18n";
@@ -2621,139 +2622,162 @@ function App() {
         onBack={() => {}}
         topbarExtras={<ThemeToggle />}
       >
-        <div className="p-8 max-w-5xl mx-auto">
-          {/* Language Selector */}
-          <div className="flex justify-end mb-6">
-            <select
-              className="px-4 py-2 border-2 border-[#e2e8f0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e293b]"
-              style={{ color: "#1e293b" }}
-              value={normalizedLang}
-              onChange={(e) => setAppLanguage(e.target.value)}
-            >
-              <option value="en">Language / Idioma: English</option>
-              <option value="es">Español</option>
-            </select>
-          </div>
+        <div className="home-cover">
+          <div className="home-cover__inner">
 
-          {/* Welcome hero */}
-          <div className="text-center mb-12">
-            <h2 className="text-4xl mb-3" style={{ color: "#1e293b" }}>
-              {intakeFirstName ? `Welcome back, ${intakeFirstName}!` : "Welcome to the Legal Resource Portal"}
-            </h2>
-            <p className="text-lg mb-6" style={{ color: "#64748b" }}>
-              This website contains{" "}
-              <span style={{ color: "#2563eb" }}>Illinois</span>{" "}
-              legal information and resources
-            </p>
-            <div className="flex items-center justify-center gap-3 flex-wrap">
+            {/* Language selector — keep exactly as-is, top-right */}
+            <div className="home-cover__lang">
+              <select
+                className="px-4 py-2 border-2 border-[#e2e8f0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e293b]"
+                style={{ color: "#1e293b" }}
+                value={normalizedLang}
+                onChange={(e) => setAppLanguage(e.target.value)}
+              >
+                <option value="en">Language / Idioma: English</option>
+                <option value="es">Español</option>
+              </select>
+            </div>
+
+            {/* Section 1: Hero */}
+            <section className="home-cover__hero">
+              <h1 className="home-cover__headline">
+                Tell us what&apos;s happening — we&apos;ll help you find the right support
+              </h1>
+              <p className="home-cover__subtext">
+                Free, confidential legal information for Illinois residents. No appointment needed.
+              </p>
+            </section>
+
+            {/* Section 2: How it works (3 steps) */}
+            <div className="home-cover__steps-row">
+              <div className="home-cover__step-card">
+                <div className="home-cover__step-badge">1</div>
+                <h3 className="home-cover__step-title">Describe your situation</h3>
+                <p className="home-cover__step-desc">Tell us what&apos;s going on in plain language</p>
+              </div>
+              <div className="home-cover__step-connector" aria-hidden="true" />
+              <div className="home-cover__step-card">
+                <div className="home-cover__step-badge">2</div>
+                <h3 className="home-cover__step-title">We find your options</h3>
+                <p className="home-cover__step-desc">We match you with Illinois-specific resources and referrals</p>
+              </div>
+              <div className="home-cover__step-connector" aria-hidden="true" />
+              <div className="home-cover__step-card">
+                <div className="home-cover__step-badge">3</div>
+                <h3 className="home-cover__step-title">Connect with help</h3>
+                <p className="home-cover__step-desc">Reach legal aid, attorneys, or support services directly</p>
+              </div>
+            </div>
+
+            {/* Section 3: Get Started */}
+            <div className="home-cover__cta">
               {pendingTriage ? (
-                <>
-                  <Button
+                <div className="home-cover__resume-row">
+                  <button
                     type="button"
-                    size="lg"
-                    className="rounded-lg px-8"
+                    className="home-cover__get-started-btn"
                     onClick={resumeTriageFromCover}
                     disabled={loading}
                   >
                     {t("resume.continueBtn")}
-                  </Button>
-                  <Button
+                  </button>
+                  <button
                     type="button"
-                    variant="secondary"
-                    size="lg"
-                    className="rounded-lg px-8"
+                    className="home-cover__secondary-btn"
                     onClick={discardPendingAndStartFresh}
                     disabled={loading}
                   >
                     {t("resume.startNewBtn")}
-                  </Button>
-                </>
+                  </button>
+                </div>
               ) : (
-                <Button
-                  size="lg"
-                  className="rounded-lg px-10"
+                <button
+                  type="button"
+                  className="home-cover__get-started-btn"
                   onClick={startChatFromCover}
                   disabled={loading}
                 >
-                  {t("landing.begin")}
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Topic cards */}
-          <div className="mb-12">
-            <h3 className="text-xs font-semibold uppercase tracking-widest mb-6 px-0.5" style={{ color: "#64748b" }}>
-              Browse by legal area
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              {topicCards.map((card) => (
-                <button
-                  key={card.key}
-                  type="button"
-                  className="text-left bg-white rounded-xl border-2 p-6 hover:border-[#1e293b] transition-all duration-150 group"
-                  style={{ borderColor: "#e2e8f0" }}
-                  onClick={() => {
-                    const topicId = card.key === "childSupport" ? "child_support" : card.key;
-                    setCurrentTopic(topicId);
-                    startChatFromCover();
-                  }}
-                >
-                  <div className="text-2xl mb-3" style={{ color: "#1e293b" }}>{card.icon}</div>
-                  <h4 className="font-medium text-lg mb-2" style={{ color: "#1e293b" }}>{card.title}</h4>
-                  <p className="text-sm leading-relaxed" style={{ color: "#64748b" }}>{card.desc}</p>
+                  Get Started
                 </button>
-              ))}
+              )}
+              <p className="home-cover__cta-caption">Takes about 3–5 minutes. Free and confidential.</p>
             </div>
-            <div className="text-center">
-              <Button
-                size="lg"
-                className="rounded-lg px-8"
-                style={{ background: "#2563eb" }}
-                onClick={startChatFromCover}
-                disabled={loading}
-              >
-                What&apos;s Next?
-              </Button>
-            </div>
-          </div>
 
-          {/* Common Legal Terms */}
-          <div className="bg-white border-2 rounded-xl p-6 mb-8" style={{ borderColor: "#e2e8f0" }}>
-            <h2 className="font-medium mb-4" style={{ color: "#1e293b" }}>Common legal terms (plain language)</h2>
-            <div className="border-l-4 p-4 rounded" style={{ background: "#fef3c7", borderColor: "#f59e0b" }}>
-              <p className="text-sm" style={{ color: "#92400e" }}>
-                <strong>Important Legal Notice:</strong> Legal information and resources only, not legal advice. Legal information you provide could be discoverable. For more details, see our{" "}
-                <button type="button" className="underline hover:no-underline" onClick={() => setView("privacy")}>
+            {/* Section 4: Trust signals */}
+            <div className="home-cover__trust">
+              <div className="home-cover__trust-item">
+                <Shield className="home-cover__trust-icon" aria-hidden />
+                <span>100% free for Illinois residents</span>
+              </div>
+              <div className="home-cover__trust-item">
+                <Lock className="home-cover__trust-icon" aria-hidden />
+                <span>Your information stays private</span>
+              </div>
+              <div className="home-cover__trust-item">
+                <Clock className="home-cover__trust-icon" aria-hidden />
+                <span>No appointment needed</span>
+              </div>
+            </div>
+
+            {/* Section 5: Legal notice — text unchanged, style updated */}
+            <div className="home-cover__notice">
+              <p>
+                <span className="home-cover__notice-label">Important Legal Notice: </span>
+                Legal information and resources only, not legal advice. Legal information you provide could be discoverable. For more details, see our{" "}
+                <button type="button" onClick={() => setView("privacy")}>
                   Privacy Notice
                 </button>
                 .
               </p>
             </div>
-          </div>
 
-          {/* Footer links */}
-          <div className="flex flex-wrap items-center justify-between gap-4 text-sm pb-8" style={{ color: "#64748b" }}>
-            <button
-              type="button"
-              className="hover:text-[#1e293b] transition-colors"
-              onClick={() => setView(intakeSaved && intakeId ? "intakeChoice" : "intake")}
-            >
-              Back to start
-            </button>
-            <button
-              type="button"
-              className="hover:text-[#1e293b] transition-colors"
-              onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
-            >
-              Click here to chat with staff
-            </button>
-            <a
-              href={`mailto:${SUPPORT_EMAIL}`}
-              className="hover:text-[#1e293b] transition-colors"
-            >
-              {SUPPORT_EMAIL}
-            </a>
+            {/* Section 6: Browse by legal area (secondary option) */}
+            <section>
+              <p className="home-cover__browse-label">Or browse directly by legal area</p>
+              <div className="home-cover__topic-grid">
+                {topicCards.map((card) => (
+                  <button
+                    key={card.key}
+                    type="button"
+                    className="home-cover__topic-card"
+                    onClick={() => {
+                      const topicId = card.key === "childSupport" ? "child_support" : card.key;
+                      setCurrentTopic(topicId);
+                      startChatFromCover();
+                    }}
+                  >
+                    <span className="home-cover__topic-icon">{card.icon}</span>
+                    <h4 className="home-cover__topic-title">{card.title}</h4>
+                    <p className="home-cover__topic-desc">{card.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {/* Section 7: Footer bar — links unchanged, style updated */}
+            <footer className="home-cover__footer">
+              <button
+                type="button"
+                className="home-cover__footer-link"
+                onClick={() => setView(intakeSaved && intakeId ? "intakeChoice" : "intake")}
+              >
+                Back to start
+              </button>
+              <button
+                type="button"
+                className="home-cover__footer-link"
+                onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
+              >
+                Click here to chat with staff
+              </button>
+              <a
+                href={`mailto:${SUPPORT_EMAIL}`}
+                className="home-cover__footer-email"
+              >
+                {SUPPORT_EMAIL}
+              </a>
+            </footer>
+
           </div>
         </div>
         <EmergencyButton />
