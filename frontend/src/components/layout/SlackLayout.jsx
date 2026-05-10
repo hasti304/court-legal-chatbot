@@ -27,6 +27,7 @@ export default function SlackLayout({
   activeSection = "home",
   activeTopic,
   firstName,
+  lastName,
   intakeSaved,
   topbarTitle,
   topbarMeta,
@@ -45,6 +46,7 @@ export default function SlackLayout({
         activeSection={activeSection}
         activeTopic={activeTopic}
         firstName={firstName}
+        lastName={lastName}
         intakeSaved={intakeSaved}
         onNavigate={onNavigate}
         onTopicSelect={onTopicSelect}

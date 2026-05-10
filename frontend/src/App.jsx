@@ -54,6 +54,9 @@ import ReferralCard from "./components/ReferralCard";
 import ChatMessage from "./components/ChatMessage";
 import CaseSummaryCard from "./components/CaseSummaryCard";
 import { Textarea } from "./components/ui/textarea";
+import DocumentsPage from "./components/DocumentsPage";
+import ResourcesPage from "./components/ResourcesPage";
+import SettingsPage from "./components/SettingsPage";
 
 const AIChat = lazy(() => import("./components/AIChat"));
 const ChatDashboard = lazy(() => import("./components/ChatDashboard"));
@@ -62,6 +65,7 @@ const FIRST_VISIT_KEY = "cal_first_visit_done_v1";
 const INTAKE_ID_KEY = "cal_intake_id_v1";
 const INTAKE_SAVED_KEY = "cal_intake_saved_v1";
 const LARGE_TEXT_KEY = "cal_large_text_v1";
+const INTAKE_PROFILE_KEY = "cal_intake_profile_v1";
 const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
 
 const SUPPORT_EMAIL = "intake@chicagoadvocatelegal.com";
@@ -359,12 +363,21 @@ function App() {
     () => localStorage.getItem(INTAKE_SAVED_KEY) === "1"
   );
 
-  const [intakeFirstName, setIntakeFirstName] = useState("");
-  const [intakeLastName, setIntakeLastName] = useState("");
-  const [intakeEmail, setIntakeEmail] = useState("");
+  const [intakeFirstName, setIntakeFirstName] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(INTAKE_PROFILE_KEY) || "{}").firstName || ""; } catch { return ""; }
+  });
+  const [intakeLastName, setIntakeLastName] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(INTAKE_PROFILE_KEY) || "{}").lastName || ""; } catch { return ""; }
+  });
+  const [intakeEmail, setIntakeEmail] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(INTAKE_PROFILE_KEY) || "{}").email || ""; } catch { return ""; }
+  });
   const [intakePassword, setIntakePassword] = useState("");
   const [intakePasswordConfirm, setIntakePasswordConfirm] = useState("");
-  const [intakePhone, setIntakePhone] = useState("");
+  const [intakePhone, setIntakePhone] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(INTAKE_PROFILE_KEY) || "{}").phone || ""; } catch { return ""; }
+  });
+  const [sidebarSection, setSidebarSection] = useState(null);
   const [intakeConsent, setIntakeConsent] = useState(false);
 
   const [intakeError, setIntakeError] = useState("");
@@ -964,8 +977,10 @@ function App() {
   const clearSavedIntake = () => {
     setIntakeId("");
     setIntakeSaved(false);
+    setSidebarSection(null);
     localStorage.removeItem(INTAKE_ID_KEY);
     localStorage.removeItem(INTAKE_SAVED_KEY);
+    localStorage.removeItem(INTAKE_PROFILE_KEY);
   };
 
   const completeLogin = (nextIntakeId) => {
@@ -1458,6 +1473,12 @@ function App() {
     setView("cover");
   };
 
+  const handleSidebarNav = (section) => {
+    if (section === "home") { setSidebarSection(null); goToCover(); return; }
+    if (section === "chat") { setSidebarSection(null); startChatFromCover(); return; }
+    setSidebarSection(section);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!userInput.trim() || loading) return;
@@ -1596,6 +1617,12 @@ function App() {
 
       localStorage.setItem(INTAKE_ID_KEY, newId);
       localStorage.setItem(INTAKE_SAVED_KEY, "1");
+      localStorage.setItem(INTAKE_PROFILE_KEY, JSON.stringify({
+        firstName: intakeFirstName.trim(),
+        lastName: intakeLastName.trim(),
+        email: intakeEmail.trim().toLowerCase(),
+        phone: intakePhone.trim(),
+      }));
       setIntakePassword("");
       setIntakePasswordConfirm("");
 
@@ -2597,6 +2624,58 @@ function App() {
     );
   }
 
+  const sharedSidebarProps = {
+    isDark,
+    activeTopic: currentTopic,
+    firstName: intakeFirstName,
+    lastName: intakeLastName,
+    intakeSaved,
+    canGoBack: false,
+    onNavigate: handleSidebarNav,
+    onTopicSelect: (topicId) => setCurrentTopic(topicId),
+    onStartChat: startChatFromCover,
+    onSignOut: () => { clearSavedIntake(); setView("login"); },
+    onBack: () => {},
+    topbarExtras: <ThemeToggle />,
+  };
+
+  if (sidebarSection === "files") {
+    return (
+      <SlackLayout {...sharedSidebarProps} activeSection="files" topbarTitle="My Documents">
+        <DocumentsPage intakeId={intakeId} />
+      </SlackLayout>
+    );
+  }
+
+  if (sidebarSection === "resources") {
+    return (
+      <SlackLayout {...sharedSidebarProps} activeSection="resources" topbarTitle="Legal Resources">
+        <ResourcesPage
+          messages={messages}
+          conversationState={conversationState}
+          userEmail={intakeEmail}
+          onStartConsultation={() => handleSidebarNav("chat")}
+        />
+      </SlackLayout>
+    );
+  }
+
+  if (sidebarSection === "settings") {
+    return (
+      <SlackLayout {...sharedSidebarProps} activeSection="settings" topbarTitle="Settings">
+        <SettingsPage
+          firstName={intakeFirstName}
+          lastName={intakeLastName}
+          email={intakeEmail}
+          phone={intakePhone}
+          onFirstNameChange={setIntakeFirstName}
+          onLastNameChange={setIntakeLastName}
+          onPhoneChange={setIntakePhone}
+        />
+      </SlackLayout>
+    );
+  }
+
   if (!showChat || view === "cover") {
     return (
       <SlackLayout
@@ -2604,12 +2683,11 @@ function App() {
         activeSection="home"
         activeTopic={currentTopic}
         firstName={intakeFirstName}
+        lastName={intakeLastName}
         intakeSaved={intakeSaved}
         topbarTitle=""
         canGoBack={false}
-        onNavigate={(section) => {
-          if (section === "chat") startChatFromCover();
-        }}
+        onNavigate={handleSidebarNav}
         onTopicSelect={(topicId) => {
           setCurrentTopic(topicId);
           startChatFromCover();
@@ -2833,13 +2911,12 @@ function App() {
       activeSection="chat"
       activeTopic={currentTopic}
       firstName={intakeFirstName}
+      lastName={intakeLastName}
       intakeSaved={intakeSaved}
       topbarTitle="Legal Consultation"
       topbarMeta={messages.length > 0 ? `Step ${progressCurrent} of ${progressTotal}` : ""}
       canGoBack={conversationHistory.length > 1}
-      onNavigate={(section) => {
-        if (section === "home") goToCover();
-      }}
+      onNavigate={handleSidebarNav}
       onTopicSelect={(topicId) => setCurrentTopic(topicId)}
       onStartChat={startChatFromCover}
       onSignOut={() => {
@@ -2848,25 +2925,12 @@ function App() {
         setView("login");
       }}
       onBack={handleBack}
-      topbarExtras={
-        <>
-          <LanguagePicker variant={lpVariant} />
-          <button
-            type="button"
-            className="text-sm font-medium hover:underline"
-            style={{ color: "#2563eb" }}
-            onClick={() => goToCover()}
-          >
-            Select Topic
-          </button>
-        </>
-      }
+      topbarExtras={<LanguagePicker variant={lpVariant} />}
     >
       {messages.length > 0 && conversationState?.step !== "complete" && (
         <div className="px-4 py-2 border-b border-border bg-background/95 shrink-0">
-          <div className="flex items-center justify-between mb-1.5 text-xs text-muted-foreground">
+          <div className="flex items-center mb-1.5 text-xs text-muted-foreground">
             <span>{t("progress.stepOf", { current: progressCurrent, total: progressTotal })}</span>
-            <span>{progressLabel}</span>
           </div>
           <div className="h-1.5 bg-muted rounded-full overflow-hidden">
             <div

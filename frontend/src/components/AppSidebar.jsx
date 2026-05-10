@@ -49,6 +49,7 @@ export default function AppSidebar({
   activeSection,
   activeTopic,
   firstName,
+  lastName,
   intakeSaved,
   onNavigate,
   onTopicSelect,
@@ -56,7 +57,12 @@ export default function AppSidebar({
   onSignOut,
 }) {
   const recentSessions = useMemo(getRecentSessions, []);
-  const initial = firstName ? firstName.charAt(0).toUpperCase() : "U";
+  const fullName = [firstName, lastName].filter(Boolean).join(" ");
+  const initial = firstName && lastName
+    ? (firstName.charAt(0) + lastName.charAt(0)).toUpperCase()
+    : firstName
+      ? firstName.charAt(0).toUpperCase()
+      : "U";
 
   return (
     <aside
@@ -194,13 +200,13 @@ export default function AppSidebar({
             </Avatar>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold leading-none truncate" style={{ color: "#ffffff" }}>
-                {firstName || "Guest"}
+                {fullName || "Guest"}
               </p>
               {intakeSaved ? (
                 <p className="text-[10px] mt-0.5 font-medium" style={{ color: GOLD }}>
                   Active session
                 </p>
-              ) : (
+              ) : fullName ? null : (
                 <Badge
                   variant="secondary"
                   className="text-[10px] px-1.5 py-0 mt-0.5 h-auto leading-none font-medium"
