@@ -1,0 +1,370 @@
+/* ======================================================
+   Home Cover Page — navy/gold brand redesign
+   ====================================================== */
+
+.home-cover {
+  background: #F4F5F7;
+  min-height: 100%;
+  width: 100%;
+}
+
+.home-cover__inner {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 32px 32px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+/* Language selector */
+.home-cover__lang {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ── Section 1: Hero ───────────────────────────────────── */
+
+.home-cover__hero {
+  text-align: center;
+  padding-top: 8px;
+}
+
+.home-cover__headline {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1A1A1A;
+  margin: 0 0 14px;
+  line-height: 1.3;
+}
+
+.home-cover__subtext {
+  font-size: 1rem;
+  color: #6B7280;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ── Section 2: How it works ───────────────────────────── */
+
+.home-cover__steps-row {
+  display: flex;
+  align-items: stretch;
+}
+
+.home-cover__step-card {
+  background: #FFFFFF;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  padding: 28px 20px 24px;
+  text-align: center;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.home-cover__step-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #C9A84C;
+  color: #1A1A1A;
+  font-weight: 700;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.home-cover__step-title {
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: #1A1A1A;
+  margin: 0;
+}
+
+.home-cover__step-desc {
+  font-size: 0.85rem;
+  color: #374151;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.home-cover__step-connector {
+  flex-shrink: 0;
+  width: 36px;
+  height: 2px;
+  background: #C9A84C;
+  opacity: 0.45;
+  align-self: center;
+}
+
+/* ── Section 3: CTA ────────────────────────────────────── */
+
+.home-cover__cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.home-cover__get-started-btn {
+  background: #C9A84C;
+  color: #1A1A1A;
+  font-weight: 700;
+  font-size: 1rem;
+  border: none;
+  border-radius: 8px;
+  padding: 14px 48px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.home-cover__get-started-btn:hover:not(:disabled) {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.home-cover__get-started-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.home-cover__resume-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.home-cover__secondary-btn {
+  background: transparent;
+  color: #C9A84C;
+  font-weight: 600;
+  font-size: 1rem;
+  border: 2px solid #C9A84C;
+  border-radius: 8px;
+  padding: 12px 32px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.home-cover__secondary-btn:hover:not(:disabled) {
+  background: rgba(201, 168, 76, 0.08);
+}
+
+.home-cover__secondary-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.home-cover__cta-caption {
+  font-size: 0.8rem;
+  color: #6B7280;
+  margin: 0;
+}
+
+/* ── Section 4: Trust signals ──────────────────────────── */
+
+.home-cover__trust {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 36px;
+  flex-wrap: wrap;
+}
+
+.home-cover__trust-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #374151;
+}
+
+.home-cover__trust-icon {
+  color: #C9A84C;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+/* ── Section 5: Legal notice ───────────────────────────── */
+
+.home-cover__notice {
+  background: #FFFFFF;
+  border-left: 4px solid #C9A84C;
+  border-radius: 8px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.home-cover__notice p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #374151;
+  line-height: 1.65;
+}
+
+.home-cover__notice-label {
+  color: #C9A84C;
+  font-weight: 700;
+}
+
+.home-cover__notice button {
+  color: #C9A84C;
+  text-decoration: underline;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.home-cover__notice button:hover {
+  text-decoration: none;
+}
+
+/* ── Section 6: Browse by legal area ───────────────────── */
+
+.home-cover__browse-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #6B7280;
+  margin: 0 0 16px;
+}
+
+.home-cover__topic-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.home-cover__topic-card {
+  background: #FFFFFF;
+  border-radius: 12px;
+  border: 1px solid #E5E7EB;
+  padding: 22px 20px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  font-family: inherit;
+  width: 100%;
+}
+
+.home-cover__topic-card:hover {
+  border-color: #C9A84C;
+  box-shadow: 0 4px 14px rgba(201, 168, 76, 0.14);
+}
+
+.home-cover__topic-icon {
+  color: #C9A84C;
+  font-size: 1.4rem;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.home-cover__topic-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #1A1A1A;
+  margin: 0 0 6px;
+}
+
+.home-cover__topic-desc {
+  font-size: 0.8rem;
+  color: #6B7280;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Section 7: Footer bar ─────────────────────────────── */
+
+.home-cover__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 0 36px;
+  border-top: 1px solid #E5E7EB;
+  font-size: 0.875rem;
+  background: #F4F5F7;
+}
+
+.home-cover__footer-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #374151;
+  font-size: 0.875rem;
+  font-family: inherit;
+  transition: color 0.12s;
+}
+
+.home-cover__footer-link:hover {
+  color: #C9A84C;
+}
+
+.home-cover__footer-email {
+  color: #374151;
+  text-decoration: none;
+  transition: color 0.12s;
+}
+
+.home-cover__footer-email:hover {
+  color: #C9A84C;
+}
+
+/* ── Responsive ────────────────────────────────────────── */
+
+@media (max-width: 720px) {
+  .home-cover__inner {
+    padding: 24px 20px 0;
+    gap: 32px;
+  }
+
+  .home-cover__headline {
+    font-size: 1.4rem;
+  }
+
+  .home-cover__steps-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .home-cover__step-connector {
+    width: 2px;
+    height: 20px;
+    align-self: center;
+  }
+
+  .home-cover__topic-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .home-cover__trust {
+    gap: 18px;
+  }
+
+  .home-cover__footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .home-cover__topic-grid {
+    grid-template-columns: 1fr;
+  }
+}
