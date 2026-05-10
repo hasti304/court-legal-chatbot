@@ -117,7 +117,12 @@ function initialAuthView() {
 function fetchWithTimeout(url, options = {}, timeout = DEFAULT_FETCH_TIMEOUT_MS) {
   const target = typeof url === "string" ? rewriteLegacyRenderFetchUrl(url) : url;
   return Promise.race([
-    fetch(target, options),
+    fetch(target, options).then((res) => {
+      if (res.status === 401) {
+        window.dispatchEvent(new CustomEvent("cal:session-expired"));
+      }
+      return res;
+    }),
     new Promise((_, reject) =>
       setTimeout(() => reject(new Error("Request timeout")), timeout)
     ),
@@ -758,6 +763,15 @@ function App() {
       window.removeEventListener("click", reset);
     };
   }, [view, intakeSaved, intakeId]);
+
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      clearSavedIntake();
+      setView("login");
+    };
+    window.addEventListener("cal:session-expired", handleSessionExpired);
+    return () => window.removeEventListener("cal:session-expired", handleSessionExpired);
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -2770,6 +2784,16 @@ function App() {
           onFirstNameChange={setIntakeFirstName}
           onLastNameChange={setIntakeLastName}
           onPhoneChange={setIntakePhone}
+          intakeId={intakeId}
+          onAccountDeleted={() => {
+            localStorage.clear();
+            clearSavedIntake();
+            setView("login");
+          }}
+          onSessionExpired={() => {
+            clearSavedIntake();
+            setView("login");
+          }}
         />
       </SlackLayout>
     );

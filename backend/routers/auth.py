@@ -1,6 +1,7 @@
 import os
 
 from fastapi import APIRouter, Depends, Header, HTTPException
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 try:
@@ -101,6 +102,40 @@ def email_test(x_admin_key: str = Header(None)):
         return {"status": "ok", "sent_to": to, "provider": provider}
     return {"status": "failed", "sent_to": to, "provider": provider,
             "hint": "Check Render logs for the exact SMTP/Resend error."}
+
+
+@router.delete("/auth/account")
+def delete_account(x_intake_id: str = Header(None), db: Session = Depends(get_db)):
+    intake_id = (x_intake_id or "").strip()
+    if not intake_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    try:
+        from ..models.intake import Intake
+        from ..models.magic_link import MagicLinkToken
+        from ..models.password_reset import PasswordResetToken
+    except ImportError:
+        from models.intake import Intake  # type: ignore
+        from models.magic_link import MagicLinkToken  # type: ignore
+        from models.password_reset import PasswordResetToken  # type: ignore
+
+    try:
+        intake = db.query(Intake).filter(Intake.id == intake_id).first()
+        if not intake:
+            raise HTTPException(status_code=401, detail="Invalid session")
+
+        email = intake.email
+        db.query(MagicLinkToken).filter(MagicLinkToken.email == email).delete()
+        db.query(PasswordResetToken).filter(PasswordResetToken.email == email).delete()
+        db.delete(intake)
+        db.commit()
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+    return {"status": "deleted"}
 
 
 @router.get("/auth/config-status")

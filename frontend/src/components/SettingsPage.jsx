@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Eye, EyeOff, User, Lock, Sliders, AlertTriangle } from "lucide-react";
 import { setAppLanguage, getNormalizedLanguage } from "../i18n";
+import { getApiBaseUrl } from "../utils/apiBase";
 
 const GOLD = "#C9A84C";
 const PREF_LANG_KEY = "cal_pref_language_v1";
@@ -138,6 +139,7 @@ function SectionCard({ icon: Icon, title, children }) {
 export default function SettingsPage({
   firstName, lastName, email, phone,
   onFirstNameChange, onLastNameChange, onPhoneChange,
+  intakeId, onAccountDeleted, onSessionExpired,
 }) {
   // Profile section
   const [profileFirst, setProfileFirst] = useState(firstName || "");
@@ -173,6 +175,8 @@ export default function SettingsPage({
 
   // Danger zone
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   // Toast
   const [toast, setToast] = useState("");
@@ -213,6 +217,40 @@ export default function SettingsPage({
     const updated = { ...notifPrefs, [key]: value };
     setNotifPrefs(updated);
     saveNotifPrefs(updated);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!intakeId) {
+      if (onSessionExpired) onSessionExpired();
+      return;
+    }
+    setDeleteLoading(true);
+    setDeleteError("");
+    try {
+      const res = await fetch(`${getApiBaseUrl()}/auth/account`, {
+        method: "DELETE",
+        headers: { "X-Intake-Id": intakeId },
+      });
+      if (res.ok) {
+        showToast("Your account has been deleted");
+        setTimeout(() => {
+          if (onAccountDeleted) onAccountDeleted();
+        }, 1200);
+        return;
+      }
+      if (res.status === 401) {
+        setDeleteError("Session expired. Please sign in again.");
+        setTimeout(() => {
+          if (onSessionExpired) onSessionExpired();
+        }, 1500);
+        return;
+      }
+      setDeleteError("Failed to delete account. Please contact intake@chicagoadvocatelegal.com");
+    } catch {
+      setDeleteError("Failed to delete account. Please contact intake@chicagoadvocatelegal.com");
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const newPwInlineError = newPwTouched && newPw.length > 0 && newPw.length < 8
@@ -446,38 +484,37 @@ export default function SettingsPage({
             <p style={{ fontSize: 14, color: "#6B7280", marginBottom: 24, lineHeight: 1.6 }}>
               This will permanently delete your account and all your data. This cannot be undone.
             </p>
-            <p style={{ fontSize: 14, color: "#374151", marginBottom: 24, lineHeight: 1.6 }}>
-              Account deletion coming soon. Please contact{" "}
-              <a
-                href="mailto:intake@chicagoadvocatelegal.com"
-                style={{ color: GOLD, fontWeight: 600 }}
-              >
-                intake@chicagoadvocatelegal.com
-              </a>{" "}
-              to request deletion.
-            </p>
+            {deleteError && (
+              <p style={{ fontSize: 14, color: "#DC2626", marginBottom: 16, lineHeight: 1.5 }}>
+                {deleteError}
+              </p>
+            )}
             <div style={{ display: "flex", gap: 12 }}>
               <button
                 type="button"
-                onClick={() => setShowDeleteModal(false)}
+                onClick={() => { setShowDeleteModal(false); setDeleteError(""); }}
+                disabled={deleteLoading}
                 style={{
                   flex: 1, background: "#FFFFFF", border: `1px solid ${GOLD}`,
                   color: GOLD, fontWeight: 700, borderRadius: 8,
-                  padding: "10px 16px", cursor: "pointer", fontSize: 14,
+                  padding: "10px 16px", cursor: deleteLoading ? "not-allowed" : "pointer", fontSize: 14,
+                  opacity: deleteLoading ? 0.6 : 1,
                 }}
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={() => setShowDeleteModal(false)}
+                onClick={handleDeleteAccount}
+                disabled={deleteLoading}
                 style={{
                   flex: 1, background: "#DC2626", border: "none",
                   color: "#FFFFFF", fontWeight: 700, borderRadius: 8,
-                  padding: "10px 16px", cursor: "pointer", fontSize: 14,
+                  padding: "10px 16px", cursor: deleteLoading ? "not-allowed" : "pointer", fontSize: 14,
+                  opacity: deleteLoading ? 0.7 : 1,
                 }}
               >
-                Yes, delete my account
+                {deleteLoading ? "Deleting…" : "Yes, delete my account"}
               </button>
             </div>
           </div>
