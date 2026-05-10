@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Home,
   FolderOpen,
@@ -9,6 +9,8 @@ import {
   Hash,
   BookOpen,
   Phone,
+  Mail,
+  X,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
@@ -57,6 +59,7 @@ export default function AppSidebar({
   onSignOut,
 }) {
   const recentSessions = useMemo(getRecentSessions, []);
+  const [showSupport, setShowSupport] = useState(false);
   const fullName = [firstName, lastName].filter(Boolean).join(" ");
   const initial = firstName && lastName
     ? (firstName.charAt(0) + lastName.charAt(0)).toUpperCase()
@@ -65,6 +68,7 @@ export default function AppSidebar({
       : "U";
 
   return (
+    <>
     <aside
       className="w-64 shrink-0 flex flex-col h-full"
       style={{ background: SIDEBAR_BG, borderRight: "1px solid rgba(255,255,255,0.08)" }}
@@ -175,6 +179,7 @@ export default function AppSidebar({
         {activeSection === "home" ? (
           <button
             type="button"
+            onClick={() => setShowSupport(true)}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
             style={{ background: SIDEBAR_BG, color: "#ffffff", border: `1px solid ${GOLD}` }}
             onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(201,168,76,0.10)")}
@@ -231,5 +236,99 @@ export default function AppSidebar({
         )}
       </div>
     </aside>
+
+    {showSupport && (
+      <div
+        style={{
+          position: "fixed", inset: 0,
+          background: "rgba(0,0,0,0.55)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 9999, padding: 24,
+        }}
+        onClick={() => setShowSupport(false)}
+      >
+        <div
+          style={{
+            background: "#FFFFFF", borderRadius: 12,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.20)",
+            padding: 32, maxWidth: 440, width: "100%",
+            position: "relative",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={() => setShowSupport(false)}
+            style={{
+              position: "absolute", top: 16, right: 16,
+              background: "none", border: "none", cursor: "pointer",
+              color: "#6B7280", padding: 4,
+            }}
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1B2A4A", marginBottom: 8, marginTop: 0 }}>
+            Need Help?
+          </h2>
+          <p style={{ color: "#6B7280", fontSize: 14, marginBottom: 24, lineHeight: 1.6 }}>
+            Our staff is here to assist you with your legal questions.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 24 }}>
+            <a
+              href="tel:3128015918"
+              style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "#1A1A1A" }}
+            >
+              <Phone className="w-4 h-4 shrink-0" style={{ color: GOLD }} />
+              <span style={{ fontSize: 15, fontWeight: 500 }}>(312) 801-5918</span>
+            </a>
+            <a
+              href="mailto:intake@chicagoadvocatelegal.com"
+              style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "#1A1A1A" }}
+            >
+              <Mail className="w-4 h-4 shrink-0" style={{ color: GOLD }} />
+              <span style={{ fontSize: 15, fontWeight: 500 }}>intake@chicagoadvocatelegal.com</span>
+            </a>
+          </div>
+          <a
+            href="https://www.chicagoadvocatelegal.com/contact.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "block", textAlign: "center",
+              color: GOLD, fontWeight: 700, fontSize: 14,
+              marginBottom: 12, textDecoration: "none",
+            }}
+          >
+            Direct Intake Form
+          </a>
+          <button
+            type="button"
+            onClick={() => { setShowSupport(false); if (onStartChat) onStartChat(); }}
+            style={{
+              width: "100%", background: GOLD, color: "#1A1A1A",
+              fontWeight: 700, borderRadius: 8, padding: "11px 0",
+              border: "none", cursor: "pointer", fontSize: 14,
+              marginBottom: 10,
+            }}
+          >
+            Chat with AI Assistant
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowSupport(false)}
+            style={{
+              width: "100%", background: "transparent",
+              border: `1px solid ${GOLD}`, color: GOLD,
+              fontWeight: 700, borderRadius: 8, padding: "11px 0",
+              cursor: "pointer", fontSize: 14,
+            }}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

@@ -80,18 +80,6 @@ const EmergencyButton = () => {
     }
   };
 
-  const getDiscreetUrl = () => {
-    const url = new URL(window.location.href);
-    url.searchParams.set("mode", "discreet");
-    return url.toString();
-  };
-
-  const getRegularUrl = () => {
-    const url = new URL(window.location.href);
-    url.searchParams.delete("mode");
-    return url.toString();
-  };
-
   const toTelHref = (phone) => {
     const digits = String(phone || "").replace(/[^0-9]/g, "");
     return `tel:${digits}`;
@@ -166,15 +154,6 @@ const EmergencyButton = () => {
                 <strong>{t("emergency.safetyNoteTitle")}</strong>
                 <span>{t("emergency.safetyNoteText")}</span>
                 <span>{t("emergency.installHint")}</span>
-
-                <div className="discreet-install-actions">
-                  <a className="discreet-link-button" href={getDiscreetUrl()}>
-                    {t("emergency.installDiscreet")}
-                  </a>
-                  <a className="discreet-link-button discreet-link-secondary" href={getRegularUrl()}>
-                    {t("emergency.installRegular")}
-                  </a>
-                </div>
 
                 <button
                   className="quick-exit-button"

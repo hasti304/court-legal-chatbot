@@ -92,7 +92,7 @@ def login_with_password(payload, db: Session) -> dict:
 
     record_navigator_sign_in(intake.id, db)
 
-    return {"intake_id": intake.id, "email": intake.email}
+    return {"intake_id": intake.id, "email": intake.email, "first_name": getattr(intake, "first_name", "") or "", "last_name": getattr(intake, "last_name", "") or ""}
 
 
 def request_password_reset(payload, db: Session) -> dict:

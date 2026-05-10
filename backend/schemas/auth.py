@@ -32,6 +32,8 @@ class MagicLinkVerifyBody(BaseModel):
 class MagicLinkVerifyResponse(BaseModel):
     intake_id: str
     email: str
+    first_name: str = ""
+    last_name: str = ""
 
 
 class PasswordLoginBody(BaseModel):
@@ -51,6 +53,8 @@ class PasswordLoginBody(BaseModel):
 class PasswordLoginResponse(BaseModel):
     intake_id: str
     email: str
+    first_name: str = ""
+    last_name: str = ""
 
 
 class PasswordForgotBody(BaseModel):

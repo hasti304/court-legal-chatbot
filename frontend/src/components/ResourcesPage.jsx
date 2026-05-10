@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { BookOpen, Phone, ExternalLink, MapPin, Bookmark, Search } from "lucide-react";
 import { getApiBaseUrl } from "../utils/apiBase";
+import { useTranslation } from "react-i18next";
+import { printReferralsSummary } from "../utils/printReferrals";
 
 const GOLD = "#C9A84C";
 const BOOKMARKS_KEY = "cal_resource_bookmarks_v1";
@@ -195,7 +197,8 @@ function resourceMatchesCaseType(resource, filter) {
   return types.some((t) => t.includes(filter)) || cat.includes(filter);
 }
 
-export default function ResourcesPage({ messages, conversationState, userEmail, onStartConsultation }) {
+export default function ResourcesPage({ messages, conversationState, userEmail, savedReferrals = [], onStartConsultation }) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("matched");
   const [matchedFilter, setMatchedFilter] = useState("");
   const [allFilter, setAllFilter] = useState("");
@@ -204,21 +207,18 @@ export default function ResourcesPage({ messages, conversationState, userEmail, 
   const [allError, setAllError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Collect unique referrals from all messages
+  // Collect unique referrals from all messages and savedReferrals
   const matchedReferrals = useMemo(() => {
     const seen = new Set();
     const result = [];
-    for (const msg of (messages || [])) {
-      for (const ref of (msg.referrals || [])) {
-        const key = String(ref.name || ref.id || JSON.stringify(ref));
-        if (!seen.has(key)) {
-          seen.add(key);
-          result.push(ref);
-        }
-      }
-    }
+    const addRef = (ref) => {
+      const key = String(ref.name || ref.id || JSON.stringify(ref));
+      if (!seen.has(key)) { seen.add(key); result.push(ref); }
+    };
+    for (const msg of (messages || [])) { for (const ref of (msg.referrals || [])) addRef(ref); }
+    for (const ref of (savedReferrals || [])) addRef(ref);
     return result;
-  }, [messages]);
+  }, [messages, savedReferrals]);
 
   const topic = conversationState?.topic || conversationState?.category || "";
   const zip = conversationState?.zip_code || "";
@@ -301,6 +301,21 @@ export default function ResourcesPage({ messages, conversationState, userEmail, 
 
         {activeTab === "matched" && (
           <div>
+            {matchedReferrals.length > 0 && (
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+                <button
+                  type="button"
+                  onClick={() => printReferralsSummary({ referrals: filteredMatched, topicLabel, zipCode: zip, t })}
+                  style={{
+                    background: "transparent", border: `1px solid ${GOLD}`,
+                    color: GOLD, fontWeight: 700, borderRadius: 8,
+                    padding: "7px 16px", cursor: "pointer", fontSize: 13,
+                  }}
+                >
+                  Print my resource list
+                </button>
+              </div>
+            )}
             <FilterBar active={matchedFilter} onChange={setMatchedFilter} />
 
             {matchedReferrals.length === 0 ? (

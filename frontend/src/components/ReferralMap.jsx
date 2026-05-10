@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaf
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { fetchZipCentroidOnce, haversineMiles } from "../utils/geoZip";
+import { MapPin } from "lucide-react";
 
 function FitBounds({ bounds }) {
   const map = useMap();
@@ -63,16 +64,37 @@ export default function ReferralMap({ referral, userZip, t }) {
   }, [referral?.name, userZip, zipOk]);
 
   if (officeLat == null || officeLng == null) {
+    const refUrl = referral?.url || "";
+    const refPhone = referral?.phone || "";
     return (
-      <div className="referral-map-fallback">
-        <a
-          href={directionsUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="referral-map-link"
-        >
-          {t("chat.referralMapDirectionsOnly")}
-        </a>
+      <div style={{
+        background: "#F4F5F7", borderRadius: 8, padding: 16,
+        textAlign: "center", marginTop: 4,
+      }}>
+        <MapPin style={{ color: "#C9A84C", width: 22, height: 22, margin: "0 auto 8px", display: "block" }} />
+        <p style={{ color: "#6B7280", fontSize: 13, margin: "0 0 10px", lineHeight: 1.5 }}>
+          This organization serves Illinois statewide. No specific office location available.
+        </p>
+        {refPhone && (
+          <p style={{ fontSize: 13, color: "#374151", marginBottom: 6 }}>
+            <span style={{ marginRight: 6 }}>📞</span>{refPhone}
+          </p>
+        )}
+        {refUrl && (
+          <a
+            href={refUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-block",
+              border: "1px solid #C9A84C", color: "#C9A84C",
+              borderRadius: 8, padding: "6px 16px",
+              fontSize: 13, fontWeight: 600, textDecoration: "none",
+            }}
+          >
+            Visit Website
+          </a>
+        )}
       </div>
     );
   }

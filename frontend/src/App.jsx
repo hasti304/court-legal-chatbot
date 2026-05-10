@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense, useMemo } from "react";
 import {
   FaPaperPlane,
   FaRedo,
@@ -57,6 +57,7 @@ import { Textarea } from "./components/ui/textarea";
 import DocumentsPage from "./components/DocumentsPage";
 import ResourcesPage from "./components/ResourcesPage";
 import SettingsPage from "./components/SettingsPage";
+import MyCasesPage, { saveCaseToStorage } from "./components/MyCasesPage";
 
 const AIChat = lazy(() => import("./components/AIChat"));
 const ChatDashboard = lazy(() => import("./components/ChatDashboard"));
@@ -66,6 +67,7 @@ const INTAKE_ID_KEY = "cal_intake_id_v1";
 const INTAKE_SAVED_KEY = "cal_intake_saved_v1";
 const LARGE_TEXT_KEY = "cal_large_text_v1";
 const INTAKE_PROFILE_KEY = "cal_intake_profile_v1";
+const SAVED_REFERRALS_KEY = "cal_saved_referrals_v1";
 const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
 
 const SUPPORT_EMAIL = "intake@chicagoadvocatelegal.com";
@@ -649,7 +651,7 @@ function App() {
       stripMagicTokenFromLocation();
       setMagicTokenPending("");
       __magicLinkAutoVerifyToken = "";
-      completeLogin(data.intake_id);
+      completeLogin(data);
     } catch (err) {
       setMagicVerifyError(
         err?.message && String(err.message).trim().length > 0
@@ -983,12 +985,25 @@ function App() {
     localStorage.removeItem(INTAKE_PROFILE_KEY);
   };
 
-  const completeLogin = (nextIntakeId) => {
-    const safeId = String(nextIntakeId || "").trim();
+  const completeLogin = (data) => {
+    const safeId = String(data?.intake_id || data || "").trim();
     if (!safeId) return;
     localStorage.setItem(INTAKE_ID_KEY, safeId);
     localStorage.setItem(INTAKE_SAVED_KEY, "1");
     localStorage.setItem(FIRST_VISIT_KEY, "1");
+    if (data && typeof data === "object" && (data.first_name || data.last_name || data.email)) {
+      let existing = {};
+      try { existing = JSON.parse(localStorage.getItem(INTAKE_PROFILE_KEY) || "{}"); } catch {}
+      localStorage.setItem(INTAKE_PROFILE_KEY, JSON.stringify({
+        ...existing,
+        firstName: data.first_name || existing.firstName || "",
+        lastName: data.last_name || existing.lastName || "",
+        email: data.email || existing.email || "",
+      }));
+      if (data.first_name) setIntakeFirstName(data.first_name);
+      if (data.last_name) setIntakeLastName(data.last_name);
+      if (data.email) setIntakeEmail(data.email);
+    }
     setIntakeId(safeId);
     setIntakeSaved(true);
     setShowChat(false);
@@ -1025,7 +1040,7 @@ function App() {
       if (!res.ok) {
         throw new Error(data?.detail ? String(data.detail) : t("login.passwordLoginFailed"));
       }
-      completeLogin(data.intake_id);
+      completeLogin(data);
       setLoginPassword("");
       setPasswordResetNotice("");
     } catch (err) {
@@ -1244,6 +1259,54 @@ function App() {
       }
     };
   }, [intakeSaved, intakeId]);
+
+  // Save current session to case history whenever messages or conversationState changes
+  useEffect(() => {
+    if (!showChat || !conversationState?.topic) return;
+    const referrals = [];
+    for (const msg of messages) {
+      if (Array.isArray(msg.referrals)) {
+        for (const r of msg.referrals) { if (!referrals.find((x) => x.name === r.name)) referrals.push(r); }
+      }
+    }
+    const sessionId = intakeId ? `case_${intakeId}` : `case_${Date.now()}`;
+    saveCaseToStorage({
+      id: sessionId,
+      topic: conversationState.topic,
+      date: conversationState.started_at || new Date().toISOString(),
+      status: conversationState.step === "complete" ? "complete" : "in_progress",
+      riskScore: conversationState.risk_score ?? null,
+      referrals,
+    });
+  }, [showChat, conversationState, messages, intakeId]);
+
+  // Save referrals from messages to localStorage
+  useEffect(() => {
+    if (!intakeId) return;
+    const referrals = [];
+    const topicVal = conversationState?.topic || "";
+    for (const msg of messages) {
+      if (Array.isArray(msg.referrals)) {
+        for (const r of msg.referrals) {
+          if (!referrals.find((x) => x.name === r.name)) referrals.push({ ...r, _topic: topicVal });
+        }
+      }
+    }
+    if (referrals.length === 0) return;
+    try {
+      const all = JSON.parse(localStorage.getItem(SAVED_REFERRALS_KEY) || "{}");
+      all[intakeId] = referrals;
+      localStorage.setItem(SAVED_REFERRALS_KEY, JSON.stringify(all));
+    } catch {}
+  }, [messages, intakeId, conversationState?.topic]);
+
+  const savedReferrals = useMemo(() => {
+    if (!intakeId) return [];
+    try {
+      const all = JSON.parse(localStorage.getItem(SAVED_REFERRALS_KEY) || "{}");
+      return Array.isArray(all[intakeId]) ? all[intakeId] : [];
+    } catch { return []; }
+  }, [intakeId, sidebarSection]);
 
   const quickExit = () => {
     try {
@@ -1475,7 +1538,7 @@ function App() {
 
   const handleSidebarNav = (section) => {
     if (section === "home") { setSidebarSection(null); goToCover(); return; }
-    if (section === "chat") { setSidebarSection(null); startChatFromCover(); return; }
+    if (section === "chat") { setSidebarSection("cases"); return; }
     setSidebarSection(section);
   };
 
@@ -2639,6 +2702,17 @@ function App() {
     topbarExtras: <ThemeToggle />,
   };
 
+  if (sidebarSection === "cases") {
+    return (
+      <SlackLayout {...sharedSidebarProps} activeSection="chat" topbarTitle="My Cases">
+        <MyCasesPage
+          onStartConsultation={() => { setSidebarSection(null); startChatFromCover(); }}
+          onResume={() => { setSidebarSection(null); startChatFromCover(); }}
+        />
+      </SlackLayout>
+    );
+  }
+
   if (sidebarSection === "files") {
     return (
       <SlackLayout {...sharedSidebarProps} activeSection="files" topbarTitle="My Documents">
@@ -2654,6 +2728,7 @@ function App() {
           messages={messages}
           conversationState={conversationState}
           userEmail={intakeEmail}
+          savedReferrals={savedReferrals}
           onStartConsultation={() => handleSidebarNav("chat")}
         />
       </SlackLayout>

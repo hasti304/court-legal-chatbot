@@ -94,7 +94,7 @@
   align-items: center;
   gap: 16px;
   padding: 24px;
-  background: #1e293b;
+  background: #1B2A4A;
   color: #f8fafc;
   border-radius: 16px 16px 0 0;
   border-bottom: 3px solid #991b1b;
@@ -136,12 +136,12 @@
 }
 
 .emergency-warning {
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
-  border-left: 4px solid #991b1b;
-  color: #1e293b;
+  background: #FEE2E2;
+  border: 1px solid #FEE2E2;
+  border-left: 4px solid #DC2626;
+  color: #1f2937;
   padding: 16px;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 1rem;
   font-weight: 700;
   text-align: center;
@@ -162,12 +162,12 @@
   padding: 20px;
   border-radius: 12px;
   border: 1px solid #e2e8f0;
-  border-left: 3px solid #64748b;
+  border-left: 4px solid #C9A84C;
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .emergency-resource-card--urgent {
-  border-left-color: #991b1b;
+  border-left-color: #C9A84C;
 }
 
 .emergency-resource-card:hover {
@@ -198,22 +198,23 @@
   width: 100%;
   box-sizing: border-box;
   padding: 12px 14px;
-  background: #1e293b;
-  color: #f8fafc;
+  background: #C9A84C;
+  color: #1A1A1A;
   text-decoration: none;
   text-align: center;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 0.95rem;
   border-radius: 8px;
   transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .emergency-call-button--urgent {
-  background: #7f1d1d;
+  background: #DC2626;
+  color: #f8fafc;
 }
 
 .emergency-call-button:hover {
-  background: #334155;
+  background: #b8902f;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
 }
 
@@ -233,11 +234,11 @@
 
 /* Safety Notice */
 .emergency-safety-notice {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: #F4F5F7;
+  border-left: 4px solid #C9A84C;
   padding: 16px;
   border-radius: 10px;
-  color: #334155;
+  color: #374151;
   line-height: 1.6;
   display: flex;
   flex-direction: column;
@@ -248,15 +249,16 @@
   display: block;
   font-size: 16px;
   font-weight: 800;
+  color: #C9A84C;
 }
 
 .quick-exit-button {
-  background: #334155;
-  color: #f8fafc;
+  background: #C9A84C;
+  color: #1A1A1A;
   border: none;
   padding: 12px 18px;
   border-radius: 8px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   margin-top: 4px;
   transition: background 0.2s ease;
@@ -267,39 +269,8 @@
   align-self: flex-start;
 }
 
-.discreet-install-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.discreet-link-button {
-  background: #1e40af;
-  color: #fff;
-  text-decoration: none;
-  padding: 10px 14px;
-  border-radius: 8px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.discreet-link-secondary {
-  background: #475569;
-}
-
-.discreet-link-button:hover {
-  opacity: 0.92;
-}
-
-.discreet-link-button:focus {
-  outline: 3px solid rgba(17, 24, 39, 0.18);
-  outline-offset: 3px;
-}
-
 .quick-exit-button:hover {
-  background: #1e293b;
+  background: #b8902f;
 }
 
 .quick-exit-button:focus {
@@ -357,8 +328,7 @@
   }
 
   .quick-exit-button,
-  .emergency-call-button,
-  .discreet-link-button {
+  .emergency-call-button {
     width: 100%;
     justify-content: center;
   }

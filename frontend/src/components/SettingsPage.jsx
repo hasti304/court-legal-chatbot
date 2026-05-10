@@ -177,15 +177,8 @@ export default function SettingsPage({
   const handleSaveProfile = () => {
     try {
       const existing = JSON.parse(localStorage.getItem(INTAKE_PROFILE_KEY) || "{}");
-      localStorage.setItem(INTAKE_PROFILE_KEY, JSON.stringify({
-        ...existing,
-        firstName: profileFirst,
-        lastName: profileLast,
-        phone: profilePhone,
-      }));
+      localStorage.setItem(INTAKE_PROFILE_KEY, JSON.stringify({ ...existing, phone: profilePhone }));
     } catch {}
-    if (onFirstNameChange) onFirstNameChange(profileFirst);
-    if (onLastNameChange) onLastNameChange(profileLast);
     if (onPhoneChange) onPhoneChange(profilePhone);
     showToast("Profile update coming soon");
   };
@@ -237,7 +230,7 @@ export default function SettingsPage({
               <FieldLabel>First name</FieldLabel>
               <TextInput
                 value={profileFirst}
-                onChange={(e) => setProfileFirst(e.target.value)}
+                readOnly
                 placeholder="First name"
               />
             </div>
@@ -245,7 +238,7 @@ export default function SettingsPage({
               <FieldLabel>Last name</FieldLabel>
               <TextInput
                 value={profileLast}
-                onChange={(e) => setProfileLast(e.target.value)}
+                readOnly
                 placeholder="Last name"
               />
             </div>
