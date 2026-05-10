@@ -217,6 +217,10 @@ export default function ResourcesPage({ messages, conversationState, userEmail, 
     };
     for (const msg of (messages || [])) { for (const ref of (msg.referrals || [])) addRef(ref); }
     for (const ref of (savedReferrals || [])) addRef(ref);
+    console.log("[ResourcesPage] userEmail:", userEmail);
+    console.log("[ResourcesPage] savedReferrals prop:", savedReferrals);
+    console.log("[ResourcesPage] referrals from messages:", (messages || []).flatMap((m) => m.referrals || []));
+    console.log("[ResourcesPage] computed matchedReferrals:", result);
     return result;
   }, [messages, savedReferrals]);
 

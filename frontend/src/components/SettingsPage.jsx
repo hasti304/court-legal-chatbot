@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Eye, EyeOff, User, Lock, Sliders, AlertTriangle } from "lucide-react";
 import { setAppLanguage, getNormalizedLanguage } from "../i18n";
 
@@ -163,6 +163,13 @@ export default function SettingsPage({
   });
   const [notifPrefs, setNotifPrefs] = useState(() => loadNotifPrefs());
   const [prefStatus, setPrefStatus] = useState("");
+
+  // Sync form state when props change (handles case where props become available after mount)
+  useEffect(() => {
+    if (firstName) setProfileFirst(firstName);
+    if (lastName) setProfileLast(lastName);
+    if (phone) setProfilePhone(phone);
+  }, [firstName, lastName, phone]);
 
   // Danger zone
   const [showDeleteModal, setShowDeleteModal] = useState(false);

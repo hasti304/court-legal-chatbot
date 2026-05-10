@@ -114,13 +114,19 @@ export function saveCaseToStorage(caseData) {
   } catch {}
 }
 
-export default function MyCasesPage({ onStartConsultation, onResume }) {
+export default function MyCasesPage({ intakeId, onStartConsultation, onResume }) {
   const [cases, setCases] = useState([]);
   const [detailCase, setDetailCase] = useState(null);
 
   useEffect(() => {
-    setCases(loadCasesFromStorage());
-  }, []);
+    console.log("[MyCasesPage] intakeId:", intakeId);
+    console.log("[MyCasesPage] localStorage key:", CASES_KEY);
+    const raw = localStorage.getItem(CASES_KEY);
+    console.log("[MyCasesPage] raw localStorage data:", raw);
+    const loaded = loadCasesFromStorage();
+    console.log("[MyCasesPage] parsed cases:", loaded);
+    setCases(loaded);
+  }, [intakeId]);
 
   if (cases.length === 0) {
     return (

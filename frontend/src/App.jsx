@@ -381,6 +381,7 @@ function App() {
   });
   const [sidebarSection, setSidebarSection] = useState(null);
   const [intakeConsent, setIntakeConsent] = useState(false);
+  const chatSessionIdRef = useRef(null);
 
   const [intakeError, setIntakeError] = useState("");
   const [intakeSubmitPhase, setIntakeSubmitPhase] = useState("idle");
@@ -569,6 +570,23 @@ function App() {
       }
     };
   }, [speechSupported]);
+
+  // BUG 1: Re-sync profile state from localStorage when intakeId becomes available
+  useEffect(() => {
+    if (!intakeId) return;
+    try {
+      const p = JSON.parse(localStorage.getItem(INTAKE_PROFILE_KEY) || "{}");
+      if (p.firstName) setIntakeFirstName((prev) => prev || p.firstName);
+      if (p.lastName) setIntakeLastName((prev) => prev || p.lastName);
+      if (p.email) setIntakeEmail((prev) => prev || p.email);
+      if (p.phone) setIntakePhone((prev) => prev || p.phone);
+    } catch {}
+  }, [intakeId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // BUG 3: Reset chat session ID when user leaves chat so next session gets a fresh ID
+  useEffect(() => {
+    if (!showChat) chatSessionIdRef.current = null;
+  }, [showChat]);
 
   useEffect(() => {
     const handleEscExit = (e) => {
@@ -1269,7 +1287,12 @@ function App() {
         for (const r of msg.referrals) { if (!referrals.find((x) => x.name === r.name)) referrals.push(r); }
       }
     }
-    const sessionId = intakeId ? `case_${intakeId}` : `case_${Date.now()}`;
+    if (!chatSessionIdRef.current) {
+      chatSessionIdRef.current = intakeId
+        ? `case_${intakeId}_${Date.now()}`
+        : `case_anon_${Date.now()}`;
+    }
+    const sessionId = chatSessionIdRef.current;
     saveCaseToStorage({
       id: sessionId,
       topic: conversationState.topic,
@@ -2706,6 +2729,7 @@ function App() {
     return (
       <SlackLayout {...sharedSidebarProps} activeSection="chat" topbarTitle="My Cases">
         <MyCasesPage
+          intakeId={intakeId}
           onStartConsultation={() => { setSidebarSection(null); startChatFromCover(); }}
           onResume={() => { setSidebarSection(null); startChatFromCover(); }}
         />
