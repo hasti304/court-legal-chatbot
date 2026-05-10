@@ -1764,7 +1764,7 @@ function App() {
               {t("login.staffLogin")}
             </button>
           </div>
-          <button type="button" className="cal-auth-link" style={{ fontSize: "0.88rem" }} onClick={() => sendMagicLinkRequest(magicLinkEmail)} disabled={magicLinkBusy || passwordLoginBusy}>
+          <button type="button" className="cal-auth-email-btn" onClick={() => sendMagicLinkRequest(magicLinkEmail)} disabled={magicLinkBusy || passwordLoginBusy}>
             {t("login.signInWithEmail")}
           </button>
         </div>
@@ -2278,8 +2278,7 @@ function App() {
           </div>
           <button
             type="button"
-            className="cal-auth-link"
-            style={{ fontSize: "0.88rem" }}
+            className="cal-auth-email-btn"
             onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
           >
             {t("login.signInWithEmail")}

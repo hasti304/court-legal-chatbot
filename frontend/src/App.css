@@ -3427,14 +3427,15 @@ a:focus-visible,
 
 .cal-auth-left-logo-wrap {
   flex-shrink: 0;
+  margin-top: -16px;
+  margin-left: -20px;
 }
 
 .cal-auth-left-logo {
-  height: 48px;
+  height: 56px;
   width: auto;
   object-fit: contain;
-  filter: brightness(0) invert(1);
-  opacity: 0.92;
+  mix-blend-mode: multiply;
   display: block;
 }
 
@@ -3544,7 +3545,7 @@ a:focus-visible,
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 16px 48px;
+  padding: 12px 48px;
   min-height: 0;
 }
 
@@ -3556,7 +3557,7 @@ a:focus-visible,
 }
 
 .cal-auth-form-title {
-  font-size: 1.6rem !important;
+  font-size: 1.5rem !important;
   font-weight: 700 !important;
   color: #1A1A1A !important;
   margin-bottom: 4px !important;
@@ -3564,9 +3565,9 @@ a:focus-visible,
 }
 
 .cal-auth-form-subtitle {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: #6B7280;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
   line-height: 1.6;
 }
 
@@ -3579,7 +3580,7 @@ a:focus-visible,
   border: 1px solid #E5E7EB !important;
   border-radius: 8px !important;
   color: #1A1A1A !important;
-  height: 40px !important;
+  height: 38px !important;
   font-size: 0.95rem !important;
   padding: 0 44px 0 14px !important;
   box-shadow: none !important;
@@ -3590,12 +3591,12 @@ a:focus-visible,
 
 /* Auth form label size */
 .auth-label {
-  font-size: 0.8rem !important;
+  font-size: 0.78rem !important;
 }
 
-/* Reduce form field group spacing from Tailwind space-y-4 (16px) to 12px */
+/* Reduce form field group spacing from Tailwind space-y-4 (16px) to 8px */
 .cal-auth-right .space-y-4 > :not([hidden]) ~ :not([hidden]) {
-  margin-top: 12px !important;
+  margin-top: 8px !important;
 }
 
 .cal-auth-right input.cal-auth-field::placeholder {
@@ -3659,7 +3660,7 @@ a:focus-visible,
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   padding-bottom: 10px;
   border-bottom: 1px solid #E5E7EB;
 }
@@ -3732,6 +3733,37 @@ a:focus-visible,
   border-radius: 2px;
 }
 
+/* "Sign in with email" styled button (tab row, right side) */
+.cal-auth-email-btn {
+  background: #1B2A4A;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid #C9A84C;
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.cal-auth-email-btn:hover:not(:disabled) {
+  background: #243857;
+}
+
+.cal-auth-email-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cal-auth-email-btn:focus-visible {
+  outline: 2px solid #C9A84C;
+  outline-offset: 2px;
+}
+
 /* Checkbox */
 .cal-auth-checkbox {
   width: 18px;
@@ -3750,7 +3782,7 @@ a:focus-visible,
 
 /* Progress indicator */
 .cal-auth-progress-wrap {
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .cal-auth-step-label {
