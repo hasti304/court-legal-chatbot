@@ -412,21 +412,26 @@
   align-items: start;
 }
 
+.admin-overview-main {
+  min-width: 0;
+}
+
 /* ── Stat cards (overview top 3) ── */
 .admin-stat-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  margin-bottom: 20px;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
 .admin-stat-card {
   background: #FFFFFF;
   border-radius: 12px;
-  padding: 20px 18px;
+  padding: 16px;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.07);
   border: 1px solid #E5E7EB;
   border-left: 4px solid #6B7280;
+  min-width: 0;
 }
 
 .admin-stat-card--navy { border-left-color: #1B2A4A; }
@@ -435,7 +440,7 @@
 
 .admin-stat-value {
   font-size: 2rem;
-  font-weight: 800;
+  font-weight: 700;
   color: #1A1A1A;
   line-height: 1.1;
   letter-spacing: -0.02em;
@@ -455,9 +460,9 @@
 /* ── Triage stat cards ── */
 .admin-triage-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 10px;
-  margin-bottom: 20px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
 .admin-triage-card {
@@ -467,11 +472,12 @@
   border-radius: 8px;
   padding: 14px 12px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  min-width: 0;
 }
 
 .admin-triage-value {
   font-size: 1.5rem;
-  font-weight: 800;
+  font-weight: 700;
   color: #1A1A1A;
   line-height: 1.1;
 }
@@ -588,9 +594,9 @@
 
 /* ── Captions / subcaptions ── */
 .admin-portal-caption {
-  font-size: 0.92rem;
+  font-size: 1rem;
   font-weight: 700;
-  margin: 18px 0 8px;
+  margin: 16px 0 12px;
   color: #1A1A1A;
   letter-spacing: -0.01em;
 }
@@ -1260,7 +1266,8 @@
   .admin-overview-layout { grid-template-columns: 1fr; }
   .admin-overview-side { flex-direction: row; flex-wrap: wrap; }
   .admin-side-card { flex: 1; min-width: 240px; }
-  .admin-stat-cards { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  .admin-stat-cards { grid-template-columns: repeat(3, 1fr); }
+  .admin-triage-cards { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 980px) {
