@@ -3427,15 +3427,16 @@ a:focus-visible,
 
 .cal-auth-left-logo-wrap {
   flex-shrink: 0;
-  margin-top: -16px;
-  margin-left: -20px;
+  display: flex;
+  justify-content: center;
 }
 
 .cal-auth-left-logo {
-  height: 56px;
-  width: auto;
+  width: 320px;
+  height: auto;
+  max-width: 100%;
   object-fit: contain;
-  mix-blend-mode: multiply;
+  mix-blend-mode: screen;
   display: block;
 }
 
