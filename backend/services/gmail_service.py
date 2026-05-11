@@ -19,9 +19,6 @@ logger = logging.getLogger(__name__)
 _SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 _TOKEN_URI = "https://oauth2.googleapis.com/token"
 
-# Cache the access token in memory; valid for ~1 hour, auto-refreshed on expiry.
-_cached_credentials: Optional[Credentials] = None
-
 
 def _load_config() -> tuple[str, str, str, str]:
     try:
@@ -47,18 +44,14 @@ def gmail_api_configured() -> bool:
 
 
 def _get_credentials() -> Credentials:
-    global _cached_credentials
-
+    """Always request a fresh access token via the refresh token before every send."""
     client_id, client_secret, refresh_token, _ = _load_config()
     if not all([client_id, client_secret, refresh_token]):
         raise RuntimeError(
             "Gmail API not configured. "
             "Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN."
         )
-
-    if _cached_credentials and _cached_credentials.valid:
-        return _cached_credentials
-
+    logger.debug("Gmail API: refreshing OAuth2 access token before send")
     creds = Credentials(
         token=None,
         refresh_token=refresh_token,
@@ -68,7 +61,7 @@ def _get_credentials() -> Credentials:
         scopes=_SCOPES,
     )
     creds.refresh(Request())
-    _cached_credentials = creds
+    logger.debug("Gmail API: access token refreshed, expiry=%s", creds.expiry)
     return creds
 
 
@@ -91,11 +84,21 @@ def send_email(
 
     try:
         creds = _get_credentials()
+        logger.info(
+            "Gmail API: credentials obtained for send to %s (subject=%r)",
+            to_email,
+            subject,
+        )
     except RuntimeError as e:
         logger.error("Gmail API credentials error: %s", e)
         return False
     except Exception as e:
-        logger.error("Gmail API token refresh failed: %s: %s", type(e).__name__, e)
+        logger.error(
+            "Gmail API token refresh failed: %s: %s",
+            type(e).__name__,
+            e,
+            exc_info=True,
+        )
         return False
 
     has_attachment = bool(attachment_bytes and attachment_filename)
@@ -133,10 +136,12 @@ def send_email(
         return True
     except HttpError as e:
         logger.error(
-            "Gmail API HttpError sending to %s: status=%s details=%s",
+            "Gmail API HttpError sending to %s: status=%s details=%s body=%s",
             to_email,
             e.status_code,
             e.error_details,
+            getattr(e, "content", b"").decode("utf-8", errors="replace")[:500],
+            exc_info=True,
         )
         return False
     except Exception as e:
@@ -145,5 +150,6 @@ def send_email(
             to_email,
             type(e).__name__,
             e,
+            exc_info=True,
         )
         return False

@@ -403,6 +403,10 @@ function App() {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [passwordLoginBusy, setPasswordLoginBusy] = useState(false);
   const [passwordLoginError, setPasswordLoginError] = useState("");
+  const [emailNotVerified, setEmailNotVerified] = useState(false);
+  const [resendVerifyBusy, setResendVerifyBusy] = useState(false);
+  const [resendVerifyNotice, setResendVerifyNotice] = useState("");
+  const [verifyEmailNotice, setVerifyEmailNotice] = useState("");
   const [passwordResetNotice, setPasswordResetNotice] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotBusy, setForgotBusy] = useState(false);
@@ -624,6 +628,34 @@ function App() {
       setUserInput("");
       setCurrentTopic("");
       setView("intake");
+    }
+
+    const verifyTokenParam = params.get("verify_token") ||
+      (() => { const m = /[?&]verify_token=([^&]+)/.exec(window.location.hash || ""); return m ? decodeURIComponent(m[1].replace(/\+/g, "%20")) : ""; })();
+    if (verifyTokenParam) {
+      const vt = String(verifyTokenParam).trim();
+      fetchWithTimeout(
+        apiPath("/auth/verify-email") + "?token=" + encodeURIComponent(vt),
+        {},
+        INTAKE_FETCH_TIMEOUT_MS
+      ).then((res) => res.json().catch(() => ({}))).then((data) => {
+        if (data && data.status === "verified") {
+          setVerifyEmailNotice("Your email has been verified. You can now sign in.");
+        } else {
+          setPasswordLoginError(
+            (data && data.detail ? String(data.detail) : null) ||
+            "Verification link is invalid or expired. Please request a new link."
+          );
+        }
+      }).catch(() => {
+        setPasswordLoginError("Email verification failed. Please request a new link.");
+      });
+      try {
+        const h = (window.location.hash || "").replace(/[?&]verify_token=[^&]+/g, "").replace(/\?$/, "");
+        window.history.replaceState({}, "", window.location.pathname + (window.location.search || "") + h);
+      } catch { /* ignore */ }
+      setView("login");
+      return undefined;
     }
 
     const resetTokenParam = params.get("reset_token") ||
@@ -1069,12 +1101,18 @@ function App() {
         INTAKE_FETCH_TIMEOUT_MS
       );
       const data = await res.json().catch(() => ({}));
+      if (res.status === 403) {
+        setEmailNotVerified(true);
+        setResendVerifyNotice("");
+        return;
+      }
       if (!res.ok) {
         throw new Error(data?.detail ? String(data.detail) : t("login.passwordLoginFailed"));
       }
       completeLogin(data);
       setLoginPassword("");
       setPasswordResetNotice("");
+      setEmailNotVerified(false);
     } catch (err) {
       setPasswordLoginError(
         err?.message && String(err.message).trim().length > 0
@@ -1083,6 +1121,33 @@ function App() {
       );
     } finally {
       setPasswordLoginBusy(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    const email = String(magicLinkEmail || "").trim().toLowerCase();
+    if (!email) return;
+    setResendVerifyBusy(true);
+    setResendVerifyNotice("");
+    try {
+      const res = await fetchWithTimeout(
+        apiUrl("/auth/resend-verification"),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        },
+        INTAKE_FETCH_TIMEOUT_MS
+      );
+      if (res.ok) {
+        setResendVerifyNotice("Verification email sent. Please check your inbox.");
+      } else {
+        setResendVerifyNotice(`Failed to send. Please contact ${SUPPORT_EMAIL}`);
+      }
+    } catch {
+      setResendVerifyNotice(`Failed to send. Please contact ${SUPPORT_EMAIL}`);
+    } finally {
+      setResendVerifyBusy(false);
     }
   };
 
@@ -1913,7 +1978,29 @@ function App() {
               {passwordResetNotice}
             </div>
           ) : null}
-          {passwordLoginError ? (
+          {verifyEmailNotice ? (
+            <div role="status" className="rounded-xl px-4 py-3 text-sm border" style={{ backgroundColor: "#f0fdf4", borderColor: "#86efac", color: "#166534" }}>
+              {verifyEmailNotice}
+            </div>
+          ) : null}
+          {emailNotVerified ? (
+            <div role="alert" className="rounded-xl bg-destructive/10 text-destructive px-4 py-3 text-sm border border-destructive/20">
+              <p>Your email address has not been verified. Please check your inbox and click the verification link.</p>
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={resendVerifyBusy}
+                style={{ color: "#B8860B", fontWeight: 600, marginTop: "8px", display: "block", background: "none", border: "none", padding: 0, cursor: "pointer", textDecoration: "underline" }}
+              >
+                {resendVerifyBusy ? "Sending…" : "Resend verification email"}
+              </button>
+              {resendVerifyNotice ? (
+                <p style={{ marginTop: "6px", color: resendVerifyNotice.startsWith("Failed") ? "inherit" : "#166534" }}>
+                  {resendVerifyNotice}
+                </p>
+              ) : null}
+            </div>
+          ) : passwordLoginError ? (
             <div role="alert" className="rounded-xl bg-destructive/10 text-destructive px-4 py-3 text-sm border border-destructive/20">
               {passwordLoginError}
             </div>
@@ -1937,6 +2024,8 @@ function App() {
                 setMagicLinkError("");
                 setMagicVerifyError("");
                 setPasswordLoginError("");
+                setEmailNotVerified(false);
+                setResendVerifyNotice("");
               }}
               disabled={magicLinkBusy || passwordLoginBusy}
               className="cal-auth-field"
@@ -1951,7 +2040,7 @@ function App() {
                 type={showLoginPassword ? "text" : "password"}
                 autoComplete="current-password"
                 value={loginPassword}
-                onChange={(e) => { setLoginPassword(e.target.value); setPasswordLoginError(""); }}
+                onChange={(e) => { setLoginPassword(e.target.value); setPasswordLoginError(""); setEmailNotVerified(false); setResendVerifyNotice(""); }}
                 disabled={magicLinkBusy || passwordLoginBusy}
                 className="cal-auth-field pr-12"
               />

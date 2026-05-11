@@ -40,3 +40,4 @@ class Intake(Base):
     admin_status = Column(String(20), nullable=False, default="pending", index=True)
     password_hash = Column(String(255), nullable=True)
     login_count = Column(Integer, nullable=False, default=0)
+    is_verified = Column(Boolean, nullable=False, default=False)

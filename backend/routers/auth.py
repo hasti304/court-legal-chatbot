@@ -1,6 +1,6 @@
 import os
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Body, Depends, Header, HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -67,6 +67,30 @@ def magic_link_verify(payload: MagicLinkVerifyBody, db: Session = Depends(get_db
 @router.post("/auth/password/login", response_model=PasswordLoginResponse)
 def password_login(payload: PasswordLoginBody, db: Session = Depends(get_db)):
     return login_with_password(payload=payload, db=db)
+
+
+@router.get("/auth/verify-email")
+def verify_email(token: str = "", db: Session = Depends(get_db)):
+    token = (token or "").strip()
+    if not token:
+        raise HTTPException(status_code=400, detail="Missing verification token.")
+    try:
+        from ..services.email_verification_service import verify_email_token
+    except ImportError:
+        from services.email_verification_service import verify_email_token  # type: ignore
+    return verify_email_token(token, db)
+
+
+@router.post("/auth/resend-verification")
+def resend_verification(email: str = Body(..., embed=True), db: Session = Depends(get_db)):
+    email = (email or "").strip().lower()
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required.")
+    try:
+        from ..services.email_verification_service import resend_verification_email
+    except ImportError:
+        from services.email_verification_service import resend_verification_email  # type: ignore
+    return resend_verification_email(email, db)
 
 
 @router.post("/auth/password/forgot", response_model=PasswordForgotResponse)

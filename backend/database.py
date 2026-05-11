@@ -41,11 +41,13 @@ def init_db() -> None:
         from .models import resources  # noqa: F401
         from .models import magic_link  # noqa: F401
         from .models import password_reset  # noqa: F401
+        from .models import email_verification  # noqa: F401
     except ImportError:
         from models import intake  # type: ignore # noqa: F401
         from models import resources  # type: ignore # noqa: F401
         from models import magic_link  # type: ignore # noqa: F401
         from models import password_reset  # type: ignore # noqa: F401
+        from models import email_verification  # type: ignore # noqa: F401
 
     try:
         Base.metadata.create_all(bind=engine)

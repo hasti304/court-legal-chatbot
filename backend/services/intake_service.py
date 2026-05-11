@@ -15,6 +15,8 @@ from sqlalchemy.orm import Session
 
 try:
     from ..models import Intake, IntakeSubmission, MagicLinkToken
+    from ..models.password_reset import PasswordResetToken
+    from ..models.email_verification import EmailVerificationToken
     from .auth_password_service import hash_password
     from .admin_auth_service import admin_login_configured, admin_request_authorized
     from .config_service import ADMIN_EMAIL, ADMIN_EXPORT_KEY, ADMIN_JWT_SECRET, engine, groq_configured
@@ -25,6 +27,8 @@ try:
     )
 except ImportError:
     from models import Intake, IntakeSubmission, MagicLinkToken  # type: ignore
+    from models.password_reset import PasswordResetToken  # type: ignore
+    from models.email_verification import EmailVerificationToken  # type: ignore
     from services.auth_password_service import hash_password  # type: ignore
     from services.admin_auth_service import admin_login_configured, admin_request_authorized  # type: ignore
     from services.config_service import ADMIN_EMAIL, ADMIN_EXPORT_KEY, ADMIN_JWT_SECRET, engine, groq_configured  # type: ignore
@@ -379,6 +383,7 @@ def ensure_tables():
         _migrate_intakes_password_hash,
         _migrate_intakes_login_count,
         _migrate_triage_sessions_problem_summary,
+        _migrate_intakes_is_verified,
     ]:
         try:
             with engine.begin() as conn:
@@ -442,6 +447,22 @@ def _migrate_intakes_password_hash(conn) -> None:
             conn.execute(text("ALTER TABLE intakes ADD COLUMN password_hash TEXT"))
     else:
         conn.execute(text("ALTER TABLE intakes ADD COLUMN IF NOT EXISTS password_hash TEXT"))
+
+
+def _migrate_intakes_is_verified(conn) -> None:
+    """Add is_verified for email verification. Existing rows default to TRUE (already trusted)."""
+    try:
+        dialect = conn.engine.dialect.name
+    except Exception:
+        dialect = ""
+    if dialect == "sqlite":
+        cols = {r[1] for r in conn.execute(text("PRAGMA table_info(intakes)")).fetchall()}
+        if "is_verified" not in cols:
+            conn.execute(text("ALTER TABLE intakes ADD COLUMN is_verified BOOLEAN NOT NULL DEFAULT 0"))
+            conn.execute(text("UPDATE intakes SET is_verified = 1 WHERE is_verified = 0"))
+    else:
+        conn.execute(text("ALTER TABLE intakes ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT FALSE"))
+        conn.execute(text("UPDATE intakes SET is_verified = TRUE WHERE is_verified = FALSE"))
 
 
 def ensure_triage_session_row(conn, intake_id: str):
@@ -727,6 +748,14 @@ def create_intake_start(req, db: Session, supported_langs: set[str]):
             ensure_triage_sessions_table_exists()
             with engine.begin() as conn:
                 ensure_triage_session_row(conn, intake_id)
+
+        # Send verification email — non-fatal if delivery fails
+        try:
+            from .email_verification_service import send_verification_email
+            send_verification_email(email_norm, req.first_name.strip(), db)
+        except Exception as exc:
+            print(f"Warning: verification email failed for {email_norm}: {type(exc).__name__}: {exc}")
+
         return {"status": "success", "intake_id": intake_id}
     except SQLAlchemyError as e:
         db.rollback()
@@ -1313,11 +1342,15 @@ def admin_delete_intake(request: Request, intake_id: str, db: Session) -> dict:
         raise HTTPException(status_code=404, detail="Intake not found")
     email = (row.email or "").strip().lower()
     try:
+        # Delete child rows in FK-dependency order before removing the intake
+        db.execute(text("DELETE FROM evidence_files WHERE intake_id = :iid"), {"iid": iid})
         db.execute(text("DELETE FROM intake_events WHERE intake_id = :iid"), {"iid": iid})
         db.execute(text("DELETE FROM triage_sessions WHERE intake_id = :iid"), {"iid": iid})
         db.execute(text("DELETE FROM intake_deadlines WHERE intake_id = :iid"), {"iid": iid})
         if email:
             db.query(MagicLinkToken).filter(MagicLinkToken.email == email).delete(synchronize_session=False)
+            db.query(PasswordResetToken).filter(PasswordResetToken.email == email).delete(synchronize_session=False)
+            db.query(EmailVerificationToken).filter(EmailVerificationToken.email == email).delete(synchronize_session=False)
         db.delete(row)
         db.commit()
         return {"ok": True, "id": iid}
