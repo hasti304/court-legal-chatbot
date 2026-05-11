@@ -1124,7 +1124,7 @@ function App() {
     }
   };
 
-  const handleResendVerification = async () => {
+  const handleResendEmailVerification = async () => {
     const email = String(magicLinkEmail || "").trim().toLowerCase();
     if (!email) return;
     setResendVerifyBusy(true);
@@ -1988,7 +1988,7 @@ function App() {
               <p>Your email address has not been verified. Please check your inbox and click the verification link.</p>
               <button
                 type="button"
-                onClick={handleResendVerification}
+                onClick={handleResendEmailVerification}
                 disabled={resendVerifyBusy}
                 style={{ color: "#B8860B", fontWeight: 600, marginTop: "8px", display: "block", background: "none", border: "none", padding: 0, cursor: "pointer", textDecoration: "underline" }}
               >
