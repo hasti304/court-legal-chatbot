@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { FolderOpen, ChevronRight, Clock, AlertTriangle, CheckCircle } from "lucide-react";
+import { getApiBaseUrl } from "../utils/apiBase";
 
 const GOLD = "#C9A84C";
 const CASES_KEY = "cal_cases_history_v1";
@@ -117,16 +118,32 @@ export function saveCaseToStorage(caseData) {
 export default function MyCasesPage({ intakeId, onStartConsultation, onResume }) {
   const [cases, setCases] = useState([]);
   const [detailCase, setDetailCase] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    console.log("[MyCasesPage] intakeId:", intakeId);
-    console.log("[MyCasesPage] localStorage key:", CASES_KEY);
-    const raw = localStorage.getItem(CASES_KEY);
-    console.log("[MyCasesPage] raw localStorage data:", raw);
-    const loaded = loadCasesFromStorage();
-    console.log("[MyCasesPage] parsed cases:", loaded);
-    setCases(loaded);
+    if (!intakeId) return;
+    setLoading(true);
+    fetch(`${getApiBaseUrl()}/intake/my-sessions`, {
+      headers: { "X-Intake-Id": intakeId },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setCases(data);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [intakeId]);
+
+  if (loading) {
+    return (
+      <div style={{ background: "#F4F5F7", minHeight: "100%", padding: "32px 24px" }}>
+        <div style={{ maxWidth: 720, margin: "0 auto" }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: "#1A1A1A", marginBottom: 4 }}>My Cases</h1>
+          <p style={{ color: "#6B7280", fontSize: 14, textAlign: "center", padding: "56px 0" }}>Loading your cases…</p>
+        </div>
+      </div>
+    );
+  }
 
   if (cases.length === 0) {
     return (

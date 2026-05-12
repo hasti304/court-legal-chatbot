@@ -592,6 +592,35 @@ function App() {
     } catch {}
   }, [intakeId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // BUG 4: Fetch profile from server if name is missing after localStorage re-sync
+  useEffect(() => {
+    if (!intakeId || (intakeFirstName && intakeLastName)) return;
+    fetchWithTimeout(`${getApiBaseUrl()}/auth/me`, { headers: { "X-Intake-Id": intakeId } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data) return;
+        const fn = String(data.first_name || "").trim();
+        const ln = String(data.last_name || "").trim();
+        const em = String(data.email || "").trim();
+        const ph = String(data.phone || "").trim();
+        if (fn) setIntakeFirstName(fn);
+        if (ln) setIntakeLastName(ln);
+        if (em) setIntakeEmail(em);
+        if (ph) setIntakePhone(ph);
+        try {
+          const existing = JSON.parse(localStorage.getItem(INTAKE_PROFILE_KEY) || "{}");
+          localStorage.setItem(INTAKE_PROFILE_KEY, JSON.stringify({
+            ...existing,
+            ...(fn ? { firstName: fn } : {}),
+            ...(ln ? { lastName: ln } : {}),
+            ...(em ? { email: em } : {}),
+            ...(ph ? { phone: ph } : {}),
+          }));
+        } catch {}
+      })
+      .catch(() => {});
+  }, [intakeId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // BUG 3: Reset chat session ID when user leaves chat so next session gets a fresh ID
   useEffect(() => {
     if (!showChat) chatSessionIdRef.current = null;
@@ -2857,6 +2886,7 @@ function App() {
           userEmail={intakeEmail}
           savedReferrals={savedReferrals}
           onStartConsultation={() => handleSidebarNav("chat")}
+          intakeId={intakeId}
         />
       </SlackLayout>
     );
@@ -2876,6 +2906,7 @@ function App() {
           intakeId={intakeId}
           onAccountDeleted={() => {
             localStorage.clear();
+            sessionStorage.clear();
             clearSavedIntake();
             setView("login");
           }}

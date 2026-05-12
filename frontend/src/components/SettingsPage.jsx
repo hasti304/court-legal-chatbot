@@ -185,13 +185,30 @@ export default function SettingsPage({
     setTimeout(() => setToast(""), 3500);
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
+    if (!intakeId) {
+      showToast("Session expired. Please sign in again.");
+      return;
+    }
     try {
-      const existing = JSON.parse(localStorage.getItem(INTAKE_PROFILE_KEY) || "{}");
-      localStorage.setItem(INTAKE_PROFILE_KEY, JSON.stringify({ ...existing, phone: profilePhone }));
-    } catch {}
-    if (onPhoneChange) onPhoneChange(profilePhone);
-    showToast("Profile update coming soon");
+      const res = await fetch(`${getApiBaseUrl()}/auth/profile`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "X-Intake-Id": intakeId },
+        body: JSON.stringify({ phone: profilePhone }),
+      });
+      if (res.ok) {
+        try {
+          const existing = JSON.parse(localStorage.getItem(INTAKE_PROFILE_KEY) || "{}");
+          localStorage.setItem(INTAKE_PROFILE_KEY, JSON.stringify({ ...existing, phone: profilePhone }));
+        } catch {}
+        if (onPhoneChange) onPhoneChange(profilePhone);
+        showToast("Phone number updated successfully");
+      } else {
+        showToast("Failed to update. Please try again.");
+      }
+    } catch {
+      showToast("Failed to update. Please try again.");
+    }
   };
 
   const handleChangePassword = () => {

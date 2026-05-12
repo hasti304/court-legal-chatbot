@@ -1359,6 +1359,104 @@ def admin_delete_intake(request: Request, intake_id: str, db: Session) -> dict:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 
+def get_my_sessions(intake_id: str, db: Session) -> List[Dict[str, Any]]:
+    """Return triage sessions for the authenticated user."""
+    iid = (intake_id or "").strip()
+    if not iid:
+        return []
+    try:
+        rows = db.execute(
+            text(
+                """
+                SELECT intake_id, topic, started_at, completed, level, referral_names
+                FROM triage_sessions
+                WHERE intake_id = :iid
+                ORDER BY started_at DESC
+                LIMIT 50
+                """
+            ),
+            {"iid": iid},
+        ).mappings().all()
+    except Exception:
+        return []
+
+    result = []
+    for r in rows:
+        status = "complete" if r.get("completed") else "in_progress"
+        referral_names = parse_referral_names(str(r.get("referral_names") or "[]"))
+        result.append({
+            "id": r.get("intake_id") or iid,
+            "topic": r.get("topic") or "",
+            "date": r.get("started_at") or "",
+            "status": status,
+            "riskScore": r.get("level"),
+            "referrals": [{"name": n} for n in referral_names],
+        })
+    return result
+
+
+def get_my_referrals(intake_id: str, db: Session) -> List[Dict[str, Any]]:
+    """Return unique referrals matched to this user across all their triage sessions."""
+    iid = (intake_id or "").strip()
+    if not iid:
+        return []
+    try:
+        rows = db.execute(
+            text(
+                """
+                SELECT referral_names
+                FROM triage_sessions
+                WHERE intake_id = :iid
+                """
+            ),
+            {"iid": iid},
+        ).mappings().all()
+    except Exception:
+        return []
+
+    seen: set = set()
+    names: List[str] = []
+    for r in rows:
+        for name in parse_referral_names(str(r.get("referral_names") or "[]")):
+            if name and name not in seen:
+                seen.add(name)
+                names.append(name)
+
+    if not names:
+        return []
+
+    try:
+        from ..models.resources import Resource
+    except ImportError:
+        try:
+            from models.resources import Resource  # type: ignore
+        except ImportError:
+            Resource = None  # type: ignore
+
+    result: List[Dict[str, Any]] = []
+    if Resource is not None:
+        for name in names:
+            res = db.query(Resource).filter(Resource.title == name).first()
+            if res:
+                result.append({
+                    "name": res.title,
+                    "description": res.description or "",
+                    "phone": res.phone or "",
+                    "url": res.website_url or "",
+                    "address": ", ".join(filter(None, [
+                        getattr(res, "address_line1", "") or "",
+                        getattr(res, "address_line2", "") or "",
+                        getattr(res, "postal_code", "") or "",
+                    ])),
+                })
+            else:
+                result.append({"name": name, "description": "", "phone": "", "url": "", "address": ""})
+    else:
+        result = [{"name": n, "description": "", "phone": "", "url": "", "address": ""} for n in names]
+
+    return result
+
+
 def get_submission(submission_id: int, request: Request, db: Session):
     require_admin_access(request)
     row = db.query(IntakeSubmission).filter(IntakeSubmission.id == submission_id).first()

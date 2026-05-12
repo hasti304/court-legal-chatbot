@@ -1,6 +1,7 @@
 import os
 
 from fastapi import APIRouter, Body, Depends, Header, HTTPException
+from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -128,6 +129,57 @@ def email_test(x_admin_key: str = Header(None)):
             "hint": "Check Render logs for the exact SMTP/Resend error."}
 
 
+@router.get("/auth/me")
+def get_me(x_intake_id: str = Header(None), db: Session = Depends(get_db)):
+    intake_id = (x_intake_id or "").strip()
+    if not intake_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    try:
+        from ..models.intake import Intake
+    except ImportError:
+        from models.intake import Intake  # type: ignore
+    intake = db.query(Intake).filter(Intake.id == intake_id).first()
+    if not intake:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    return {
+        "intake_id": intake.id,
+        "email": intake.email,
+        "first_name": getattr(intake, "first_name", "") or "",
+        "last_name": getattr(intake, "last_name", "") or "",
+        "phone": getattr(intake, "phone", "") or "",
+    }
+
+
+@router.patch("/auth/profile")
+def update_profile(phone: str = Body(..., embed=True), x_intake_id: str = Header(None), db: Session = Depends(get_db)):
+    intake_id = (x_intake_id or "").strip()
+    if not intake_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    try:
+        from ..models.intake import Intake
+    except ImportError:
+        from models.intake import Intake  # type: ignore
+    intake = db.query(Intake).filter(Intake.id == intake_id).first()
+    if not intake:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    try:
+        from ..services.intake_service import normalize_us_phone
+    except ImportError:
+        from services.intake_service import normalize_us_phone  # type: ignore
+    try:
+        phone_digits = normalize_us_phone(phone)
+    except HTTPException:
+        raise
+    try:
+        intake.phone = phone_digits
+        db.add(intake)
+        db.commit()
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    return {"ok": True}
+
+
 @router.delete("/auth/account")
 def delete_account(x_intake_id: str = Header(None), db: Session = Depends(get_db)):
     intake_id = (x_intake_id or "").strip()
@@ -138,10 +190,12 @@ def delete_account(x_intake_id: str = Header(None), db: Session = Depends(get_db
         from ..models.intake import Intake
         from ..models.magic_link import MagicLinkToken
         from ..models.password_reset import PasswordResetToken
+        from ..models.email_verification import EmailVerificationToken
     except ImportError:
         from models.intake import Intake  # type: ignore
         from models.magic_link import MagicLinkToken  # type: ignore
         from models.password_reset import PasswordResetToken  # type: ignore
+        from models.email_verification import EmailVerificationToken  # type: ignore
 
     try:
         intake = db.query(Intake).filter(Intake.id == intake_id).first()
@@ -149,8 +203,15 @@ def delete_account(x_intake_id: str = Header(None), db: Session = Depends(get_db
             raise HTTPException(status_code=401, detail="Invalid session")
 
         email = intake.email
-        db.query(MagicLinkToken).filter(MagicLinkToken.email == email).delete()
-        db.query(PasswordResetToken).filter(PasswordResetToken.email == email).delete()
+        iid = intake_id
+        db.execute(text("DELETE FROM evidence_files WHERE intake_id = :iid"), {"iid": iid})
+        db.execute(text("DELETE FROM intake_events WHERE intake_id = :iid"), {"iid": iid})
+        db.execute(text("DELETE FROM triage_sessions WHERE intake_id = :iid"), {"iid": iid})
+        db.execute(text("DELETE FROM intake_deadlines WHERE intake_id = :iid"), {"iid": iid})
+        if email:
+            db.query(MagicLinkToken).filter(MagicLinkToken.email == email).delete(synchronize_session=False)
+            db.query(PasswordResetToken).filter(PasswordResetToken.email == email).delete(synchronize_session=False)
+            db.query(EmailVerificationToken).filter(EmailVerificationToken.email == email).delete(synchronize_session=False)
         db.delete(intake)
         db.commit()
     except HTTPException:

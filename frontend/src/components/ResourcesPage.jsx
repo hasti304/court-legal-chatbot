@@ -197,7 +197,7 @@ function resourceMatchesCaseType(resource, filter) {
   return types.some((t) => t.includes(filter)) || cat.includes(filter);
 }
 
-export default function ResourcesPage({ messages, conversationState, userEmail, savedReferrals = [], onStartConsultation }) {
+export default function ResourcesPage({ messages, conversationState, userEmail, savedReferrals = [], onStartConsultation, intakeId }) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("matched");
   const [matchedFilter, setMatchedFilter] = useState("");
@@ -206,23 +206,22 @@ export default function ResourcesPage({ messages, conversationState, userEmail, 
   const [allLoading, setAllLoading] = useState(false);
   const [allError, setAllError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [matchedReferrals, setMatchedReferrals] = useState([]);
+  const [matchedLoading, setMatchedLoading] = useState(false);
 
-  // Collect unique referrals from all messages and savedReferrals
-  const matchedReferrals = useMemo(() => {
-    const seen = new Set();
-    const result = [];
-    const addRef = (ref) => {
-      const key = String(ref.name || ref.id || JSON.stringify(ref));
-      if (!seen.has(key)) { seen.add(key); result.push(ref); }
-    };
-    for (const msg of (messages || [])) { for (const ref of (msg.referrals || [])) addRef(ref); }
-    for (const ref of (savedReferrals || [])) addRef(ref);
-    console.log("[ResourcesPage] userEmail:", userEmail);
-    console.log("[ResourcesPage] savedReferrals prop:", savedReferrals);
-    console.log("[ResourcesPage] referrals from messages:", (messages || []).flatMap((m) => m.referrals || []));
-    console.log("[ResourcesPage] computed matchedReferrals:", result);
-    return result;
-  }, [messages, savedReferrals]);
+  useEffect(() => {
+    if (!intakeId) return;
+    setMatchedLoading(true);
+    fetch(`${getApiBaseUrl()}/intake/my-referrals`, {
+      headers: { "X-Intake-Id": intakeId },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setMatchedReferrals(data);
+      })
+      .catch(() => {})
+      .finally(() => setMatchedLoading(false));
+  }, [intakeId]);
 
   const topic = conversationState?.topic || conversationState?.category || "";
   const zip = conversationState?.zip_code || "";
@@ -322,7 +321,11 @@ export default function ResourcesPage({ messages, conversationState, userEmail, 
             )}
             <FilterBar active={matchedFilter} onChange={setMatchedFilter} />
 
-            {matchedReferrals.length === 0 ? (
+            {matchedLoading ? (
+              <p style={{ color: "#6B7280", textAlign: "center", padding: "32px 0", fontSize: 14 }}>
+                Loading your resources…
+              </p>
+            ) : matchedReferrals.length === 0 ? (
               <div style={{ textAlign: "center", padding: "56px 24px" }}>
                 <BookOpen style={{
                   color: GOLD, width: 44, height: 44,

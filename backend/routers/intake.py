@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from sqlalchemy.orm import Session
 
 try:
@@ -17,6 +17,8 @@ try:
         create_intake_event,
         create_intake_start,
         create_submission,
+        get_my_referrals,
+        get_my_sessions,
         get_submission,
         list_submissions,
     )
@@ -34,6 +36,8 @@ except ImportError:
         create_intake_event,
         create_intake_start,
         create_submission,
+        get_my_referrals,
+        get_my_sessions,
         get_submission,
         list_submissions,
     )
@@ -64,3 +68,19 @@ def list_intake_submissions(request: Request, limit: int = 20, db: Session = Dep
 @router.get("/intake/submissions/{submission_id}", response_model=IntakeSubmissionOut)
 def get_intake_submission(submission_id: int, request: Request, db: Session = Depends(get_db)):
     return get_submission(submission_id=submission_id, request=request, db=db)
+
+
+@router.get("/intake/my-sessions")
+def my_sessions(x_intake_id: str = Header(None), db: Session = Depends(get_db)):
+    intake_id = (x_intake_id or "").strip()
+    if not intake_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return get_my_sessions(intake_id=intake_id, db=db)
+
+
+@router.get("/intake/my-referrals")
+def my_referrals(x_intake_id: str = Header(None), db: Session = Depends(get_db)):
+    intake_id = (x_intake_id or "").strip()
+    if not intake_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return get_my_referrals(intake_id=intake_id, db=db)
