@@ -37,7 +37,7 @@ import {
 import { getStoredTheme, persistTheme } from "./utils/themeStorage";
 import TopicResourcesPanel from "./components/TopicResourcesPanel";
 import DocumentGeneratorPanel from "./components/DocumentGeneratorPanel";
-import GuidedCaseTimelinePanel from "./components/GuidedCaseTimelinePanel";
+import GuidedCaseTimelinePanel, { TIMELINES_BY_TOPIC } from "./components/GuidedCaseTimelinePanel";
 import ReferralMap from "./components/ReferralMap";
 import LegalGlossary from "./components/LegalGlossary";
 import { Button } from "./components/ui/button";
@@ -430,12 +430,24 @@ function App() {
   const [showNextTooltip, setShowNextTooltip] = useState(false);
   const [showSessionWarning, setShowSessionWarning] = useState(false);
   const [inactivityToast, setInactivityToast] = useState(false);
+  const [caseSaveToast, setCaseSaveToast] = useState(null); // null | "success" | "error"
+  const [emailSummaryBusy, setEmailSummaryBusy] = useState(false);
+  const [emailSummaryToast, setEmailSummaryToast] = useState(null); // null | string
+  const [showCallbackModal, setShowCallbackModal] = useState(false);
+  const [callbackPhone, setCallbackPhone] = useState("");
+  const [callbackTime, setCallbackTime] = useState("morning");
+  const [callbackBusy, setCallbackBusy] = useState(false);
+  const [callbackToast, setCallbackToast] = useState(null); // null | string
+  const [callbackMsg, setCallbackMsg] = useState(null);
+  const [deadlineReminderChoice, setDeadlineReminderChoice] = useState(null); // null | "yes" | "no"
   const sessionTimers = useRef({ warning: null, signout: null });
 
   const [largeText, setLargeText] = useState(
     () => localStorage.getItem(LARGE_TEXT_KEY) === "1"
   );
   const [triageFeedback, setTriageFeedback] = useState(null);
+  const [feedbackComment, setFeedbackComment] = useState("");
+  const [feedbackCommentSubmitted, setFeedbackCommentSubmitted] = useState(false);
   const [pendingTriage, setPendingTriage] = useState(null);
 
   const [theme, setTheme] = useState(getStoredTheme);
@@ -771,6 +783,8 @@ function App() {
   useEffect(() => {
     if (conversationState?.step !== "complete") {
       setTriageFeedback(null);
+      setFeedbackComment("");
+      setFeedbackCommentSubmitted(false);
     }
   }, [conversationState?.step]);
 
@@ -977,8 +991,15 @@ function App() {
       title={isDark ? t("theme.useLight") : t("theme.useDark")}
       aria-label={isDark ? t("theme.useLight") : t("theme.useDark")}
     >
-      {isDark ? <FaSun size={15} aria-hidden /> : <FaMoon size={15} aria-hidden />}
+      {isDark ? <FaSun size={20} aria-hidden /> : <FaMoon size={20} aria-hidden />}
     </button>
+  );
+
+  const TopbarActions = () => (
+    <div className="cal-topbar-extras">
+      <ThemeToggle />
+      <LanguagePicker variant={lpVariant} />
+    </div>
   );
 
   const landingClass = isDark ? "landing cal-app-dark" : "landing";
@@ -1490,9 +1511,201 @@ function App() {
     });
   };
 
+  const autoSaveTriageCase = async (completedState, decisionSupport) => {
+    await postIntakeEvent("triage_completed", completedState?.topic || "complete");
+
+    const email = (intakeEmail || "").trim();
+    if (!email || !email.includes("@")) {
+      setCaseSaveToast("error");
+      setTimeout(() => setCaseSaveToast(null), 4000);
+      return;
+    }
+
+    const riskScore = typeof decisionSupport?.overall_risk === "number" ? decisionSupport.overall_risk : null;
+    const urgencyScore = typeof decisionSupport?.urgency?.score === "number" ? decisionSupport.urgency.score : null;
+    const urgencyBand = decisionSupport?.urgency?.band || "";
+    const topic = (completedState?.topic || "general").replace(/_/g, " ");
+    const zipCode = (completedState?.zip_code || "").trim() || "N/A";
+    const problemSummary = (completedState?.problem_summary || "").trim();
+
+    const msgParts = [`Issue: ${topic}`];
+    if (problemSummary) msgParts.push(`Summary: ${problemSummary}`);
+    if (riskScore !== null) msgParts.push(`Risk Score: ${riskScore}/100`);
+    if (urgencyScore !== null) msgParts.push(`Urgency: ${urgencyScore}/100${urgencyBand ? ` (${urgencyBand})` : ""}`);
+    msgParts.push(`Date: ${new Date().toISOString()}`);
+
+    try {
+      const res = await fetchWithTimeout(
+        apiUrl("/intake/submissions"),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: `${intakeFirstName} ${intakeLastName}`.trim() || "Anonymous",
+            email,
+            phone: (intakePhone || "").trim() || "N/A",
+            zip_code: zipCode,
+            issue_type: completedState?.topic || "general",
+            message: msgParts.join("\n"),
+          }),
+        },
+        10000
+      );
+      if (!res.ok) throw new Error();
+      setCaseSaveToast("success");
+    } catch {
+      setCaseSaveToast("error");
+    }
+    setTimeout(() => setCaseSaveToast(null), 4000);
+  };
+
+  const sendCaseSummaryEmail = async (msg) => {
+    const email = (intakeEmail || "").trim();
+    if (!email || !email.includes("@")) {
+      setEmailSummaryToast("Failed to send. Please try again.");
+      setTimeout(() => setEmailSummaryToast(null), 4000);
+      return;
+    }
+
+    setEmailSummaryBusy(true);
+
+    const ds = msg.decision_support || {};
+    const topicKey = conversationState?.topic || "general";
+    const topicLabel = topicKey.replace(/_/g, " ");
+    const riskScore = ds.overall_risk ?? "N/A";
+    const urgencyBand = (ds.urgency?.band || "").toLowerCase();
+    const urgencyScore = ds.urgency?.score ?? "";
+    const urgencyLabel = urgencyBand
+      ? `${urgencyBand}${urgencyScore !== "" ? ` (${urgencyScore}/100)` : ""}`
+      : urgencyScore !== "" ? `${urgencyScore}/100` : "N/A";
+
+    const nextSteps = [
+      ...(Array.isArray(ds.urgency?.reasons) ? ds.urgency.reasons : []),
+      ...(Array.isArray(ds.complexity?.reasons) ? ds.complexity.reasons : []),
+      ...(Array.isArray(ds.self_help?.reasons) ? ds.self_help.reasons : []),
+    ].slice(0, 5);
+
+    const referralLines = (msg.referrals || []).map((r) => {
+      const parts = [r.name || "Resource"];
+      if (r.phone) parts.push(r.phone);
+      if (r.url) parts.push(r.url);
+      return `  • ${parts.join(" — ")}`;
+    });
+
+    const timelineSteps = (TIMELINES_BY_TOPIC[topicKey] || TIMELINES_BY_TOPIC.general || [])
+      .map((s) => `  • ${s.title} (est. ${s.eta})`);
+
+    const firstName = intakeFirstName || "there";
+
+    const bodyText = [
+      `Dear ${firstName},`,
+      "",
+      "Here is a summary of your legal consultation:",
+      "",
+      `Issue Type: ${topicLabel}`,
+      `Risk Score: ${riskScore !== "N/A" ? `${riskScore}/100` : "N/A"}`,
+      `Urgency: ${urgencyLabel}`,
+      "",
+      "Next Steps:",
+      ...(nextSteps.length > 0
+        ? nextSteps.map((s, i) => `  ${i + 1}. ${s}`)
+        : ["  No specific steps flagged."]),
+      "",
+      "Recommended Resources:",
+      ...(referralLines.length > 0 ? referralLines : ["  No resources listed."]),
+      "",
+      "Guided Timeline:",
+      ...(timelineSteps.length > 0 ? timelineSteps : ["  No timeline available."]),
+      "",
+      "This is general legal information only, not legal advice.",
+      "",
+      "Chicago Advocate Legal, NFP",
+      "(312) 801-5918",
+      "intake@chicagoadvocatelegal.com",
+    ].join("\n");
+
+    try {
+      const res = await fetchWithTimeout(
+        apiUrl("/documents/email"),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to_email: email,
+            subject: "Your Legal Case Summary — Chicago Advocate Legal",
+            body_text: bodyText,
+            intake_id: intakeId || null,
+          }),
+        },
+        15000
+      );
+      if (!res.ok) throw new Error();
+      setEmailSummaryToast(`Summary sent to ${email}`);
+    } catch {
+      setEmailSummaryToast("Failed to send. Please try again.");
+    } finally {
+      setEmailSummaryBusy(false);
+      setTimeout(() => setEmailSummaryToast(null), 4000);
+    }
+  };
+
+  const submitCallbackRequest = async () => {
+    const phone = (callbackPhone || "").trim();
+    const name = `${intakeFirstName} ${intakeLastName}`.trim() || "Client";
+    const email = (intakeEmail || "").trim();
+    const timeLabels = {
+      morning: "Morning (9am–12pm)",
+      afternoon: "Afternoon (12pm–5pm)",
+      evening: "Evening (5pm–8pm)",
+    };
+    const issueType = (conversationState?.topic || "general").replace(/_/g, " ");
+    const riskScore = callbackMsg?.decision_support?.overall_risk ?? "N/A";
+    setCallbackBusy(true);
+    try {
+      const bodyText = [
+        `Client ${name} (${email}) has requested a callback.`,
+        `Phone: ${phone || "Not provided"}`,
+        `Preferred time: ${timeLabels[callbackTime] || callbackTime}`,
+        `Issue: ${issueType}`,
+        `Risk Score: ${riskScore !== "N/A" ? `${riskScore}/100` : "N/A"}`,
+      ].join("\n");
+      const res = await fetchWithTimeout(
+        apiUrl("/documents/email"),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to_email: "intake@chicagoadvocatelegal.com",
+            subject: `Callback Request — ${name}`,
+            body_text: bodyText,
+            intake_id: intakeId || null,
+          }),
+        },
+        15000
+      );
+      if (!res.ok) throw new Error();
+      void postIntakeEvent("callback_requested", callbackTime);
+      setCallbackToast("Callback request sent. We'll reach out to you soon.");
+      setShowCallbackModal(false);
+    } catch {
+      setCallbackToast("Failed to send request. Please call us at (312) 801-5918.");
+    } finally {
+      setCallbackBusy(false);
+      setTimeout(() => setCallbackToast(null), 5000);
+    }
+  };
+
   const handleTriageFeedback = async (positive) => {
     await postIntakeEvent("triage_feedback", positive ? "helpful_yes" : "helpful_no");
-    setTriageFeedback("done");
+    setTriageFeedback(positive ? "yes" : "no");
+  };
+
+  const submitFeedbackComment = async () => {
+    const text = feedbackComment.trim();
+    if (text) {
+      await postIntakeEvent("feedback_comment", text);
+    }
+    setFeedbackCommentSubmitted(true);
   };
 
   const trackStepAnswer = async (step, value) => {
@@ -1596,7 +1809,7 @@ function App() {
       setConversationState(newState);
 
       if (nextStep === "complete") {
-        // Completion state can trigger UI tools; analytics are logged server-side.
+        void autoSaveTriageCase(newState, botMessage.decision_support);
       }
 
       if (!isBackAction && data.conversation_state) {
@@ -1904,20 +2117,38 @@ function App() {
 
   if (showAIChat) {
     return (
-      <Suspense
-        fallback={
-          <div className="ai-loading-screen ai-loading-screen--dark">
-            <div className="ai-loading-card ai-loading-card--dark">Loading AI assistant...</div>
-          </div>
-        }
+      <SlackLayout
+        isDark={isDark}
+        activeSection="chat"
+        activeTopic={currentTopic}
+        firstName={intakeFirstName}
+        lastName={intakeLastName}
+        intakeSaved={intakeSaved}
+        canGoBack={true}
+        onNavigate={handleSidebarNav}
+        onTopicSelect={(topicId) => setCurrentTopic(topicId)}
+        onStartChat={startChatFromCover}
+        onSignOut={() => { clearSavedIntake(); setView("login"); }}
+        onBack={() => setShowAIChat(false)}
+        topbarTitle="AI Legal Assistant"
+        topbarExtras={<TopbarActions />}
       >
-        <AIChat
-          topic={currentTopic}
-          intakeId={intakeId}
-          onBack={() => setShowAIChat(false)}
-          useCalDark={isDark}
-        />
-      </Suspense>
+        <Suspense
+          fallback={
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#64748b", fontSize: "0.875rem" }}>
+              Loading AI assistant…
+            </div>
+          }
+        >
+          <AIChat
+            topic={currentTopic}
+            intakeId={intakeId}
+            onBack={() => setShowAIChat(false)}
+            useCalDark={isDark}
+            embedded={true}
+          />
+        </Suspense>
+      </SlackLayout>
     );
   }
 
@@ -2854,7 +3085,7 @@ function App() {
     onStartChat: startChatFromCover,
     onSignOut: () => { clearSavedIntake(); setView("login"); },
     onBack: () => {},
-    topbarExtras: <ThemeToggle />,
+    topbarExtras: <TopbarActions />,
   };
 
   if (sidebarSection === "cases") {
@@ -2941,7 +3172,7 @@ function App() {
           setView("login");
         }}
         onBack={() => {}}
-        topbarExtras={<ThemeToggle />}
+        topbarExtras={<TopbarActions />}
       >
         <div className="home-cover">
           <div className="home-cover__inner">
@@ -3168,7 +3399,7 @@ function App() {
         setView("login");
       }}
       onBack={handleBack}
-      topbarExtras={<LanguagePicker variant={lpVariant} />}
+      topbarExtras={<TopbarActions />}
     >
       {messages.length > 0 && conversationState?.step !== "complete" && (
         <div className="px-4 py-2 border-b border-border bg-background/95 shrink-0">
@@ -3240,7 +3471,9 @@ function App() {
 
         <main className="chat-main" id="main-content">
         <div className="messages-container" ref={messagesContainerRef}>
-          <div className="text-right text-sm mb-4" style={{ color: "#94a3b8" }}>start</div>
+          {conversationState?.step !== "complete" && (
+            <div className="text-right text-sm mb-4" style={{ color: "#94a3b8" }}>start</div>
+          )}
           {chatError && (
             <StatusBanner type="error" className="chat-status-banner" role="alert">
               {chatError}
@@ -3294,16 +3527,42 @@ function App() {
                 {msg.referrals?.length > 0 && (
                   <div className="ml-11 mt-3 space-y-3">
                     {msg.decision_support && (
-                      <CaseSummaryCard
-                        urgency={msg.decision_support.urgency}
-                        risk={msg.decision_support.overall_risk}
-                        nextSteps={[
-                          ...(Array.isArray(msg.decision_support.urgency?.reasons) ? msg.decision_support.urgency.reasons : []),
-                          ...(Array.isArray(msg.decision_support.complexity?.reasons) ? msg.decision_support.complexity.reasons : []),
-                          ...(Array.isArray(msg.decision_support.self_help?.reasons) ? msg.decision_support.self_help.reasons : []),
-                        ].slice(0, 5)}
-                        topic={conversationState?.topic}
-                      />
+                      <>
+                        <CaseSummaryCard
+                          urgency={msg.decision_support.urgency}
+                          risk={msg.decision_support.overall_risk}
+                          nextSteps={[
+                            ...(Array.isArray(msg.decision_support.urgency?.reasons) ? msg.decision_support.urgency.reasons : []),
+                            ...(Array.isArray(msg.decision_support.complexity?.reasons) ? msg.decision_support.complexity.reasons : []),
+                            ...(Array.isArray(msg.decision_support.self_help?.reasons) ? msg.decision_support.self_help.reasons : []),
+                          ].slice(0, 5)}
+                          topic={conversationState?.topic}
+                        />
+                        {isLastReferralMsg && (
+                          <button
+                            type="button"
+                            disabled={emailSummaryBusy}
+                            onClick={() => sendCaseSummaryEmail(msg)}
+                            style={{
+                              background: "#C9A84C",
+                              color: "#1A1A1A",
+                              borderRadius: "8px",
+                              padding: "10px 24px",
+                              fontWeight: 700,
+                              fontSize: "0.875rem",
+                              border: "none",
+                              cursor: emailSummaryBusy ? "not-allowed" : "pointer",
+                              opacity: emailSummaryBusy ? 0.65 : 1,
+                              marginTop: "4px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                            }}
+                          >
+                            {emailSummaryBusy ? "Sending…" : "📧 Email me this summary"}
+                          </button>
+                        )}
+                      </>
                     )}
                     <p className="text-sm font-semibold text-foreground">{t("chat.referralsTitle")}</p>
                     {msg.referrals.map((ref, i) => (
@@ -3325,40 +3584,101 @@ function App() {
                             <FaPrint className="w-3 h-3" /> {t("chat.printResources")}
                           </Button>
                         </div>
-                        {triageFeedback !== "done" ? (
-                          <div role="group" aria-label={t("chat.feedbackQuestion")}>
-                            <p className="text-sm text-muted-foreground mb-2">{t("chat.feedbackQuestion")}</p>
-                            <div className="flex gap-2">
-                              <Button
-                                type="button"
-                                size="sm"
-                                className="rounded-xl"
-                                onClick={() => handleTriageFeedback(true)}
-                                disabled={loading}
-                              >
-                                {t("chat.feedbackYes")}
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                className="rounded-xl"
-                                onClick={() => handleTriageFeedback(false)}
-                                disabled={loading}
-                              >
-                                {t("chat.feedbackNo")}
-                              </Button>
-                            </div>
+                        <div className="cal-feedback-section" role="group" aria-label={t("chat.feedbackQuestion")}>
+                          <p className="text-sm text-muted-foreground mb-3">{t("chat.feedbackQuestion")}</p>
+                          <div className="flex gap-2 mb-2">
+                            <button
+                              type="button"
+                              className="cal-feedback-btn cal-feedback-btn--yes"
+                              onClick={() => handleTriageFeedback(true)}
+                              disabled={triageFeedback !== null || loading}
+                            >
+                              Yes, it was helpful 👍
+                            </button>
+                            <button
+                              type="button"
+                              className="cal-feedback-btn cal-feedback-btn--no"
+                              onClick={() => handleTriageFeedback(false)}
+                              disabled={triageFeedback !== null || loading}
+                            >
+                              No, not really 👎
+                            </button>
                           </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground" role="status">{t("chat.feedbackThanks")}</p>
-                        )}
+                          {triageFeedback !== null && (
+                            <>
+                              <p className="text-xs text-muted-foreground" role="status">
+                                Thank you for your feedback!
+                              </p>
+                              {triageFeedback === "no" && !feedbackCommentSubmitted && (
+                                <div className="cal-feedback-improve">
+                                  <textarea
+                                    className="cal-feedback-improve-input"
+                                    placeholder="What could we improve?"
+                                    value={feedbackComment}
+                                    onChange={(e) => setFeedbackComment(e.target.value)}
+                                    rows={2}
+                                  />
+                                  <button
+                                    type="button"
+                                    className="cal-feedback-improve-submit"
+                                    onClick={submitFeedbackComment}
+                                  >
+                                    Submit
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
                         <GuidedCaseTimelinePanel
                           topic={conversationState.topic}
                           onTrackEvent={(eventType, eventValue) => postIntakeEvent(eventType, eventValue)}
                         />
+                        {deadlineReminderChoice === null && (
+                          <div className="cal-deadline-reminder-prompt">
+                            <p className="cal-deadline-reminder-text">Would you like email reminders for these deadlines?</p>
+                            <div className="cal-deadline-reminder-actions">
+                              <button
+                                type="button"
+                                className="cal-deadline-reminder-btn cal-deadline-reminder-btn--yes"
+                                onClick={() => {
+                                  localStorage.setItem("cal_deadline_reminders", "true");
+                                  setDeadlineReminderChoice("yes");
+                                }}
+                              >
+                                Yes, remind me
+                              </button>
+                              <button
+                                type="button"
+                                className="cal-deadline-reminder-btn cal-deadline-reminder-btn--no"
+                                onClick={() => setDeadlineReminderChoice("no")}
+                              >
+                                No thanks
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        {deadlineReminderChoice === "yes" && (
+                          <p className="cal-deadline-reminder-confirm">We'll send you reminders as your deadlines approach.</p>
+                        )}
                         <TopicResourcesPanel topic={conversationState.topic} />
                         <DocumentGeneratorPanel topic={conversationState.topic} intakeId={intakeId} />
+                        <div className="cal-callback-section">
+                          <h4 className="cal-callback-heading">Want to speak with someone?</h4>
+                          <p className="cal-callback-subtext">Request a callback from our staff and we'll reach out to you.</p>
+                          <button
+                            type="button"
+                            className="cal-callback-btn"
+                            onClick={() => {
+                              setCallbackPhone(intakePhone || "");
+                              setCallbackTime("morning");
+                              setCallbackMsg(msg);
+                              setShowCallbackModal(true);
+                            }}
+                          >
+                            📞 Request a Callback
+                          </button>
+                        </div>
                         <div className="rounded-2xl border border-border bg-muted/40 p-4">
                           <Button
                             type="button"
@@ -3470,6 +3790,85 @@ function App() {
         </div>
 
       <EmergencyButton />
+      {caseSaveToast && (
+        <div
+          className={`cal-case-save-toast${caseSaveToast === "error" ? " cal-case-save-toast--error" : ""}`}
+          role="status"
+          aria-live="polite"
+        >
+          {caseSaveToast === "success"
+            ? "Your case has been saved to My Cases"
+            : "Could not save case. Please check My Cases later."}
+        </div>
+      )}
+      {emailSummaryToast && (
+        <div
+          className="cal-case-save-toast"
+          role="status"
+          aria-live="polite"
+        >
+          {emailSummaryToast}
+        </div>
+      )}
+      {callbackToast && (
+        <div
+          className="cal-case-save-toast"
+          role="status"
+          aria-live="polite"
+        >
+          {callbackToast}
+        </div>
+      )}
+      {showCallbackModal && (
+        <div
+          className="cal-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="callback-modal-title"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowCallbackModal(false); }}
+        >
+          <div className="cal-modal-box">
+            <h3 id="callback-modal-title" className="cal-modal-title">Request a Callback</h3>
+            <label className="cal-modal-label" htmlFor="cb-phone">Phone number</label>
+            <input
+              id="cb-phone"
+              className="cal-modal-input"
+              type="tel"
+              value={callbackPhone}
+              onChange={(e) => setCallbackPhone(e.target.value)}
+              placeholder="(312) 555-0000"
+            />
+            <label className="cal-modal-label" htmlFor="cb-time">Preferred time</label>
+            <select
+              id="cb-time"
+              className="cal-modal-input"
+              value={callbackTime}
+              onChange={(e) => setCallbackTime(e.target.value)}
+            >
+              <option value="morning">Morning (9am–12pm)</option>
+              <option value="afternoon">Afternoon (12pm–5pm)</option>
+              <option value="evening">Evening (5pm–8pm)</option>
+            </select>
+            <div className="cal-modal-actions">
+              <button
+                type="button"
+                className="cal-modal-submit"
+                disabled={callbackBusy}
+                onClick={submitCallbackRequest}
+              >
+                {callbackBusy ? "Sending…" : "Submit Request"}
+              </button>
+              <button
+                type="button"
+                className="cal-modal-cancel"
+                onClick={() => setShowCallbackModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </SlackLayout>
   );
 }

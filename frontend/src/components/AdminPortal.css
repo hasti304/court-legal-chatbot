@@ -805,6 +805,20 @@
 .badge-completed { background: #DCFCE7; color: #14532D; }
 .badge-flagged { background: #FEE2E2; color: #7F1D1D; }
 
+.admin-callback-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #C9A84C;
+  color: #1a1a1a;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+  margin-top: 4px;
+  margin-left: 0;
+}
+
 /* ── Deadline badges ── */
 .admin-portal-deadline-wrap { display: flex; flex-direction: column; gap: 4px; }
 .admin-portal-deadline-type { font-size: 0.76rem; color: #6B7280; }

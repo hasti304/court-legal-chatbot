@@ -2,6 +2,13 @@ import React from "react";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Scale, Volume2 } from "lucide-react";
 
+function formatMessage(text) {
+  return String(text || "")
+    .split('\n\n')
+    .map(para => `<p>${para.replace(/\n/g, '<br/>')}</p>`)
+    .join('');
+}
+
 export default function ChatMessage({ role, content, onSpeak, speechSupported }) {
   if (role === "bot") {
     return (
@@ -13,9 +20,11 @@ export default function ChatMessage({ role, content, onSpeak, speechSupported })
           <span className="text-white text-xs font-semibold">AI</span>
         </div>
         <div className="max-w-[80%] xl:max-w-2xl min-w-0">
-          <div className="bg-white border border-[#e2e8f0] rounded-2xl rounded-tl-none px-4 py-3 text-sm leading-relaxed shadow-sm" style={{ color: "#1e293b" }}>
-            {content}
-          </div>
+          <div
+            className="bg-white border border-[#e2e8f0] rounded-2xl rounded-tl-none px-4 py-3 text-sm leading-relaxed shadow-sm [&_p]:m-0 [&_p+p]:mt-2"
+            style={{ color: "#1e293b" }}
+            dangerouslySetInnerHTML={{ __html: formatMessage(content) }}
+          />
           {speechSupported && onSpeak && typeof content === "string" && (
             <button
               type="button"

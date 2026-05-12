@@ -1115,6 +1115,9 @@ export default function AdminPortal() {
                     </td>
                     <td>
                       <span className={`admin-status-badge ${badge.cls}`}>{badge.label}</span>
+                      {row.callback_requested && (
+                        <span className="admin-callback-badge">📞 Callback Requested</span>
+                      )}
                     </td>
                   </tr>
                 );

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { getApiBaseUrl } from "../utils/apiBase";
 
 const TEMPLATE_LABELS = {
@@ -178,6 +178,24 @@ export default function DocumentGeneratorPanel({ topic = "general", intakeId = "
   const [busy, setBusy] = useState(false);
   const [selectedUpload, setSelectedUpload] = useState(null);
   const [uploadBusy, setUploadBusy] = useState(false);
+
+  useEffect(() => {
+    if (!intakeId) return;
+    const base = getApiBaseUrl();
+    fetch(`${base}/auth/me`, { headers: { "X-Intake-Id": intakeId } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data) return;
+        const name = `${data.first_name || ""} ${data.last_name || ""}`.trim();
+        setForm((prev) => ({
+          ...prev,
+          ...(name ? { sender_name: name } : {}),
+          ...(data.email ? { sender_email: data.email } : {}),
+          ...(data.phone ? { sender_phone: data.phone } : {}),
+        }));
+      })
+      .catch(() => {});
+  }, [intakeId]);
 
   const documentText = useMemo(() => {
     const template = TEMPLATES[templateId] || TEMPLATES.demand_letter;

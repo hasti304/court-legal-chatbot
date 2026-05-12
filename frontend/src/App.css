@@ -4029,6 +4029,223 @@ a:focus-visible,
   white-space: nowrap;
 }
 
+/* Case save toast */
+.cal-case-save-toast {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #166534;
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  z-index: 9997;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.cal-case-save-toast--error {
+  background: #991b1b;
+}
+
+/* Deadline reminder opt-in */
+.cal-deadline-reminder-prompt {
+  background: #f8f6f0;
+  border: 1px solid #e5c96e;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cal-deadline-reminder-text {
+  font-size: 0.875rem;
+  color: #1e293b;
+  margin: 0;
+  flex: 1;
+  min-width: 180px;
+}
+
+.cal-deadline-reminder-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.cal-deadline-reminder-btn {
+  border-radius: 7px;
+  padding: 7px 16px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cal-deadline-reminder-btn--yes {
+  background: #C9A84C;
+  color: #1a1a1a;
+  border: 2px solid #C9A84C;
+}
+
+.cal-deadline-reminder-btn--yes:hover {
+  background: #b8943a;
+  border-color: #b8943a;
+}
+
+.cal-deadline-reminder-btn--no {
+  background: transparent;
+  color: #C9A84C;
+  border: 2px solid #C9A84C;
+}
+
+.cal-deadline-reminder-btn--no:hover {
+  background: rgba(201, 168, 76, 0.08);
+}
+
+.cal-deadline-reminder-confirm {
+  font-size: 0.82rem;
+  color: #166534;
+  font-weight: 500;
+  margin: 0;
+  padding: 6px 2px;
+}
+
+/* Callback section */
+.cal-callback-section {
+  background: #fdfbf4;
+  border: 1px solid #e5c96e;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.cal-callback-heading {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 6px;
+}
+
+.cal-callback-subtext {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0 0 14px;
+}
+
+.cal-callback-btn {
+  background: #C9A84C;
+  color: #1a1a1a;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cal-callback-btn:hover {
+  background: #b8943a;
+}
+
+/* Callback modal */
+.cal-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+}
+
+.cal-modal-box {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 28px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
+}
+
+.cal-modal-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 20px;
+}
+
+.cal-modal-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+  margin: 12px 0 4px;
+}
+
+.cal-modal-input {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #1e293b;
+  box-sizing: border-box;
+  background: #ffffff;
+}
+
+.cal-modal-input:focus {
+  outline: 2px solid #C9A84C;
+  outline-offset: 0;
+}
+
+.cal-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.cal-modal-submit {
+  background: #C9A84C;
+  color: #1a1a1a;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 22px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.cal-modal-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cal-modal-submit:not(:disabled):hover {
+  background: #b8943a;
+}
+
+.cal-modal-cancel {
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
 /* Auth footer */
 .cal-auth-root .site-footer {
   background: #F9FAFB;
@@ -4065,4 +4282,213 @@ a:focus-visible,
   .cal-auth-right-topbar {
     padding: 16px 20px 0;
   }
+}
+
+/* ──────────────────────────────────────────────────────────
+   Topbar extras: ThemeToggle + LanguagePicker wrapper
+   ────────────────────────────────────────────────────────── */
+.cal-topbar-extras {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cal-topbar-extras .theme-toggle-btn {
+  width: 34px;
+  height: 34px;
+  padding: 7px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #374151;
+  box-shadow: none;
+}
+
+.cal-topbar-extras .theme-toggle-btn:hover {
+  background: #F3F4F6;
+  border-color: transparent;
+}
+
+.cal-topbar-extras .theme-toggle-btn:focus-visible {
+  outline: 2px solid #C9A84C;
+  outline-offset: 2px;
+}
+
+/* ──────────────────────────────────────────────────────────
+   Dark mode overrides — client pages inside .dark SlackLayout
+   ────────────────────────────────────────────────────────── */
+
+/* ThemeToggle in topbar */
+.dark .cal-topbar-extras .theme-toggle-btn {
+  color: #F4F5F7;
+}
+
+.dark .cal-topbar-extras .theme-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Deadline reminder prompt */
+.dark .cal-deadline-reminder-prompt {
+  background: #1A1D27;
+  border-color: #C9A84C;
+}
+
+.dark .cal-deadline-reminder-text {
+  color: #F4F5F7;
+}
+
+.dark .cal-deadline-reminder-confirm {
+  color: #4ade80;
+}
+
+/* Callback section */
+.dark .cal-callback-section {
+  background: #1A1D27;
+  border-color: #C9A84C;
+}
+
+.dark .cal-callback-heading {
+  color: #F4F5F7;
+}
+
+.dark .cal-callback-subtext {
+  color: #9CA3AF;
+}
+
+/* Callback modal */
+.dark .cal-modal-box {
+  background: #1A1D27;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.dark .cal-modal-title {
+  color: #F4F5F7;
+}
+
+.dark .cal-modal-label {
+  color: #9CA3AF;
+}
+
+.dark .cal-modal-input {
+  background: #2A2D3A;
+  border-color: #2A2D3A;
+  color: #F4F5F7;
+}
+
+.dark .cal-modal-input:focus {
+  outline-color: #C9A84C;
+}
+
+.dark .cal-modal-cancel {
+  color: #9CA3AF;
+}
+
+/* ──────────────────────────────────────────────────────────
+   Feedback buttons
+   ────────────────────────────────────────────────────────── */
+.cal-feedback-section {
+  margin-bottom: 4px;
+}
+
+.cal-feedback-btn {
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+  font-family: inherit;
+}
+
+.cal-feedback-btn--yes {
+  background: #C9A84C;
+  color: #1a1a1a;
+  border: 2px solid #C9A84C;
+}
+
+.cal-feedback-btn--yes:hover:not(:disabled) {
+  background: #b8943a;
+  border-color: #b8943a;
+}
+
+.cal-feedback-btn--no {
+  background: #ffffff;
+  color: #C9A84C;
+  border: 2px solid #C9A84C;
+}
+
+.cal-feedback-btn--no:hover:not(:disabled) {
+  background: rgba(201, 168, 76, 0.07);
+}
+
+.cal-feedback-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Improvement follow-up */
+.cal-feedback-improve {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.cal-feedback-improve-input {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: #1e293b;
+  background: #ffffff;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cal-feedback-improve-input:focus {
+  border-color: #C9A84C;
+}
+
+.cal-feedback-improve-input::placeholder {
+  color: #94a3b8;
+}
+
+.cal-feedback-improve-submit {
+  align-self: flex-start;
+  background: #C9A84C;
+  color: #1a1a1a;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.cal-feedback-improve-submit:hover {
+  background: #b8943a;
+}
+
+/* Dark mode */
+.dark .cal-feedback-btn--no {
+  background: #1A1D27;
+  color: #C9A84C;
+  border-color: #C9A84C;
+}
+
+.dark .cal-feedback-improve-input {
+  background: #2A2D3A;
+  border-color: #2A2D3A;
+  color: #F4F5F7;
+}
+
+.dark .cal-feedback-improve-input::placeholder {
+  color: #9CA3AF;
 }

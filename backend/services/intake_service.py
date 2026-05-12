@@ -1072,6 +1072,7 @@ def list_intakes_for_admin(request: Request, db: Session):
                 "next_deadline_date": None,
                 "next_deadline_type": None,
                 "deadline_count": 0,
+                "callback_requested": False,
             }
             for r in fallback_rows
         ]
@@ -1096,7 +1097,8 @@ def list_intakes_for_admin(request: Request, db: Session):
                             'topic_selected',
                             'problem_summary',
                             'problem_summary_alternate_topic',
-                            'navigator_login'
+                            'navigator_login',
+                            'callback_requested'
                           )
                         ORDER BY created_at DESC
                         """
@@ -1136,6 +1138,10 @@ def list_intakes_for_admin(request: Request, db: Session):
             summaries = [str(d.get("problem_summary") or "").strip()]
         d["issues"] = topics
         d["summaries"] = summaries
+        d["callback_requested"] = any(
+            str(ev.get("event_type") or "").strip().lower() == "callback_requested"
+            for ev in events
+        )
         next_deadline_date = str(d.get("next_deadline_date") or "").strip()
         if next_deadline_date:
             try:

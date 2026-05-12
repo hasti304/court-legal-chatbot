@@ -65,7 +65,14 @@ export default function ReferralCard({ referral }) {
         {ref.is_nfp && (
           <Button
             size="sm"
-            className="rounded-xl flex-1"
+            className="flex-1 font-bold"
+            style={{
+              background: "#C9A84C",
+              color: "#1a1a1a",
+              border: "none",
+              borderRadius: "50px",
+              padding: "12px 24px",
+            }}
             onClick={() =>
               window.open(
                 ref.intake_form || "https://www.chicagoadvocatelegal.com/contact.html",
@@ -80,7 +87,14 @@ export default function ReferralCard({ referral }) {
           <Button
             variant="outline"
             size="sm"
-            className="rounded-xl flex-1 gap-1.5"
+            className="flex-1 gap-1.5"
+            style={{
+              background: "#ffffff",
+              border: "1px solid #1B2A4A",
+              color: "#1B2A4A",
+              borderRadius: "50px",
+              padding: "12px 24px",
+            }}
             onClick={() => window.open(ref.url, "_blank")}
           >
             <ExternalLink className="w-3.5 h-3.5" aria-hidden />

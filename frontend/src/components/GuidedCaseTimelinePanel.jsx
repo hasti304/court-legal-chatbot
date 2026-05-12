@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 
-const TIMELINES_BY_TOPIC = {
+export const TIMELINES_BY_TOPIC = {
   housing: [
     {
       id: "intake",
