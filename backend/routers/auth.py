@@ -147,6 +147,7 @@ def get_me(x_intake_id: str = Header(None), db: Session = Depends(get_db)):
         "first_name": getattr(intake, "first_name", "") or "",
         "last_name": getattr(intake, "last_name", "") or "",
         "phone": getattr(intake, "phone", "") or "",
+        "is_verified": bool(getattr(intake, "is_verified", True)),
     }
 
 

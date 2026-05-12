@@ -2,10 +2,13 @@ import csv
 import html
 import io
 import json
+import logging
 import os
 import re
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -1354,9 +1357,10 @@ def admin_delete_intake(request: Request, intake_id: str, db: Session) -> dict:
         db.delete(row)
         db.commit()
         return {"ok": True, "id": iid}
-    except SQLAlchemyError as e:
+    except Exception as e:
+        logger.error("admin_delete_intake failed for intake_id=%s: %s: %s", iid, type(e).__name__, e, exc_info=True)
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Delete failed: {type(e).__name__}: {str(e)}")
 
 
 def get_my_sessions(intake_id: str, db: Session) -> List[Dict[str, Any]]:
