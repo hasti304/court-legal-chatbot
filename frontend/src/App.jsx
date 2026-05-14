@@ -44,7 +44,7 @@ import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
 import calLogo from "./assets/cal_logo.png";
-import { Eye, EyeOff, Send, RotateCcw, Loader2, ArrowLeft, ShieldAlert, Trash2, Volume2, VolumeX, Check, Shield, Lock, Clock } from "lucide-react";
+import { Eye, EyeOff, Send, RotateCcw, Loader2, ArrowLeft, ShieldAlert, Trash2, Volume2, VolumeX, Check, Shield, Lock, Clock, ChevronRight } from "lucide-react";
 
 import { useTranslation } from "react-i18next";
 import i18n, { setAppLanguage, getNormalizedLanguage } from "./i18n";
@@ -1685,6 +1685,21 @@ function App() {
       );
       if (!res.ok) throw new Error();
       void postIntakeEvent("callback_requested", callbackTime);
+      if (intakeId) {
+        void fetchWithTimeout(
+          apiUrl("/intake/callback"),
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              intake_id: intakeId,
+              phone: phone || intakePhone || "",
+              preferred_time: callbackTime,
+            }),
+          },
+          10000
+        ).catch(() => {});
+      }
       setCallbackToast("Callback request sent. We'll reach out to you soon.");
       setShowCallbackModal(false);
     } catch {
@@ -3679,19 +3694,21 @@ function App() {
                             📞 Request a Callback
                           </button>
                         </div>
-                        <div className="rounded-2xl border border-border bg-muted/40 p-4">
-                          <Button
-                            type="button"
-                            className="w-full rounded-xl gap-2 mb-2"
-                            onClick={() => {
-                              postIntakeEvent("ai_assistant_opened", currentTopic || "");
-                              setShowAIChat(true);
-                            }}
-                          >
-                            <FaRobot /> {t("chat.aiButton")}
-                          </Button>
-                          <p className="text-xs text-muted-foreground text-center">{t("chat.aiHint")}</p>
-                        </div>
+                        <button
+                          type="button"
+                          className="cal-ai-assistant-card"
+                          onClick={() => {
+                            postIntakeEvent("ai_assistant_opened", currentTopic || "");
+                            setShowAIChat(true);
+                          }}
+                        >
+                          <span className="cal-ai-assistant-icon"><FaRobot /></span>
+                          <span className="cal-ai-assistant-text">
+                            <span className="cal-ai-assistant-heading">{t("chat.aiButton")}</span>
+                            <span className="cal-ai-assistant-hint">{t("chat.aiHint")}</span>
+                          </span>
+                          <ChevronRight size={20} className="cal-ai-assistant-chevron" aria-hidden />
+                        </button>
                       </div>
                     )}
                   </div>

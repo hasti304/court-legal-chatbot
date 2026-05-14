@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { Eye, EyeOff, LayoutDashboard, Users, FileText, Download, AlertTriangle, X, Mail, CheckSquare, Square } from "lucide-react";
+import { Eye, EyeOff, LayoutDashboard, Users, FileText, Download, AlertTriangle, X, Mail, CheckSquare, Square, Phone } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import StatusBanner from "./StatusBanner";
 import "./AdminPortal.css";
@@ -21,6 +21,7 @@ const TAB_LABELS = {
   submissions: "Submissions",
   export: "Export CSV",
   emergency: "Emergency Flagged",
+  callbacks: "Callback Requests",
 };
 
 function decodeJwtEmail(tok) {
@@ -41,6 +42,7 @@ function initialTabFromHash() {
     if (r.includes("/intakes")) return "intakes";
     if (r.includes("/export")) return "export";
     if (r.includes("/emergency")) return "emergency";
+    if (r.includes("/callbacks")) return "callbacks";
     if (r === "/admin" || r === "/admin/") return "intakes";
   } catch {
     /* ignore */
@@ -266,6 +268,8 @@ export default function AdminPortal() {
   const [exportIssueFilter, setExportIssueFilter] = useState("all");
   const [exportStatusFilterVal, setExportStatusFilterVal] = useState("all");
   const [lastExportedTime, setLastExportedTime] = useState(null);
+  const [callbackPopover, setCallbackPopover] = useState(null); // null | intake_id string
+  const [markCalledBusy, setMarkCalledBusy] = useState({});
 
   const portalClass = `admin-portal-page${theme === "light" ? " admin-portal-page--light" : ""}`;
 
@@ -299,6 +303,7 @@ export default function AdminPortal() {
     else if (t === "intakes") window.location.hash = "#/admin/intakes";
     else if (t === "export") window.location.hash = "#/admin/export";
     else if (t === "emergency") window.location.hash = "#/admin/emergency";
+    else if (t === "callbacks") window.location.hash = "#/admin/callbacks";
     else window.location.hash = "#/admin/intakes";
   };
 
@@ -452,6 +457,19 @@ export default function AdminPortal() {
       setLoading(false);
     }
   }, [apiUrl, authFetch]);
+
+  const markCallbackCalled = useCallback(async (intakeId) => {
+    setMarkCalledBusy(prev => ({ ...prev, [intakeId]: true }));
+    try {
+      await authFetch(`/admin/intakes/${intakeId}/callback/mark-called`, { method: "POST" });
+      setCallbackPopover(null);
+      await loadIntakes();
+    } catch {
+      // silently ignore; table will still show current state
+    } finally {
+      setMarkCalledBusy(prev => ({ ...prev, [intakeId]: false }));
+    }
+  }, [authFetch, loadIntakes]);
 
   const openActivityModal = async (row) => {
     setActivityModal(row);
@@ -799,6 +817,24 @@ export default function AdminPortal() {
     return detailed?.overview?.emergency_sessions ?? 0;
   }, [emergencyIntakesAll, detailed]);
 
+  const callbackIntakes = useMemo(
+    () =>
+      intakes
+        .filter((r) => r.callback_requested === true)
+        .slice()
+        .sort((a, b) => {
+          const ta = a.callback_created_at || a.created_at || "";
+          const tb = b.callback_created_at || b.created_at || "";
+          return tb.localeCompare(ta);
+        }),
+    [intakes]
+  );
+
+  const pendingCallbackCount = useMemo(
+    () => callbackIntakes.filter((r) => (r.callback_status || "pending") === "pending").length,
+    [callbackIntakes]
+  );
+
   const filteredIntakes = useMemo(() => {
     let r = tab === "emergency" ? emergencyIntakesAll : intakes;
     if (intakesSearch.trim()) {
@@ -983,20 +1019,21 @@ export default function AdminPortal() {
               <th>Email user</th>
               <th>Manage</th>
               <th>Intake Status</th>
+              <th>Callback</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && !loading ? (
               isEmergency ? (
                 <tr>
-                  <td colSpan={16} className="admin-portal-empty-cell admin-empty-emergency">
+                  <td colSpan={17} className="admin-portal-empty-cell admin-empty-emergency">
                     <span className="admin-empty-check-icon">✓</span>
                     No emergency cases flagged
                   </td>
                 </tr>
               ) : (
                 <tr>
-                  <td colSpan={16} className="admin-portal-empty-cell">No intake accounts yet.</td>
+                  <td colSpan={17} className="admin-portal-empty-cell">No intake accounts yet.</td>
                 </tr>
               )
             ) : (
@@ -1115,8 +1152,68 @@ export default function AdminPortal() {
                     </td>
                     <td>
                       <span className={`admin-status-badge ${badge.cls}`}>{badge.label}</span>
-                      {row.callback_requested && (
-                        <span className="admin-callback-badge">📞 Callback Requested</span>
+                    </td>
+                    <td className="admin-callback-cell">
+                      {row.callback_requested || row.callback_phone ? (() => {
+                        const isCalled = row.callback_status === "called";
+                        const isOpen = callbackPopover === row.id;
+                        const timeLabel = row.callback_preferred_time
+                          ? row.callback_preferred_time.charAt(0).toUpperCase() + row.callback_preferred_time.slice(1)
+                          : null;
+                        return (
+                          <div className="admin-callback-wrap">
+                            <button
+                              type="button"
+                              className={`admin-callback-badge${isCalled ? " admin-callback-badge--called" : ""}`}
+                              onClick={() => setCallbackPopover(isOpen ? null : row.id)}
+                            >
+                              {isCalled ? "Called ✓" : "📞 Callback Requested"}
+                            </button>
+                            {timeLabel && !isCalled && (
+                              <div className="admin-callback-time">Preferred: {timeLabel}</div>
+                            )}
+                            {isOpen && (
+                              <div className="admin-callback-popover">
+                                <button
+                                  type="button"
+                                  className="admin-callback-popover-close"
+                                  onClick={() => setCallbackPopover(null)}
+                                >×</button>
+                                <div className="admin-callback-popover-name">
+                                  {row.first_name} {row.last_name}
+                                </div>
+                                <div className="admin-callback-popover-row">
+                                  <span className="admin-callback-popover-label">Phone</span>
+                                  <span>{row.callback_phone || row.phone || "—"}</span>
+                                </div>
+                                <div className="admin-callback-popover-row">
+                                  <span className="admin-callback-popover-label">Preferred time</span>
+                                  <span>{timeLabel || "—"}</span>
+                                </div>
+                                <div className="admin-callback-popover-row">
+                                  <span className="admin-callback-popover-label">Issue</span>
+                                  <span>{(row.issues || []).join(", ") || row.issue || "—"}</span>
+                                </div>
+                                <div className="admin-callback-popover-row">
+                                  <span className="admin-callback-popover-label">Risk score</span>
+                                  <span>{row.risk_score != null ? `${row.risk_score}/100` : "—"}</span>
+                                </div>
+                                {!isCalled && (
+                                  <button
+                                    type="button"
+                                    className="admin-callback-popover-btn"
+                                    disabled={!!markCalledBusy[row.id]}
+                                    onClick={() => void markCallbackCalled(row.id)}
+                                  >
+                                    {markCalledBusy[row.id] ? "Saving…" : "Mark as called"}
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })() : (
+                        <span className="admin-portal-muted">—</span>
                       )}
                     </td>
                   </tr>
@@ -1147,6 +1244,7 @@ export default function AdminPortal() {
               { id: "submissions", label: "Submissions", icon: <FileText size={16} aria-hidden /> },
               { id: "export", label: "Export CSV", icon: <Download size={16} aria-hidden /> },
               { id: "emergency", label: "Emergency Flagged", icon: <AlertTriangle size={16} aria-hidden />, badge: emergencyCount },
+              { id: "callbacks", label: "Callback Requests", icon: <Phone size={16} aria-hidden />, badge: pendingCallbackCount },
             ].map(({ id, label, icon, badge }) => (
               <button
                 key={id}
@@ -1249,7 +1347,6 @@ export default function AdminPortal() {
                             ["Completion %", `${detailed.overview.completion_rate_percent ?? 0}%`, false],
                             ["AI Used", detailed.overview.ai_used_sessions ?? 0, false],
                             ["Emergency Flagged", detailed.overview.emergency_sessions ?? 0, true],
-                            ["Helpful %", `${detailed.overview.helpful_rate_percent ?? 0}%`, false],
                             ["Timeline Step Views", detailed.overview.timeline_step_views ?? 0, false],
                             ["Checklist Toggles", detailed.overview.timeline_checklist_toggles ?? 0, false],
                             ["Evidence Files", detailed.overview.total_evidence_files ?? 0, false],
@@ -1264,6 +1361,70 @@ export default function AdminPortal() {
                               <div className="admin-triage-label">{label}</div>
                             </div>
                           ))}
+                        </div>
+
+                        <div className="admin-portal-caption">Client Feedback</div>
+                        <div className="admin-feedback-cards">
+                          <div className="admin-feedback-card">
+                            <div className="admin-triage-value">{detailed.overview.feedback_total ?? 0}</div>
+                            <div className="admin-triage-label">Total Feedback</div>
+                          </div>
+                          <div className="admin-feedback-card">
+                            <div className="admin-triage-value admin-feedback-value--helpful">
+                              {detailed.overview.helpful_yes ?? 0}
+                            </div>
+                            <div className="admin-triage-label">
+                              Helpful
+                              {(detailed.overview.feedback_total ?? 0) > 0 && (
+                                <span className="admin-feedback-pct admin-feedback-pct--helpful">
+                                  {" "}{detailed.overview.helpful_rate_percent ?? 0}%
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="admin-feedback-card">
+                            <div className="admin-triage-value admin-feedback-value--no">
+                              {detailed.overview.helpful_no ?? 0}
+                            </div>
+                            <div className="admin-triage-label">
+                              Not Helpful
+                              {(detailed.overview.feedback_total ?? 0) > 0 && (
+                                <span className="admin-feedback-pct admin-feedback-pct--no">
+                                  {" "}{detailed.overview.helpful_no && detailed.overview.feedback_total
+                                    ? `${Math.round((detailed.overview.helpful_no / detailed.overview.feedback_total) * 1000) / 10}%`
+                                    : "0%"}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="admin-feedback-card">
+                            <div className="admin-triage-value admin-feedback-value--date">
+                              {detailed.overview.most_recent_feedback_date
+                                ? new Date(detailed.overview.most_recent_feedback_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                                : "—"}
+                            </div>
+                            <div className="admin-triage-label">Most Recent</div>
+                          </div>
+                        </div>
+
+                        <div className="admin-feedback-comments-card">
+                          <div className="admin-portal-caption" style={{ marginBottom: "12px" }}>Recent Feedback Comments</div>
+                          {Array.isArray(detailed.feedback_comments) && detailed.feedback_comments.length > 0 ? (
+                            <ul className="admin-feedback-comments-list">
+                              {detailed.feedback_comments.map((item, i) => (
+                                <li key={i} className="admin-feedback-comments-item">
+                                  <span className="admin-feedback-comments-date">
+                                    {item.created_at
+                                      ? new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                                      : ""}
+                                  </span>
+                                  <span className="admin-feedback-comments-text">{item.comment}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="admin-feedback-comments-empty">No feedback comments yet.</p>
+                          )}
                         </div>
 
                         {Array.isArray(detailed.top_topics) && detailed.top_topics.length > 0 ? (
@@ -1558,6 +1719,87 @@ export default function AdminPortal() {
 
             {/* ── Emergency Flagged ── */}
             {tab === "emergency" && renderIntakesTable(filteredIntakes, false, true)}
+
+            {/* ── Callback Requests ── */}
+            {tab === "callbacks" && (
+              <div className="admin-portal-panel">
+                <div className="admin-portal-panel-header">
+                  <h2 className="admin-portal-panel-title">Callback Requests</h2>
+                  <span className="admin-portal-panel-count">{callbackIntakes.length} total</span>
+                </div>
+
+                {callbackIntakes.length === 0 ? (
+                  <div className="admin-callbacks-empty">
+                    <Phone size={40} className="admin-callbacks-empty-icon" aria-hidden />
+                    <p>No callback requests yet.</p>
+                  </div>
+                ) : (
+                  <div className="admin-portal-table-wrap">
+                    <table className="admin-portal-table admin-callbacks-table">
+                      <thead>
+                        <tr>
+                          <th>Client Name</th>
+                          <th>Email</th>
+                          <th>Phone</th>
+                          <th>Preferred Time</th>
+                          <th>Issue Type</th>
+                          <th>Risk Score</th>
+                          <th>Date Requested</th>
+                          <th>Status</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {callbackIntakes.map((row) => {
+                          const name = [row.first_name, row.last_name].filter(Boolean).join(" ") || row.email || "—";
+                          const issue = (Array.isArray(row.issues) && row.issues[0]) ? row.issues[0] : (row.issue || "—");
+                          const isCalled = (row.callback_status || "pending") === "called";
+                          const tel = phoneTelHref(row.callback_phone);
+                          return (
+                            <tr key={row.id}>
+                              <td className="admin-callbacks-name">{name}</td>
+                              <td>{row.email || "—"}</td>
+                              <td>
+                                {row.callback_phone
+                                  ? tel
+                                    ? <a href={tel} className="admin-callbacks-phone-link">{formatPhoneDigits(row.callback_phone)}</a>
+                                    : formatPhoneDigits(row.callback_phone)
+                                  : "—"}
+                              </td>
+                              <td>{row.callback_preferred_time || "—"}</td>
+                              <td>{humanizeToken(issue)}</td>
+                              <td>{row.risk_score != null ? `${row.risk_score}/100` : "—"}</td>
+                              <td className="admin-callbacks-date">
+                                {row.callback_created_at
+                                  ? new Date(row.callback_created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                                  : "—"}
+                              </td>
+                              <td>
+                                {isCalled
+                                  ? <span className="admin-callbacks-badge admin-callbacks-badge--called">Called ✓</span>
+                                  : <span className="admin-callbacks-badge admin-callbacks-badge--pending">Pending</span>}
+                              </td>
+                              <td>
+                                {!isCalled && (
+                                  <button
+                                    type="button"
+                                    className="admin-callbacks-mark-btn"
+                                    disabled={!!markCalledBusy[row.id]}
+                                    onClick={() => markCallbackCalled(row.id)}
+                                  >
+                                    {markCalledBusy[row.id] ? "Saving…" : "Mark as Called"}
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
 
           </div>
         </div>

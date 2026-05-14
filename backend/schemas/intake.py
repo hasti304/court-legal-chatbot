@@ -108,6 +108,12 @@ class IntakeEventRequest(BaseModel):
     event_value: Optional[str] = None
 
 
+class CallbackCreateRequest(BaseModel):
+    intake_id: str
+    phone: Optional[str] = None
+    preferred_time: Optional[str] = None
+
+
 class IntakeSubmissionCreate(BaseModel):
     name: str
     email: str

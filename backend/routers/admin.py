@@ -19,6 +19,7 @@ try:
         export_intakes_csv,
         list_intake_events_for_admin,
         list_intakes_for_admin,
+        mark_callback_called,
         require_admin_access,
         send_intake_staff_email,
         set_intake_admin_status,
@@ -38,6 +39,7 @@ except ImportError:
         export_intakes_csv,
         list_intake_events_for_admin,
         list_intakes_for_admin,
+        mark_callback_called,
         require_admin_access,
         send_intake_staff_email,
         set_intake_admin_status,
@@ -171,6 +173,11 @@ def admin_stats_endpoint(request: Request):
 @router.get("/admin/basic-analytics")
 def basic_analytics_endpoint(request: Request, db: Session = Depends(get_db)):
     return basic_analytics(request=request, db=db)
+
+
+@router.post("/admin/intakes/{intake_id}/callback/mark-called")
+def admin_mark_callback_called_endpoint(intake_id: str, request: Request):
+    return mark_callback_called(request=request, intake_id=intake_id)
 
 
 @router.get("/admin/health-checks")

@@ -348,6 +348,18 @@ def ensure_tables():
     ON intake_deadlines (intake_id, due_date);
     """
 
+    create_callback_requests = """
+    CREATE TABLE IF NOT EXISTS callback_requests (
+      id TEXT PRIMARY KEY,
+      intake_id TEXT NOT NULL,
+      phone TEXT,
+      preferred_time TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (intake_id) REFERENCES intakes(id)
+    );
+    """
+
     # Each phase runs in its own transaction so a failed ALTER TABLE migration
     # cannot abort the PostgreSQL transaction that contains the CREATE TABLEs.
     # In PostgreSQL a single failed statement marks the whole transaction as
@@ -393,6 +405,13 @@ def ensure_tables():
                 migration_fn(conn)
         except Exception as e:
             print(f"Warning: migration {migration_fn.__name__} skipped: {e}")
+
+    # Phase 5: callback_requests table
+    try:
+        with engine.begin() as conn:
+            conn.execute(text(create_callback_requests))
+    except SQLAlchemyError as e:
+        print(f"Warning: ensure_tables (callback_requests) failed: {e}")
 
 
 def _migrate_intakes_admin_status(conn) -> None:
@@ -807,6 +826,127 @@ def create_intake_event(req):
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 
+def create_callback_request(intake_id: str, phone: Optional[str], preferred_time: Optional[str]) -> dict:
+    if not engine:
+        raise HTTPException(status_code=503, detail="Database not configured")
+    intake_id = (intake_id or "").strip()
+    if not intake_id:
+        raise HTTPException(status_code=400, detail="Missing intake_id")
+    ensure_tables()
+    req_id = os.urandom(16).hex()
+    intake_row: Optional[Any] = None
+    try:
+        with engine.begin() as conn:
+            intake_row = conn.execute(
+                text("SELECT first_name, last_name, email, phone FROM intakes WHERE id = :id"),
+                {"id": intake_id},
+            ).mappings().first()
+            if not intake_row:
+                raise HTTPException(status_code=404, detail="Intake not found")
+            # Replace any prior callback request for this intake
+            conn.execute(
+                text("DELETE FROM callback_requests WHERE intake_id = :intake_id"),
+                {"intake_id": intake_id},
+            )
+            conn.execute(
+                text("""
+                INSERT INTO callback_requests (id, intake_id, phone, preferred_time, status, created_at)
+                VALUES (:id, :intake_id, :phone, :preferred_time, 'pending', :created_at)
+                """),
+                {
+                    "id": req_id,
+                    "intake_id": intake_id,
+                    "phone": (phone or "").strip() or None,
+                    "preferred_time": (preferred_time or "").strip() or None,
+                    "created_at": utc_now_iso(),
+                },
+            )
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+    # Send admin notification — failure is non-fatal
+    try:
+        _notify_admin_callback(
+            intake_row=dict(intake_row) if intake_row else {},
+            phone=(phone or "").strip(),
+            preferred_time=(preferred_time or "").strip(),
+        )
+    except Exception as exc:
+        logger.error("callback_request: admin notification failed: %s", exc)
+
+    return {"ok": True}
+
+
+def _notify_admin_callback(intake_row: dict, phone: str, preferred_time: str) -> None:
+    """Send a callback-request notification to the intake admin email."""
+    recipient = (ADMIN_EMAIL or "intake@chicagoadvocatelegal.com").strip()
+    if not recipient:
+        return
+
+    first = str(intake_row.get("first_name") or "").strip()
+    last = str(intake_row.get("last_name") or "").strip()
+    full_name = f"{first} {last}".strip() or "Client"
+    client_email = str(intake_row.get("email") or "").strip()
+    client_phone = phone or str(intake_row.get("phone") or "").strip() or "Not provided"
+
+    time_labels = {
+        "morning": "Morning (9am–12pm)",
+        "afternoon": "Afternoon (12pm–5pm)",
+        "evening": "Evening (5pm–8pm)",
+    }
+    time_display = time_labels.get(preferred_time.lower(), preferred_time.capitalize()) if preferred_time else "Not specified"
+
+    subject = f"New Callback Request — {full_name}"
+
+    text_body = (
+        "A client has requested a callback.\n\n"
+        f"Name: {full_name}\n"
+        f"Email: {client_email}\n"
+        f"Phone: {client_phone}\n"
+        f"Preferred time: {time_display}\n"
+        "Issue type: See admin portal\n"
+        "Risk Score: See admin portal\n\n"
+        "Log in to the admin portal to view and manage this request."
+    )
+
+    html_body = (
+        "<p>A client has requested a callback.</p>"
+        "<table style='border-collapse:collapse;font-family:sans-serif;font-size:14px'>"
+        f"<tr><td style='padding:4px 12px 4px 0;color:#6B7280'>Name</td><td><strong>{full_name}</strong></td></tr>"
+        f"<tr><td style='padding:4px 12px 4px 0;color:#6B7280'>Email</td><td>{client_email}</td></tr>"
+        f"<tr><td style='padding:4px 12px 4px 0;color:#6B7280'>Phone</td><td>{client_phone}</td></tr>"
+        f"<tr><td style='padding:4px 12px 4px 0;color:#6B7280'>Preferred time</td><td>{time_display}</td></tr>"
+        "<tr><td style='padding:4px 12px 4px 0;color:#6B7280'>Issue type</td><td>See admin portal</td></tr>"
+        "<tr><td style='padding:4px 12px 4px 0;color:#6B7280'>Risk Score</td><td>See admin portal</td></tr>"
+        "</table>"
+        "<p style='margin-top:16px'>Log in to the admin portal to view and manage this request.</p>"
+    )
+
+    sent = send_transactional_email(recipient, subject, text_body, html_body)
+    if not sent:
+        logger.warning("callback_request: admin notification email not delivered to %s", recipient)
+
+
+def mark_callback_called(request, intake_id: str) -> dict:
+    require_admin_access(request)
+    if not engine:
+        raise HTTPException(status_code=503, detail="Database not configured")
+    intake_id = (intake_id or "").strip()
+    if not intake_id:
+        raise HTTPException(status_code=400, detail="Missing intake_id")
+    try:
+        with engine.begin() as conn:
+            conn.execute(
+                text("UPDATE callback_requests SET status = 'called' WHERE intake_id = :intake_id"),
+                {"intake_id": intake_id},
+            )
+        return {"ok": True}
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
 def create_submission(payload, db: Session):
     name = (payload.name or "").strip()
     email = (payload.email or "").strip().lower()
@@ -963,6 +1103,7 @@ def list_intakes_for_admin(request: Request, db: Session):
     has_triage_sessions = _table_exists("triage_sessions")
     has_deadlines = _table_exists("intake_deadlines")
     has_intake_events = _table_exists("intake_events")
+    has_callback_requests = _table_exists("callback_requests")
     has_admin_status = _column_exists("intakes", "admin_status")
     has_login_count = _column_exists("intakes", "login_count")
     has_problem_summary = has_triage_sessions and _column_exists("triage_sessions", "problem_summary")
@@ -1073,6 +1214,10 @@ def list_intakes_for_admin(request: Request, db: Session):
                 "next_deadline_type": None,
                 "deadline_count": 0,
                 "callback_requested": False,
+                "callback_phone": None,
+                "callback_preferred_time": None,
+                "callback_status": None,
+                "callback_created_at": None,
             }
             for r in fallback_rows
         ]
@@ -1113,6 +1258,34 @@ def list_intakes_for_admin(request: Request, db: Session):
                     intake_events_by_id.setdefault(iid, []).append(dict(er))
         except Exception:
             intake_events_by_id = {}
+
+    # Load callback_requests data (phone, preferred_time, status) keyed by intake_id
+    callback_data_by_intake_id: Dict[str, Dict[str, Any]] = {}
+    if intake_ids and has_callback_requests:
+        try:
+            chunks = [intake_ids[i:i + 100] for i in range(0, len(intake_ids), 100)]
+            for chunk in chunks:
+                params = {f"iid{i}": v for i, v in enumerate(chunk)}
+                placeholders = ", ".join(f":iid{i}" for i in range(len(chunk)))
+                cb_rows = db.execute(
+                    text(
+                        f"""
+                        SELECT intake_id, phone, preferred_time, status, created_at
+                        FROM callback_requests
+                        WHERE intake_id IN ({placeholders})
+                        ORDER BY created_at DESC
+                        """
+                    ),
+                    params,
+                ).mappings().all()
+                for cr in cb_rows:
+                    iid = str(cr.get("intake_id") or "").strip()
+                    # Keep only the most recent callback per intake (already DESC)
+                    if iid and iid not in callback_data_by_intake_id:
+                        callback_data_by_intake_id[iid] = dict(cr)
+        except Exception:
+            callback_data_by_intake_id = {}
+
     out = []
     for r in rows:
         d = dict(r)
@@ -1138,10 +1311,16 @@ def list_intakes_for_admin(request: Request, db: Session):
             summaries = [str(d.get("problem_summary") or "").strip()]
         d["issues"] = topics
         d["summaries"] = summaries
-        d["callback_requested"] = any(
+        cb = callback_data_by_intake_id.get(str(d.get("id") or ""), {})
+        has_cb_event = any(
             str(ev.get("event_type") or "").strip().lower() == "callback_requested"
             for ev in events
         )
+        d["callback_requested"] = bool(cb) or has_cb_event
+        d["callback_phone"] = str(cb.get("phone") or "").strip() or None
+        d["callback_preferred_time"] = str(cb.get("preferred_time") or "").strip() or None
+        d["callback_status"] = str(cb.get("status") or "pending").strip() if cb else None
+        d["callback_created_at"] = str(cb.get("created_at") or "").strip() or None
         next_deadline_date = str(d.get("next_deadline_date") or "").strip()
         if next_deadline_date:
             try:
@@ -1635,7 +1814,8 @@ def admin_stats(request: Request):
             feedback = conn.execute(text("""
                 SELECT
                   SUM(CASE WHEN event_value = 'helpful_yes' THEN 1 ELSE 0 END) AS helpful_yes,
-                  SUM(CASE WHEN event_value = 'helpful_no' THEN 1 ELSE 0 END) AS helpful_no
+                  SUM(CASE WHEN event_value = 'helpful_no' THEN 1 ELSE 0 END) AS helpful_no,
+                  MAX(created_at) AS most_recent_feedback_date
                 FROM intake_events
                 WHERE event_type = 'triage_feedback'
             """)).mappings().first()
@@ -1684,6 +1864,22 @@ def admin_stats(request: Request):
             except Exception:
                 evidence_stats = {"total_evidence_files": 0, "ai_summary_ready": 0}
 
+            try:
+                feedback_comments = conn.execute(
+                    text(
+                        """
+                        SELECT event_value AS comment, created_at
+                        FROM intake_events
+                        WHERE event_type = 'feedback_comment'
+                          AND COALESCE(TRIM(event_value), '') <> ''
+                        ORDER BY created_at DESC
+                        LIMIT 5
+                        """
+                    )
+                ).mappings().all()
+            except Exception:
+                feedback_comments = []
+
         total_sessions = int(overview["total_sessions"] or 0)
         completed_sessions = int(overview["completed_sessions"] or 0)
         ai_used_sessions = int(overview["ai_used_sessions"] or 0)
@@ -1692,7 +1888,8 @@ def admin_stats(request: Request):
         helpful_yes = int((feedback or {}).get("helpful_yes") or 0)
         helpful_no = int((feedback or {}).get("helpful_no") or 0)
         feedback_total = helpful_yes + helpful_no
-        helpful_rate = round((helpful_yes / feedback_total) * 100, 2) if feedback_total else 0.0
+        helpful_rate = round((helpful_yes / feedback_total) * 100, 1) if feedback_total else 0.0
+        most_recent_feedback_date = str((feedback or {}).get("most_recent_feedback_date") or "") or None
         timeline_step_views = int((timeline_usage or {}).get("step_views") or 0)
         timeline_checklist_toggles = int((timeline_usage or {}).get("checklist_toggles") or 0)
         total_deadlines = int((deadline_stats or {}).get("total_deadlines") or 0)
@@ -1714,6 +1911,7 @@ def admin_stats(request: Request):
                     "helpful_yes": helpful_yes,
                     "helpful_no": helpful_no,
                     "helpful_rate_percent": helpful_rate,
+                    "most_recent_feedback_date": most_recent_feedback_date,
                     "timeline_step_views": timeline_step_views,
                     "timeline_checklist_toggles": timeline_checklist_toggles,
                     "total_deadlines": total_deadlines,
@@ -1726,6 +1924,7 @@ def admin_stats(request: Request):
                 "top_zips": [dict(row) for row in top_zips],
                 "level_breakdown": [dict(row) for row in level_breakdown],
                 "recent_sessions": [dict(row) for row in recent_sessions],
+                "feedback_comments": [dict(row) for row in feedback_comments],
             }
         )
     except SQLAlchemyError as e:

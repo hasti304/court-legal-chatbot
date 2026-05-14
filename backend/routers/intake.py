@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 try:
     from ..database import get_db
     from ..schemas.intake import (
+        CallbackCreateRequest,
         IntakeEventRequest,
         IntakeStartRequest,
         IntakeStartResponse,
@@ -14,6 +15,7 @@ try:
     )
     from ..services.config_service import SUPPORTED_LANGS
     from ..services.intake_service import (
+        create_callback_request,
         create_intake_event,
         create_intake_start,
         create_submission,
@@ -25,6 +27,7 @@ try:
 except ImportError:
     from database import get_db  # type: ignore
     from schemas.intake import (  # type: ignore
+        CallbackCreateRequest,
         IntakeEventRequest,
         IntakeStartRequest,
         IntakeStartResponse,
@@ -33,6 +36,7 @@ except ImportError:
     )
     from services.config_service import SUPPORTED_LANGS  # type: ignore
     from services.intake_service import (  # type: ignore
+        create_callback_request,
         create_intake_event,
         create_intake_start,
         create_submission,
@@ -53,6 +57,15 @@ def intake_start(req: IntakeStartRequest, db: Session = Depends(get_db)):
 @router.post("/intake/event")
 def intake_event(req: IntakeEventRequest):
     return create_intake_event(req)
+
+
+@router.post("/intake/callback")
+def intake_callback(req: CallbackCreateRequest):
+    return create_callback_request(
+        intake_id=req.intake_id,
+        phone=req.phone,
+        preferred_time=req.preferred_time,
+    )
 
 
 @router.post("/intake/submissions", response_model=IntakeSubmissionOut)
