@@ -19,6 +19,16 @@ import { Badge } from "./ui/badge";
 import calLogo from "../assets/cal_logo.png";
 
 const QUERY_HISTORY_KEY = "cal_ai_query_history_v1";
+const CASES_KEY = "cal_cases_history_v1";
+
+function getPreviousCasesCount() {
+  try {
+    const cases = JSON.parse(localStorage.getItem(CASES_KEY) || "[]");
+    return Array.isArray(cases) ? cases.length : 0;
+  } catch {
+    return 0;
+  }
+}
 
 const NAV_ITEMS = [
   { id: "home", label: "Home", icon: Home },
@@ -60,6 +70,13 @@ export default function AppSidebar({
 }) {
   const recentSessions = useMemo(getRecentSessions, []);
   const [showSupport, setShowSupport] = useState(false);
+  const [showNewCaseModal, setShowNewCaseModal] = useState(false);
+  const [previousCasesCount, setPreviousCasesCount] = useState(0);
+
+  const handleNewCaseClick = () => {
+    setPreviousCasesCount(getPreviousCasesCount());
+    setShowNewCaseModal(true);
+  };
   const fullName = [firstName, lastName].filter(Boolean).join(" ");
   const initial = firstName && lastName
     ? (firstName.charAt(0) + lastName.charAt(0)).toUpperCase()
@@ -92,7 +109,7 @@ export default function AppSidebar({
           {activeSection !== "home" && (
             <div className="px-3 mb-3 mt-1">
               <Button
-                onClick={onStartChat}
+                onClick={handleNewCaseClick}
                 className="w-full justify-start gap-2 rounded-lg"
                 size="sm"
                 style={{ background: GOLD, color: "#1A1A1A", fontWeight: 700, border: "none" }}
@@ -237,6 +254,96 @@ export default function AppSidebar({
       </div>
     </aside>
 
+    {showNewCaseModal && (
+      <div
+        style={{
+          position: "fixed", inset: 0,
+          background: "rgba(27,42,74,0.72)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 9999, padding: 24,
+        }}
+        onClick={() => setShowNewCaseModal(false)}
+      >
+        <div
+          style={{
+            background: "#ffffff", borderRadius: 12,
+            boxShadow: "0 8px 40px rgba(0,0,0,0.22)",
+            padding: "36px 32px 28px",
+            maxWidth: 420, width: "100%",
+            position: "relative",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: "#1B2A4A", margin: "0 0 14px" }}>
+            Start a New Case
+          </h2>
+
+          {previousCasesCount > 0 ? (
+            <>
+              <p style={{ color: "#4B5563", fontSize: 14, lineHeight: 1.65, marginBottom: 28 }}>
+                You have <strong>{previousCasesCount}</strong> previous consultation{previousCasesCount !== 1 ? "s" : ""}.
+                Would you like to start fresh or review your existing cases?
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => { setShowNewCaseModal(false); onStartChat?.(); }}
+                  style={{
+                    background: GOLD, color: "#1A1A1A", fontWeight: 700,
+                    borderRadius: 8, padding: "12px 0",
+                    border: "none", cursor: "pointer", fontSize: 14, width: "100%",
+                  }}
+                >
+                  Start New Consultation
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowNewCaseModal(false); onNavigate?.("chat"); }}
+                  style={{
+                    background: "transparent", color: GOLD, fontWeight: 700,
+                    borderRadius: 8, padding: "12px 0",
+                    border: `2px solid ${GOLD}`, cursor: "pointer", fontSize: 14, width: "100%",
+                  }}
+                >
+                  View My Cases
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p style={{ color: "#4B5563", fontSize: 14, lineHeight: 1.65, marginBottom: 28 }}>
+                Start your free legal consultation. It takes about 3–5 minutes.
+              </p>
+              <button
+                type="button"
+                onClick={() => { setShowNewCaseModal(false); onStartChat?.(); }}
+                style={{
+                  background: GOLD, color: "#1A1A1A", fontWeight: 700,
+                  borderRadius: 8, padding: "12px 0",
+                  border: "none", cursor: "pointer", fontSize: 14, width: "100%",
+                }}
+              >
+                Start Consultation
+              </button>
+            </>
+          )}
+
+          <div style={{ textAlign: "center", marginTop: 18 }}>
+            <button
+              type="button"
+              onClick={() => setShowNewCaseModal(false)}
+              style={{
+                background: "none", border: "none", cursor: "pointer",
+                color: "#9CA3AF", fontSize: 13, fontWeight: 500,
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
     {showSupport && (
       <div
         style={{
@@ -249,7 +356,7 @@ export default function AppSidebar({
       >
         <div
           style={{
-            background: "#FFFFFF", borderRadius: 12,
+            background: "var(--cal-bg-card)", borderRadius: 12,
             boxShadow: "0 8px 32px rgba(0,0,0,0.20)",
             padding: 32, maxWidth: 440, width: "100%",
             position: "relative",
@@ -262,29 +369,29 @@ export default function AppSidebar({
             style={{
               position: "absolute", top: 16, right: 16,
               background: "none", border: "none", cursor: "pointer",
-              color: "#6B7280", padding: 4,
+              color: "var(--cal-text-muted)", padding: 4,
             }}
             aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1B2A4A", marginBottom: 8, marginTop: 0 }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--cal-text-primary)", marginBottom: 8, marginTop: 0 }}>
             Need Help?
           </h2>
-          <p style={{ color: "#6B7280", fontSize: 14, marginBottom: 24, lineHeight: 1.6 }}>
+          <p style={{ color: "var(--cal-text-muted)", fontSize: 14, marginBottom: 24, lineHeight: 1.6 }}>
             Our staff is here to assist you with your legal questions.
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 24 }}>
             <a
               href="tel:3128015918"
-              style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "#1A1A1A" }}
+              style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "var(--cal-text-primary)" }}
             >
               <Phone className="w-4 h-4 shrink-0" style={{ color: GOLD }} />
               <span style={{ fontSize: 15, fontWeight: 500 }}>(312) 801-5918</span>
             </a>
             <a
               href="mailto:intake@chicagoadvocatelegal.com"
-              style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "#1A1A1A" }}
+              style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "var(--cal-text-primary)" }}
             >
               <Mail className="w-4 h-4 shrink-0" style={{ color: GOLD }} />
               <span style={{ fontSize: 15, fontWeight: 500 }}>intake@chicagoadvocatelegal.com</span>

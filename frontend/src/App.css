@@ -38,6 +38,59 @@
   --radius-xl: 20px;
 
   --max-content: 1160px;
+
+  /* CAL semantic tokens — used by client-facing page components */
+  --cal-bg-page: #F4F5F7;
+  --cal-bg-card: #FFFFFF;
+  --cal-bg-input: #F4F5F7;
+  --cal-text-primary: #1A1A1A;
+  --cal-text-secondary: #374151;
+  --cal-text-muted: #6B7280;
+  --cal-border: #E5E7EB;
+}
+
+/* ================================================================
+   DARK MODE — html.dark overrides all CSS variables
+   Applied when user toggles dark mode (class set on <html>)
+   Does NOT affect admin, login, or register pages
+   ================================================================ */
+html.dark {
+  color-scheme: dark;
+
+  /* Override legacy App.css vars (used by AIChat.css, ChatDashboard.css, etc.) */
+  --bg-page: #0F1117;
+  --bg-surface: #1A1D27;
+  --bg-soft: #1A1D27;
+  --bg-muted: #2A2D3A;
+  --text-primary: #F4F5F7;
+  --text-secondary: #9CA3AF;
+  --text-muted: #9CA3AF;
+  --text-on-dark: #F4F5F7;
+  --border-light: #2A2D3A;
+  --border-medium: #3A3D4A;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 10px 24px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.5);
+
+  /* CAL semantic tokens — dark values */
+  --cal-bg-page: #0F1117;
+  --cal-bg-card: #1A1D27;
+  --cal-bg-input: #2A2D3A;
+  --cal-text-primary: #F4F5F7;
+  --cal-text-secondary: #D1D5DB;
+  --cal-text-muted: #9CA3AF;
+  --cal-border: #2A2D3A;
+}
+
+html.dark body {
+  background: var(--cal-bg-page);
+  color: var(--cal-text-primary);
+}
+
+/* Dark mode: fix dropdown option text in dark mode */
+html.dark select option {
+  background: #1A1D27;
+  color: #F4F5F7;
 }
 
 * {

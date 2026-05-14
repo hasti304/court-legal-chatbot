@@ -147,22 +147,22 @@ export default function DocumentsPage({ intakeId }) {
   };
 
   return (
-    <div style={{ background: "#F4F5F7", minHeight: "100%", padding: "32px 24px" }}>
+    <div style={{ background: "var(--cal-bg-page)", minHeight: "100%", padding: "32px 24px" }}>
       <div style={{ maxWidth: 760, margin: "0 auto" }}>
 
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: "#1A1A1A", marginBottom: 4 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--cal-text-primary)", marginBottom: 4 }}>
           My Documents
         </h1>
-        <p style={{ color: "#6B7280", marginBottom: 28, fontSize: 14 }}>
+        <p style={{ color: "var(--cal-text-muted)", marginBottom: 28, fontSize: 14 }}>
           Upload and manage documents related to your legal case. Do not upload highly sensitive originals unless requested by staff.
         </p>
 
         {/* Upload Card */}
         <div style={{
-          background: "#FFFFFF", borderRadius: 12,
+          background: "var(--cal-bg-card)", borderRadius: 12,
           boxShadow: "0 1px 4px rgba(0,0,0,0.08)", padding: 24, marginBottom: 20,
         }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: "#1A1A1A", marginBottom: 16 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--cal-text-primary)", marginBottom: 16 }}>
             Upload a Document
           </h2>
 
@@ -177,7 +177,7 @@ export default function DocumentsPage({ intakeId }) {
             style={{
               border: `2px dashed ${GOLD}`,
               borderRadius: 8,
-              background: dragOver ? "rgba(201,168,76,0.08)" : "#F4F5F7",
+              background: dragOver ? "rgba(201,168,76,0.08)" : "var(--cal-bg-input)",
               padding: "36px 24px",
               textAlign: "center",
               cursor: "pointer",
@@ -186,11 +186,11 @@ export default function DocumentsPage({ intakeId }) {
             }}
           >
             <Upload style={{ color: GOLD, margin: "0 auto 10px", display: "block", width: 28, height: 28 }} />
-            <p style={{ color: "#374151", fontWeight: 500, fontSize: 14, margin: 0 }}>
+            <p style={{ color: "var(--cal-text-secondary)", fontWeight: 500, fontSize: 14, margin: 0 }}>
               Drag and drop a file here, or click to browse
             </p>
           </div>
-          <p style={{ fontSize: 12, color: "#6B7280", marginBottom: 16 }}>
+          <p style={{ fontSize: 12, color: "var(--cal-text-muted)", marginBottom: 16 }}>
             Accepted formats: PDF, JPG, PNG, DOCX. Max size: 7MB.
           </p>
 
@@ -204,14 +204,14 @@ export default function DocumentsPage({ intakeId }) {
 
           {selectedFile && (
             <div style={{
-              background: "#F4F5F7", borderRadius: 8, padding: "8px 12px",
+              background: "var(--cal-bg-input)", borderRadius: 8, padding: "8px 12px",
               marginBottom: 12, display: "flex", alignItems: "center", gap: 10,
             }}>
               {getFileIcon(selectedFile.name)}
-              <span style={{ color: "#1A1A1A", fontWeight: 500, fontSize: 14, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <span style={{ color: "var(--cal-text-primary)", fontWeight: 500, fontSize: 14, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {selectedFile.name}
               </span>
-              <span style={{ color: "#6B7280", fontSize: 12, flexShrink: 0 }}>
+              <span style={{ color: "var(--cal-text-muted)", fontSize: 12, flexShrink: 0 }}>
                 {formatSize(selectedFile.size)}
               </span>
             </div>
@@ -233,8 +233,8 @@ export default function DocumentsPage({ intakeId }) {
             onClick={handleUpload}
             disabled={!selectedFile || uploading}
             style={{
-              background: selectedFile && !uploading ? GOLD : "#E5E7EB",
-              color: selectedFile && !uploading ? "#1A1A1A" : "#9CA3AF",
+              background: selectedFile && !uploading ? GOLD : "var(--cal-border)",
+              color: selectedFile && !uploading ? "#1A1A1A" : "var(--cal-text-muted)",
               fontWeight: 700,
               borderRadius: 8,
               padding: "10px 24px",
@@ -250,10 +250,10 @@ export default function DocumentsPage({ intakeId }) {
 
         {/* Documents List Card */}
         <div style={{
-          background: "#FFFFFF", borderRadius: 12,
+          background: "var(--cal-bg-card)", borderRadius: 12,
           boxShadow: "0 1px 4px rgba(0,0,0,0.08)", padding: 24,
         }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: "#1A1A1A", marginBottom: 16 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--cal-text-primary)", marginBottom: 16 }}>
             Your Documents
           </h2>
 
@@ -263,10 +263,10 @@ export default function DocumentsPage({ intakeId }) {
                 color: GOLD, width: 40, height: 40,
                 margin: "0 auto 14px", display: "block",
               }} />
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#1A1A1A", marginBottom: 6 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--cal-text-primary)", marginBottom: 6 }}>
                 No documents yet
               </h3>
-              <p style={{ color: "#6B7280", fontSize: 14 }}>
+              <p style={{ color: "var(--cal-text-muted)", fontSize: 14 }}>
                 Upload your first document above
               </p>
             </div>
@@ -275,18 +275,18 @@ export default function DocumentsPage({ intakeId }) {
               {docs.map((doc, idx) => (
                 <div key={doc.file_id}>
                   {idx > 0 && (
-                    <div style={{ height: 1, background: "#E5E7EB", margin: "12px 0" }} />
+                    <div style={{ height: 1, background: "var(--cal-border)", margin: "12px 0" }} />
                   )}
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     {getFileIcon(doc.file_name)}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{
-                        fontWeight: 600, color: "#1A1A1A", fontSize: 14, margin: 0,
+                        fontWeight: 600, color: "var(--cal-text-primary)", fontSize: 14, margin: 0,
                         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                       }}>
                         {doc.file_name}
                       </p>
-                      <p style={{ color: "#6B7280", fontSize: 12, margin: "2px 0 0" }}>
+                      <p style={{ color: "var(--cal-text-muted)", fontSize: 12, margin: "2px 0 0" }}>
                         {formatDate(doc.uploaded_at)}
                         {doc.file_size ? ` · ${formatSize(doc.file_size)}` : ""}
                       </p>
@@ -294,7 +294,7 @@ export default function DocumentsPage({ intakeId }) {
                     <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
                       {confirmDeleteId === doc.file_id ? (
                         <>
-                          <span style={{ fontSize: 12, color: "#374151" }}>Are you sure?</span>
+                          <span style={{ fontSize: 12, color: "var(--cal-text-secondary)" }}>Are you sure?</span>
                           <button
                             type="button"
                             onClick={() => handleDelete(doc.file_id)}
@@ -309,7 +309,7 @@ export default function DocumentsPage({ intakeId }) {
                             type="button"
                             onClick={() => setConfirmDeleteId(null)}
                             style={{
-                              fontSize: 12, color: "#6B7280", background: "none",
+                              fontSize: 12, color: "var(--cal-text-muted)", background: "none",
                               border: "none", cursor: "pointer",
                             }}
                           >

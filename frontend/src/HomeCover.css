@@ -368,3 +368,72 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Dark mode overrides ───────────────────────────────── */
+
+html.dark .home-cover {
+  background: var(--cal-bg-page);
+}
+
+html.dark .home-cover__headline {
+  color: var(--cal-text-primary);
+}
+
+html.dark .home-cover__subtext {
+  color: var(--cal-text-muted);
+}
+
+html.dark .home-cover__step-card {
+  background: var(--cal-bg-card);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+html.dark .home-cover__step-title {
+  color: var(--cal-text-primary);
+}
+
+html.dark .home-cover__step-desc {
+  color: var(--cal-text-secondary);
+}
+
+html.dark .home-cover__topic-card {
+  background: var(--cal-bg-card);
+  border-color: var(--cal-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+html.dark .home-cover__topic-title {
+  color: var(--cal-text-primary);
+}
+
+html.dark .home-cover__topic-desc {
+  color: var(--cal-text-muted);
+}
+
+html.dark .home-cover__notice {
+  background: var(--cal-bg-card);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+html.dark .home-cover__notice p {
+  color: var(--cal-text-secondary);
+}
+
+html.dark .home-cover__trust-item {
+  color: var(--cal-text-secondary);
+}
+
+html.dark .home-cover__footer {
+  background: var(--cal-bg-page);
+  border-top-color: var(--cal-border);
+}
+
+html.dark .home-cover__footer-link,
+html.dark .home-cover__footer-email {
+  color: var(--cal-text-secondary);
+}
+
+html.dark .home-cover__browse-label,
+html.dark .home-cover__cta-caption {
+  color: var(--cal-text-muted);
+}

@@ -309,3 +309,70 @@
   text-align: center;
   border-top: 1px solid #f3f4f6;
 }
+
+/* ── Dark mode overrides ─────────────────────── */
+html.dark .chatdash { color: var(--cal-text-primary); }
+
+html.dark .chatdash-header {
+  background: linear-gradient(135deg, #1a1d27 0%, #1e2233 100%);
+  border-bottom-color: var(--cal-border);
+}
+
+html.dark .chatdash-title { color: var(--cal-text-primary); }
+html.dark .chatdash-subtitle { color: var(--cal-text-muted); }
+
+html.dark .chatdash-stats { border-bottom-color: var(--cal-border); }
+
+html.dark .chatdash-stat {
+  background: var(--cal-bg-card);
+  border-color: var(--cal-border);
+}
+
+html.dark .chatdash-stat--accent {
+  background: linear-gradient(135deg, #1e2a3a 0%, #1a2030 100%);
+  border-color: #2a3a5a;
+}
+
+html.dark .chatdash-stat-value { color: #93b4f5; }
+html.dark .chatdash-stat--accent .chatdash-stat-value { color: #93b4f5; }
+html.dark .chatdash-stat-label { color: var(--cal-text-secondary); }
+html.dark .chatdash-stat-sub { color: var(--cal-text-muted); }
+
+html.dark .chatdash-section { border-bottom-color: var(--cal-border); }
+html.dark .chatdash-section-title { color: var(--cal-text-muted); }
+
+html.dark .chatdash-query {
+  background: var(--cal-bg-card);
+  border-color: var(--cal-border);
+}
+
+html.dark .chatdash-query:hover {
+  border-color: #2a3a5a;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+}
+
+html.dark .chatdash-query-topic {
+  color: #93b4f5;
+  background: #1e2a3a;
+}
+
+html.dark .chatdash-query-time { color: var(--cal-text-muted); }
+html.dark .chatdash-query-text { color: var(--cal-text-secondary); }
+
+html.dark .chatdash-topic-name { color: var(--cal-text-secondary); }
+html.dark .chatdash-topic-bar-wrap { background: var(--cal-border); }
+html.dark .chatdash-topic-count { color: var(--cal-text-muted); }
+
+html.dark .chatdash-case-card {
+  background: var(--cal-bg-card);
+  border-color: var(--cal-border);
+  border-left-color: #93b4f5;
+}
+
+html.dark .chatdash-case-topic { color: var(--cal-text-primary); }
+html.dark .chatdash-case-detail { color: var(--cal-text-muted); }
+
+html.dark .chatdash-empty-small { color: var(--cal-text-muted); }
+html.dark .chatdash-big-empty p { color: var(--cal-text-muted); }
+
+html.dark .chatdash-disclaimer { border-top-color: var(--cal-border); }

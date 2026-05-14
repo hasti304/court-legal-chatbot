@@ -46,13 +46,13 @@ function CaseDetailModal({ caseItem, onClose }) {
     >
       <div
         style={{
-          background: "#FFFFFF", borderRadius: 12, padding: 32,
+          background: "var(--cal-bg-card)", borderRadius: 12, padding: 32,
           maxWidth: 520, width: "100%", maxHeight: "80vh", overflowY: "auto",
           boxShadow: "0 8px 32px rgba(0,0,0,0.20)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1B2A4A", marginTop: 0, marginBottom: 8 }}>
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--cal-text-primary)", marginTop: 0, marginBottom: 8 }}>
           Case Summary
         </h2>
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
@@ -60,23 +60,23 @@ function CaseDetailModal({ caseItem, onClose }) {
             {topic}
           </span>
           <StatusBadge status={caseItem.status} />
-          <span style={{ fontSize: 12, color: "#6B7280" }}>{formatDate(caseItem.date)}</span>
+          <span style={{ fontSize: 12, color: "var(--cal-text-muted)" }}>{formatDate(caseItem.date)}</span>
         </div>
         {caseItem.riskScore != null && (
-          <p style={{ fontSize: 14, color: "#374151", marginBottom: 12 }}>
+          <p style={{ fontSize: 14, color: "var(--cal-text-secondary)", marginBottom: 12 }}>
             Risk Score: <strong>{caseItem.riskScore}/100</strong>
           </p>
         )}
         {caseItem.referrals && caseItem.referrals.length > 0 && (
           <div style={{ marginBottom: 16 }}>
-            <p style={{ fontSize: 13, fontWeight: 700, color: "#1A1A1A", marginBottom: 8 }}>Matched Resources:</p>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cal-text-primary)", marginBottom: 8 }}>Matched Resources:</p>
             {caseItem.referrals.map((ref, i) => (
               <div key={i} style={{
-                background: "#F4F5F7", borderRadius: 8, padding: "10px 14px",
+                background: "var(--cal-bg-input)", borderRadius: 8, padding: "10px 14px",
                 marginBottom: 8, fontSize: 13,
               }}>
-                <p style={{ fontWeight: 600, color: "#1A1A1A", margin: "0 0 4px" }}>{ref.name}</p>
-                {ref.phone && <p style={{ color: "#374151", margin: "0 0 2px" }}>{ref.phone}</p>}
+                <p style={{ fontWeight: 600, color: "var(--cal-text-primary)", margin: "0 0 4px" }}>{ref.name}</p>
+                {ref.phone && <p style={{ color: "var(--cal-text-secondary)", margin: "0 0 2px" }}>{ref.phone}</p>}
                 {ref.url && (
                   <a href={ref.url} target="_blank" rel="noopener noreferrer"
                     style={{ color: GOLD, fontSize: 12, fontWeight: 600 }}>Visit Website</a>
@@ -136,10 +136,10 @@ export default function MyCasesPage({ intakeId, onStartConsultation, onResume })
 
   if (loading) {
     return (
-      <div style={{ background: "#F4F5F7", minHeight: "100%", padding: "32px 24px" }}>
+      <div style={{ background: "var(--cal-bg-page)", minHeight: "100%", padding: "32px 24px" }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: "#1A1A1A", marginBottom: 4 }}>My Cases</h1>
-          <p style={{ color: "#6B7280", fontSize: 14, textAlign: "center", padding: "56px 0" }}>Loading your cases…</p>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--cal-text-primary)", marginBottom: 4 }}>My Cases</h1>
+          <p style={{ color: "var(--cal-text-muted)", fontSize: 14, textAlign: "center", padding: "56px 0" }}>Loading your cases…</p>
         </div>
       </div>
     );
@@ -147,16 +147,16 @@ export default function MyCasesPage({ intakeId, onStartConsultation, onResume })
 
   if (cases.length === 0) {
     return (
-      <div style={{ background: "#F4F5F7", minHeight: "100%", padding: "32px 24px" }}>
+      <div style={{ background: "var(--cal-bg-page)", minHeight: "100%", padding: "32px 24px" }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: "#1A1A1A", marginBottom: 4 }}>My Cases</h1>
-          <p style={{ color: "#6B7280", fontSize: 14, marginBottom: 40 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--cal-text-primary)", marginBottom: 4 }}>My Cases</h1>
+          <p style={{ color: "var(--cal-text-muted)", fontSize: 14, marginBottom: 40 }}>
             Your legal consultations and matched resources.
           </p>
           <div style={{ textAlign: "center", padding: "56px 24px" }}>
             <FolderOpen style={{ color: GOLD, width: 48, height: 48, margin: "0 auto 16px", display: "block" }} />
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: "#1A1A1A", marginBottom: 8 }}>No cases yet</h3>
-            <p style={{ color: "#6B7280", fontSize: 14, marginBottom: 24 }}>
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--cal-text-primary)", marginBottom: 8 }}>No cases yet</h3>
+            <p style={{ color: "var(--cal-text-muted)", fontSize: 14, marginBottom: 24 }}>
               Start a consultation to get matched with legal resources.
             </p>
             <button
@@ -177,17 +177,17 @@ export default function MyCasesPage({ intakeId, onStartConsultation, onResume })
   }
 
   return (
-    <div style={{ background: "#F4F5F7", minHeight: "100%", padding: "32px 24px" }}>
+    <div style={{ background: "var(--cal-bg-page)", minHeight: "100%", padding: "32px 24px" }}>
       <div style={{ maxWidth: 720, margin: "0 auto" }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: "#1A1A1A", marginBottom: 4 }}>My Cases</h1>
-        <p style={{ color: "#6B7280", fontSize: 14, marginBottom: 28 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--cal-text-primary)", marginBottom: 4 }}>My Cases</h1>
+        <p style={{ color: "var(--cal-text-muted)", fontSize: 14, marginBottom: 28 }}>
           Your legal consultations and matched resources.
         </p>
         {cases.map((c) => {
           const topic = TOPIC_LABELS[c.topic] || c.topic || "General Legal";
           return (
             <div key={c.id} style={{
-              background: "#FFFFFF", borderRadius: 12,
+              background: "var(--cal-bg-card)", borderRadius: 12,
               boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
               padding: "20px 24px", marginBottom: 14,
             }}>
@@ -200,11 +200,11 @@ export default function MyCasesPage({ intakeId, onStartConsultation, onResume })
                     }}>{topic}</span>
                     <StatusBadge status={c.status} />
                   </div>
-                  <p style={{ color: "#6B7280", fontSize: 13, margin: "4px 0" }}>
+                  <p style={{ color: "var(--cal-text-muted)", fontSize: 13, margin: "4px 0" }}>
                     {formatDate(c.date)}
                   </p>
                   {c.riskScore != null && (
-                    <p style={{ color: "#374151", fontSize: 13, margin: "2px 0" }}>
+                    <p style={{ color: "var(--cal-text-secondary)", fontSize: 13, margin: "2px 0" }}>
                       Risk Score: <strong>{c.riskScore}/100</strong>
                     </p>
                   )}

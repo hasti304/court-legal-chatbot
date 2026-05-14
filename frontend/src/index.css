@@ -7,6 +7,12 @@
 
 :root {
   color-scheme: light;
+  --bg-primary: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-input: #f1f5f9;
+  --text-primary: #111827;
+  --text-muted: #6B7280;
+  --border-color: #e2e8f0;
 }
 
 html, body {
@@ -31,6 +37,11 @@ input, textarea, select, button {
 select option {
   color: #111827;
   background: #ffffff;
+}
+
+html.dark select option {
+  color: #F4F5F7;
+  background: #1A1D27;
 }
 
 @layer base {
@@ -86,6 +97,14 @@ select option {
     --sidebar-ring: oklch(0.24 0.07 264);
   }
   .dark {
+    color-scheme: dark;
+    /* User-specified dark mode vars */
+    --bg-primary: #0F1117;
+    --bg-card: #1A1D27;
+    --bg-input: #2A2D3A;
+    --text-primary: #F4F5F7;
+    --text-muted: #9CA3AF;
+    --border-color: #2A2D3A;
     --background: oklch(0.13 0.008 264);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.18 0.01 264);

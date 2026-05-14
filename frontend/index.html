@@ -46,6 +46,17 @@
       rel="stylesheet"
     />
 
+    <!-- THEME SCRIPT (RUNS BEFORE REACT LOADS — prevents flash) -->
+    <script>
+      (function () {
+        try {
+          if (localStorage.getItem("cal_theme") === "dark") {
+            document.documentElement.classList.add("dark");
+          }
+        } catch (e) {}
+      })();
+    </script>
+
     <!-- 🔒 DISCREET MODE SCRIPT (RUNS BEFORE REACT LOADS) -->
     <script>
       (function () {

@@ -455,8 +455,9 @@ function App() {
 
   useLayoutEffect(() => {
     persistTheme(theme);
+    document.documentElement.classList.toggle("dark", isDark);
     document.documentElement.setAttribute("data-cal-theme", theme);
-  }, [theme]);
+  }, [theme, isDark]);
 
   const [speechEnabled, setSpeechEnabled] = useState(false);
   const [speaking, setSpeaking] = useState(false);

@@ -590,7 +590,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  background: #f8fafc;
+  background: var(--bg-page, #f8fafc);
   padding: 24px;
 }
 
@@ -649,23 +649,74 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  background: #f8fafc;
+  background: var(--bg-page, #f8fafc);
   padding: 24px;
 }
 
 /* ── Dark mode overrides ───────────────────────────── */
 
-[data-cal-theme="dark"] .slack-main {
-  background: var(--bg-soft, #f7f9fc);
+html.dark .slack-main {
+  background: var(--bg-surface);
 }
 
-[data-cal-theme="dark"] .slack-topbar {
-  background: var(--bg-soft, #f7f9fc);
-  border-bottom-color: rgba(255, 255, 255, 0.07);
+html.dark .slack-topbar {
+  background: var(--bg-surface);
+  border-bottom-color: var(--border-light);
 }
 
-[data-cal-theme="dark"] .slack-welcome-panel {
-  background: var(--bg-soft, #f7f9fc);
+html.dark .slack-welcome-panel {
+  background: var(--bg-surface);
+}
+
+html.dark .slack-welcome-title {
+  color: var(--text-primary);
+}
+
+html.dark .slack-welcome-sub {
+  color: var(--text-secondary);
+}
+
+html.dark .slack-topbar-title {
+  color: var(--text-primary);
+}
+
+html.dark .slack-topbar-nav-btn {
+  color: var(--text-muted);
+}
+
+html.dark .slack-topbar-nav-btn:hover:not(:disabled) {
+  background: var(--bg-muted);
+  color: var(--text-primary);
+}
+
+html.dark .slack-topbar-search {
+  background: var(--bg-muted);
+  border-color: var(--border-light);
+}
+
+html.dark .slack-topbar-search input {
+  color: var(--text-primary);
+}
+
+html.dark .slack-topbar-search input::placeholder {
+  color: var(--text-muted);
+}
+
+html.dark .slack-topbar-icon-btn {
+  color: var(--text-muted);
+}
+
+html.dark .slack-topbar-icon-btn:hover {
+  background: var(--bg-muted);
+  color: var(--text-primary);
+}
+
+html.dark .slack-layout {
+  background: var(--bg-page);
+}
+
+html.dark .slack-chat-workspace .messages-container {
+  background: var(--bg-page);
 }
 
 /* ── Responsive ────────────────────────────────────── */

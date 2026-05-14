@@ -24,7 +24,7 @@ function saveNotifPrefs(prefs) {
 
 function FieldLabel({ children }) {
   return (
-    <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
+    <label style={{ fontSize: 13, fontWeight: 600, color: "var(--cal-text-secondary)", display: "block", marginBottom: 6 }}>
       {children}
     </label>
   );
@@ -41,19 +41,19 @@ function TextInput({ value, onChange, onBlur, readOnly, placeholder, type = "tex
         placeholder={placeholder}
         style={{
           width: "100%", boxSizing: "border-box",
-          background: readOnly ? "#F9FAFB" : "#F4F5F7",
-          border: "1px solid #E5E7EB",
+          background: readOnly ? "var(--cal-bg-page)" : "var(--cal-bg-input)",
+          border: "1px solid var(--cal-border)",
           borderRadius: 8, padding: "10px 12px",
           paddingRight: rightIcon ? 40 : 12,
           fontSize: 14,
-          color: readOnly ? "#9CA3AF" : "#1A1A1A",
+          color: readOnly ? "var(--cal-text-muted)" : "var(--cal-text-primary)",
           outline: "none",
           transition: "border-color 0.15s",
           cursor: readOnly ? "default" : "text",
         }}
         onFocus={(e) => { if (!readOnly) e.target.style.borderColor = GOLD; }}
         onBlur={(e) => {
-          e.target.style.borderColor = "#E5E7EB";
+          e.target.style.borderColor = "var(--cal-border)";
           if (onBlur) onBlur(e);
         }}
       />
@@ -76,8 +76,8 @@ function GoldButton({ onClick, children, disabled }) {
       onClick={onClick}
       disabled={disabled}
       style={{
-        background: disabled ? "#E5E7EB" : GOLD,
-        color: disabled ? "#9CA3AF" : "#1A1A1A",
+        background: disabled ? "var(--cal-border)" : GOLD,
+        color: disabled ? "var(--cal-text-muted)" : "#1A1A1A",
         fontWeight: 700, borderRadius: 8, padding: "10px 24px",
         border: "none", cursor: disabled ? "not-allowed" : "pointer",
         fontSize: 14, transition: "background 0.15s",
@@ -93,7 +93,7 @@ function Toggle({ checked, onChange, label }) {
     <div
       style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0" }}
     >
-      <span style={{ fontSize: 14, color: "#374151" }}>{label}</span>
+      <span style={{ fontSize: 14, color: "var(--cal-text-secondary)" }}>{label}</span>
       <button
         type="button"
         role="switch"
@@ -124,12 +124,12 @@ function Toggle({ checked, onChange, label }) {
 function SectionCard({ icon: Icon, title, children }) {
   return (
     <div style={{
-      background: "#FFFFFF", borderRadius: 12,
+      background: "var(--cal-bg-card)", borderRadius: 12,
       boxShadow: "0 1px 4px rgba(0,0,0,0.08)", padding: 24, marginBottom: 20,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
         {Icon && <Icon className="w-4 h-4" style={{ color: GOLD }} />}
-        <h2 style={{ fontSize: 16, fontWeight: 700, color: "#1A1A1A", margin: 0 }}>{title}</h2>
+        <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--cal-text-primary)", margin: 0 }}>{title}</h2>
       </div>
       {children}
     </div>
@@ -177,6 +177,7 @@ export default function SettingsPage({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
 
   // Toast
   const [toast, setToast] = useState("");
@@ -246,7 +247,8 @@ export default function SettingsPage({
     try {
       const res = await fetch(`${getApiBaseUrl()}/auth/account`, {
         method: "DELETE",
-        headers: { "X-Intake-Id": intakeId },
+        headers: { "X-Intake-Id": intakeId, "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: deleteReason.trim() }),
       });
       if (res.ok) {
         showToast("Your account has been deleted");
@@ -278,10 +280,10 @@ export default function SettingsPage({
     : "";
 
   return (
-    <div style={{ background: "#F4F5F7", minHeight: "100%", padding: "32px 24px" }}>
+    <div style={{ background: "var(--cal-bg-page)", minHeight: "100%", padding: "32px 24px" }}>
       <div style={{ maxWidth: 640, margin: "0 auto" }}>
 
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: "#1A1A1A", marginBottom: 28 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--cal-text-primary)", marginBottom: 28 }}>
           Settings
         </h1>
 
@@ -308,7 +310,7 @@ export default function SettingsPage({
           <div style={{ marginBottom: 16 }}>
             <FieldLabel>Email</FieldLabel>
             <TextInput value={email || ""} readOnly />
-            <p style={{ fontSize: 12, color: "#6B7280", marginTop: 4 }}>
+            <p style={{ fontSize: 12, color: "var(--cal-text-muted)", marginTop: 4 }}>
               Email cannot be changed
             </p>
           </div>
@@ -337,7 +339,7 @@ export default function SettingsPage({
                 <button
                   type="button"
                   onClick={() => setShowCurrent((v) => !v)}
-                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#6B7280" }}
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--cal-text-muted)" }}
                 >
                   {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -356,7 +358,7 @@ export default function SettingsPage({
                 <button
                   type="button"
                   onClick={() => setShowNew((v) => !v)}
-                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#6B7280" }}
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--cal-text-muted)" }}
                 >
                   {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -381,7 +383,7 @@ export default function SettingsPage({
                 <button
                   type="button"
                   onClick={() => setShowConfirm((v) => !v)}
-                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#6B7280" }}
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--cal-text-muted)" }}
                 >
                   {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -415,13 +417,13 @@ export default function SettingsPage({
               value={lang}
               onChange={(e) => setLang(e.target.value)}
               style={{
-                width: "100%", background: "#F4F5F7", border: "1px solid #E5E7EB",
+                width: "100%", background: "var(--cal-bg-input)", border: "1px solid var(--cal-border)",
                 borderRadius: 8, padding: "10px 12px", fontSize: 14,
-                color: "#1A1A1A", outline: "none", cursor: "pointer",
+                color: "var(--cal-text-primary)", outline: "none", cursor: "pointer",
                 transition: "border-color 0.15s",
               }}
               onFocus={(e) => (e.target.style.borderColor = GOLD)}
-              onBlur={(e) => (e.target.style.borderColor = "#E5E7EB")}
+              onBlur={(e) => (e.target.style.borderColor = "var(--cal-border)")}
             >
               <option value="en">English</option>
               <option value="es">Spanish / Español</option>
@@ -434,7 +436,7 @@ export default function SettingsPage({
             </div>
           </div>
 
-          <div style={{ borderTop: "1px solid #E5E7EB", paddingTop: 16 }}>
+          <div style={{ borderTop: "1px solid var(--cal-border)", paddingTop: 16 }}>
             <FieldLabel>Email notifications</FieldLabel>
             <Toggle
               checked={!!notifPrefs.caseStatus}
@@ -446,7 +448,7 @@ export default function SettingsPage({
               onChange={(v) => handleNotifChange("deadlines", v)}
               label="Email me important legal deadlines"
             />
-            <p style={{ fontSize: 12, color: "#6B7280", marginTop: 8 }}>
+            <p style={{ fontSize: 12, color: "var(--cal-text-muted)", marginTop: 8 }}>
               Email notifications require a valid email address on your account.
             </p>
           </div>
@@ -454,7 +456,7 @@ export default function SettingsPage({
 
         {/* Danger Zone */}
         <div style={{
-          background: "#FFFFFF", borderRadius: 12,
+          background: "var(--cal-bg-card)", borderRadius: 12,
           boxShadow: "0 1px 4px rgba(0,0,0,0.08)", padding: 24, marginBottom: 20,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
@@ -463,7 +465,7 @@ export default function SettingsPage({
               Delete Account
             </h2>
           </div>
-          <p style={{ fontSize: 14, color: "#6B7280", marginBottom: 16 }}>
+          <p style={{ fontSize: 14, color: "var(--cal-text-muted)", marginBottom: 16 }}>
             Permanently delete your account and all associated data. This cannot be undone.
           </p>
           <button
@@ -489,18 +491,47 @@ export default function SettingsPage({
             display: "flex", alignItems: "center", justifyContent: "center",
             zIndex: 1000, padding: 24,
           }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowDeleteModal(false); }}
+          onClick={(e) => { if (e.target === e.currentTarget) { setShowDeleteModal(false); setDeleteReason(""); setDeleteError(""); } }}
         >
           <div style={{
-            background: "#FFFFFF", borderRadius: 12, padding: 32,
+            background: "var(--cal-bg-card)", borderRadius: 12, padding: 32,
             maxWidth: 440, width: "100%", boxShadow: "0 8px 32px rgba(0,0,0,0.16)",
           }}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: "#1A1A1A", marginBottom: 10 }}>
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--cal-text-primary)", marginBottom: 10 }}>
               Are you sure?
             </h3>
-            <p style={{ fontSize: 14, color: "#6B7280", marginBottom: 24, lineHeight: 1.6 }}>
+            <p style={{ fontSize: 14, color: "var(--cal-text-muted)", marginBottom: 20, lineHeight: 1.6 }}>
               This will permanently delete your account and all your data. This cannot be undone.
             </p>
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "var(--cal-text-secondary)", display: "block", marginBottom: 6 }}>
+                Please tell us why you're deleting your account
+              </label>
+              <textarea
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                placeholder="Enter your reason..."
+                rows={4}
+                style={{
+                  width: "100%", boxSizing: "border-box",
+                  background: "var(--cal-bg-input)",
+                  border: `1px solid var(--cal-border)`,
+                  borderRadius: 8, padding: "10px 12px",
+                  fontSize: 14, color: "var(--cal-text-primary)",
+                  resize: "vertical", outline: "none",
+                  fontFamily: "inherit", lineHeight: 1.5,
+                  transition: "border-color 0.15s",
+                }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = GOLD; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = "var(--cal-border)"; }}
+                disabled={deleteLoading}
+              />
+              {deleteReason.trim().length > 0 && deleteReason.trim().length < 10 && (
+                <p style={{ fontSize: 12, color: "#DC2626", marginTop: 4 }}>
+                  Please provide at least 10 characters.
+                </p>
+              )}
+            </div>
             {deleteError && (
               <p style={{ fontSize: 14, color: "#DC2626", marginBottom: 16, lineHeight: 1.5 }}>
                 {deleteError}
@@ -509,10 +540,10 @@ export default function SettingsPage({
             <div style={{ display: "flex", gap: 12 }}>
               <button
                 type="button"
-                onClick={() => { setShowDeleteModal(false); setDeleteError(""); }}
+                onClick={() => { setShowDeleteModal(false); setDeleteReason(""); setDeleteError(""); }}
                 disabled={deleteLoading}
                 style={{
-                  flex: 1, background: "#FFFFFF", border: `1px solid ${GOLD}`,
+                  flex: 1, background: "var(--cal-bg-card)", border: `1px solid ${GOLD}`,
                   color: GOLD, fontWeight: 700, borderRadius: 8,
                   padding: "10px 16px", cursor: deleteLoading ? "not-allowed" : "pointer", fontSize: 14,
                   opacity: deleteLoading ? 0.6 : 1,
@@ -523,12 +554,14 @@ export default function SettingsPage({
               <button
                 type="button"
                 onClick={handleDeleteAccount}
-                disabled={deleteLoading}
+                disabled={deleteLoading || deleteReason.trim().length < 10}
                 style={{
                   flex: 1, background: "#DC2626", border: "none",
                   color: "#FFFFFF", fontWeight: 700, borderRadius: 8,
-                  padding: "10px 16px", cursor: deleteLoading ? "not-allowed" : "pointer", fontSize: 14,
-                  opacity: deleteLoading ? 0.7 : 1,
+                  padding: "10px 16px", fontSize: 14,
+                  cursor: (deleteLoading || deleteReason.trim().length < 10) ? "not-allowed" : "pointer",
+                  opacity: (deleteLoading || deleteReason.trim().length < 10) ? 0.5 : 1,
+                  transition: "opacity 0.15s",
                 }}
               >
                 {deleteLoading ? "Deleting…" : "Yes, delete my account"}

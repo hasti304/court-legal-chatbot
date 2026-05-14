@@ -1,9 +1,17 @@
+import logging
 import os
 
 from fastapi import APIRouter, Body, Depends, Header, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
+
+
+class DeleteAccountRequest(BaseModel):
+    reason: str = ""
 
 try:
     from ..database import get_db
@@ -182,8 +190,14 @@ def update_profile(phone: str = Body(..., embed=True), x_intake_id: str = Header
 
 
 @router.delete("/auth/account")
-def delete_account(x_intake_id: str = Header(None), db: Session = Depends(get_db)):
+def delete_account(
+    body: DeleteAccountRequest = Body(default_factory=DeleteAccountRequest),
+    x_intake_id: str = Header(None),
+    db: Session = Depends(get_db),
+):
     intake_id = (x_intake_id or "").strip()
+    reason = (body.reason or "").strip()
+
     if not intake_id:
         raise HTTPException(status_code=401, detail="Authentication required")
 
@@ -203,7 +217,61 @@ def delete_account(x_intake_id: str = Header(None), db: Session = Depends(get_db
         if not intake:
             raise HTTPException(status_code=401, detail="Invalid session")
 
+        # Collect client info before deleting
+        full_name = f"{getattr(intake, 'first_name', '') or ''} {getattr(intake, 'last_name', '') or ''}".strip()
         email = intake.email
+        phone = getattr(intake, "phone", "") or ""
+        zip_code = getattr(intake, "zip", "") or ""
+
+        # Collect distinct topics from triage sessions
+        topics_rows = db.execute(
+            text("SELECT DISTINCT topic FROM triage_sessions WHERE intake_id = :iid AND topic IS NOT NULL"),
+            {"iid": intake_id},
+        ).fetchall()
+        topics = [r[0] for r in topics_rows if r[0]]
+        topics_str = ", ".join(topics) if topics else "None"
+
+        # Send deletion notification — failure must not block deletion
+        try:
+            try:
+                from ..services.gmail_service import send_email
+            except ImportError:
+                from services.gmail_service import send_email  # type: ignore
+
+            subject = f"Account Deletion Notice — {full_name}"
+            text_body = (
+                f"A client has deleted their account.\n\n"
+                f"Client Details:\n"
+                f"Name: {full_name}\n"
+                f"Email: {email}\n"
+                f"Phone: {phone}\n"
+                f"ZIP: {zip_code}\n"
+                f"Issues Enquired About: {topics_str}\n\n"
+                f"Reason for deletion: {reason or 'Not provided'}\n\n"
+                f"This is an automated notification from Chicago Advocate Legal."
+            )
+            html_body = (
+                f"<p>A client has deleted their account.</p>"
+                f"<p><strong>Client Details:</strong><br>"
+                f"Name: {full_name}<br>"
+                f"Email: {email}<br>"
+                f"Phone: {phone}<br>"
+                f"ZIP: {zip_code}<br>"
+                f"Issues Enquired About: {topics_str}</p>"
+                f"<p><strong>Reason for deletion:</strong> {reason or 'Not provided'}</p>"
+                f"<p><em>This is an automated notification from Chicago Advocate Legal.</em></p>"
+            )
+            ok = send_email(
+                to_email="intake@chicagoadvocatelegal.com",
+                subject=subject,
+                html_body=html_body,
+                text_body=text_body,
+            )
+            if not ok:
+                logger.error("Account deletion email failed for intake_id=%s", intake_id)
+        except Exception as email_exc:
+            logger.error("Account deletion email error for intake_id=%s: %s", intake_id, email_exc)
+
         iid = intake_id
         db.execute(text("DELETE FROM evidence_files WHERE intake_id = :iid"), {"iid": iid})
         db.execute(text("DELETE FROM intake_events WHERE intake_id = :iid"), {"iid": iid})
