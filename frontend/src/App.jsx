@@ -17,8 +17,6 @@ import {
   FaBalanceScale,
   FaChild,
   FaPrint,
-  FaSun,
-  FaMoon,
 } from "react-icons/fa";
 import "./App.css";
 import "./cal-app-dark.css";
@@ -44,7 +42,7 @@ import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
 import calLogo from "./assets/cal_logo.png";
-import { Eye, EyeOff, Send, RotateCcw, Loader2, ArrowLeft, ShieldAlert, Trash2, Volume2, VolumeX, Check, Shield, Lock, Clock, ChevronRight } from "lucide-react";
+import { Eye, EyeOff, Send, RotateCcw, Loader2, ArrowLeft, ShieldAlert, Trash2, Volume2, VolumeX, Check, Shield, Lock, Clock, ChevronRight, Lightbulb, LightbulbOff } from "lucide-react";
 
 import { useTranslation } from "react-i18next";
 import i18n, { setAppLanguage, getNormalizedLanguage } from "./i18n";
@@ -992,7 +990,9 @@ function App() {
       title={isDark ? t("theme.useLight") : t("theme.useDark")}
       aria-label={isDark ? t("theme.useLight") : t("theme.useDark")}
     >
-      {isDark ? <FaSun size={20} aria-hidden /> : <FaMoon size={20} aria-hidden />}
+      {isDark
+        ? <LightbulbOff size={20} aria-hidden style={{ color: "#FFFFFF" }} />
+        : <Lightbulb size={20} aria-hidden style={{ color: "#1A1A1A" }} />}
     </button>
   );
 
@@ -3436,7 +3436,7 @@ function App() {
       )}
 
         <div className="slack-chat-workspace">
-        <div className="flex items-center gap-3 px-6 py-3 border-b border-[#e2e8f0] bg-white shrink-0 flex-wrap">
+        <div className="flex items-center gap-3 px-6 py-3 border-b shrink-0 flex-wrap chat-action-bar">
           <Button
             type="button"
             variant="outline"
@@ -3487,9 +3487,6 @@ function App() {
 
         <main className="chat-main" id="main-content">
         <div className="messages-container" ref={messagesContainerRef}>
-          {conversationState?.step !== "complete" && (
-            <div className="text-right text-sm mb-4" style={{ color: "#94a3b8" }}>start</div>
-          )}
           {chatError && (
             <StatusBanner type="error" className="chat-status-banner" role="alert">
               {chatError}
@@ -3736,7 +3733,7 @@ function App() {
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="border-t border-[#e2e8f0] bg-white px-6 py-4 shrink-0">
+        <div className="border-t px-6 py-4 shrink-0 chat-input-bar">
           <div className="max-w-3xl mx-auto">
             <form onSubmit={handleSubmit} className="relative">
               <Textarea
@@ -3766,7 +3763,7 @@ function App() {
               <Button
                 type="submit"
                 size="icon"
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full h-10 w-10 shrink-0 bg-[#1e293b] hover:bg-[#334155]"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full h-10 w-10 shrink-0 bg-[#C9A84C] hover:bg-[#b8943f] text-[#1A1A1A]"
                 disabled={loading || !userInput.trim()}
                 aria-label="Send message"
               >
@@ -3782,7 +3779,7 @@ function App() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="text-xs gap-1.5 px-0 h-auto text-[#64748b] hover:text-[#1e293b]"
+                className="text-xs gap-1.5 px-0 h-auto text-[#64748b] hover:text-[#1e293b] chat-nav-btn"
                 onClick={handleBack}
                 disabled={loading}
               >
@@ -3793,7 +3790,7 @@ function App() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="text-xs gap-1.5 px-0 h-auto text-[#64748b] hover:text-[#1e293b]"
+                className="text-xs gap-1.5 px-0 h-auto text-[#64748b] hover:text-[#1e293b] chat-nav-btn"
                 onClick={handleRestart}
                 disabled={loading}
               >
@@ -3801,7 +3798,7 @@ function App() {
                 {t("chat.restartTitle")}
               </Button>
             </div>
-            <p className="text-xs text-center mt-3" style={{ color: "#94a3b8" }}>Legal information and resources only, not legal advice.</p>
+            <p className="text-xs text-center mt-3" style={{ color: isDark ? "#6B7280" : "#94a3b8" }}>Legal information and resources only, not legal advice.</p>
           </div>
         </div>
         </main>

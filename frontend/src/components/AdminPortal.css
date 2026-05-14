@@ -1463,7 +1463,7 @@
 
 .admin-login-right {
   flex: 1;
-  background: #ffffff;
+  background: #F8F7F4;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1472,7 +1472,14 @@
   padding: 40px;
 }
 
-.admin-login-right-inner { width: 100%; max-width: 420px; }
+.admin-login-right-inner {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+  padding: 40px;
+}
 
 .admin-login-heading { font-size: 2rem; font-weight: 700; color: #1A1A1A; margin-bottom: 4px; line-height: 1.2; }
 .admin-login-subheading { font-size: 0.9rem; color: #6B7280; margin-bottom: 28px; margin-top: 0; }
@@ -1532,6 +1539,55 @@
 .admin-login-back { margin-top: 20px; text-align: center; }
 .admin-login-back-link { color: #C9A84C; font-size: 0.88rem; font-weight: 600; text-decoration: none; }
 .admin-login-back-link:hover { text-decoration: underline; }
+
+/* ── Admin login: dark mode ─────────────────────────────── */
+.dark .admin-login-right {
+  background: #1A1D27;
+}
+
+.dark .admin-login-right-inner {
+  background: #1E2235;
+  box-shadow: 0 2px 24px rgba(0, 0, 0, 0.40);
+  border: 1px solid #2A2D3A;
+}
+
+.dark .admin-login-heading {
+  color: #F4F5F7;
+}
+
+.dark .admin-login-subheading {
+  color: #9CA3AF;
+}
+
+.dark .admin-portal-field label {
+  color: #F4F5F7;
+}
+
+.dark .admin-portal-input {
+  background: #2A2D3A;
+  border-color: #3D3B55;
+  color: #F4F5F7;
+}
+
+.dark .admin-portal-input::placeholder {
+  color: #6B7280;
+}
+
+.dark .admin-portal-input:focus {
+  border-color: #C9A84C;
+  box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.18);
+}
+
+.dark .admin-portal-password-toggle {
+  background: #2A2D3A;
+  border-color: #3D3B55;
+  color: #9CA3AF;
+}
+
+.dark .admin-portal-password-toggle:hover {
+  border-color: #C9A84C;
+  color: #F4F5F7;
+}
 
 /* ── Responsive ── */
 @media (max-width: 1100px) {

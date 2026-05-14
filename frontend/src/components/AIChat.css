@@ -760,25 +760,26 @@
   border: none;
   border-radius: 50%;
   cursor: pointer;
-  background: var(--primary, #1f4fa8);
-  color: white;
+  background: #C9A84C;
+  color: #1A1A1A;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   font-size: 0.95rem;
-  box-shadow: 0 4px 14px rgba(31, 79, 168, 0.38);
+  box-shadow: 0 4px 14px rgba(201, 168, 76, 0.35);
   transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .ai-send-button:hover:not(:disabled) {
-  background: var(--primary-hover, #173d82);
+  background: #b8943f;
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(31, 79, 168, 0.48);
+  box-shadow: 0 6px 18px rgba(201, 168, 76, 0.45);
 }
 
 .ai-send-button:disabled {
   background: #94a3b8;
+  color: white;
   cursor: not-allowed;
   box-shadow: none;
 }

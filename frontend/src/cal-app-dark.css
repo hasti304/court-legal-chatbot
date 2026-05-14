@@ -629,11 +629,12 @@ body:not(.discreet-mode) .ai-chat-page.cal-app-dark .ai-chat-input:focus {
 }
 
 body:not(.discreet-mode) .ai-chat-page.cal-app-dark .ai-send-button {
-  background: #238636;
+  background: #C9A84C;
+  color: #1A1A1A;
 }
 
 body:not(.discreet-mode) .ai-chat-page.cal-app-dark .ai-send-button:hover:not(:disabled) {
-  background: #2ea043;
+  background: #b8943f;
 }
 
 body:not(.discreet-mode) .ai-chat-page.cal-app-dark .ai-chat-footer {

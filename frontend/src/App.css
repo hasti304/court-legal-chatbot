@@ -3489,7 +3489,8 @@ a:focus-visible,
   height: auto;
   max-width: 100%;
   object-fit: contain;
-  mix-blend-mode: screen;
+  mix-blend-mode: normal;
+  filter: brightness(0) invert(1);
   display: block;
 }
 
@@ -3577,7 +3578,7 @@ a:focus-visible,
 /* RIGHT PANEL */
 .cal-auth-right {
   flex: 1;
-  background: #ffffff;
+  background: #F8F7F4;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -3629,16 +3630,17 @@ a:focus-visible,
 .cal-auth-right input[type="text"].cal-auth-field,
 .cal-auth-right input[type="email"].cal-auth-field,
 .cal-auth-right input[type="password"].cal-auth-field,
-.cal-auth-right input[type="tel"].cal-auth-field {
+.cal-auth-right input[type="tel"].cal-auth-field,
+.cal-auth-right input.cal-auth-field {
   background: #F4F5F7 !important;
   border: 1px solid #E5E7EB !important;
   border-radius: 8px !important;
   color: #1A1A1A !important;
-  height: 38px !important;
+  height: 34px !important;
   font-size: 0.95rem !important;
   padding: 0 44px 0 14px !important;
   box-shadow: none !important;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+  transition: border-color 0.15s ease, border-width 0.15s ease, box-shadow 0.15s ease !important;
   width: 100%;
   outline: none !important;
 }
@@ -3648,9 +3650,14 @@ a:focus-visible,
   font-size: 0.78rem !important;
 }
 
-/* Reduce form field group spacing from Tailwind space-y-4 (16px) to 8px */
+/* Reduce form field group spacing from Tailwind space-y-4 (16px) to 6px */
 .cal-auth-right .space-y-4 > :not([hidden]) ~ :not([hidden]) {
-  margin-top: 8px !important;
+  margin-top: 6px !important;
+}
+
+/* Collapse Tailwind mt-6 (24px) on the sign-in link below the register form */
+.cal-auth-right .mt-6 {
+  margin-top: 10px !important;
 }
 
 .cal-auth-right input.cal-auth-field::placeholder {
@@ -3658,14 +3665,14 @@ a:focus-visible,
 }
 
 .cal-auth-right input.cal-auth-field:focus {
-  border-color: #C9A84C !important;
+  border: 2px solid #C9A84C !important;
   box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.15) !important;
   outline: none !important;
 }
 
 .cal-auth-right input.cal-auth-field:focus-visible {
-  outline: 2px solid #C9A84C !important;
-  outline-offset: 2px !important;
+  border: 2px solid #C9A84C !important;
+  outline: none !important;
 }
 
 .cal-auth-right input.cal-auth-field[data-valid="true"] {
@@ -3727,11 +3734,11 @@ a:focus-visible,
 
 .cal-auth-tab-active {
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #1A1A1A;
   background: none;
   border: none;
-  border-bottom: 2px solid #C9A84C;
+  border-bottom: 3px solid #C9A84C;
   padding: 0 0 14px;
   cursor: pointer;
   line-height: 1;
@@ -3744,19 +3751,19 @@ a:focus-visible,
 
 .cal-auth-tab-inactive {
   font-size: 0.9rem;
-  font-weight: 500;
-  color: #6B7280;
+  font-weight: 400;
+  color: #9CA3AF;
   background: none;
-  border: 1px solid #E5E7EB;
-  border-radius: 20px;
-  padding: 5px 14px;
+  border: none;
+  border-radius: 0;
+  padding: 0 0 14px;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: color 0.15s ease;
   line-height: 1;
 }
 
 .cal-auth-tab-inactive:hover {
-  background: #F4F5F7;
+  color: #6B7280;
 }
 
 .cal-auth-tab-inactive:focus-visible {
@@ -3789,13 +3796,13 @@ a:focus-visible,
 
 /* "Sign in with email" styled button (tab row, right side) */
 .cal-auth-email-btn {
-  background: #1B2A4A;
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border: 1px solid #C9A84C;
+  background: #ffffff;
+  color: #1B2A4A;
+  font-weight: 500;
+  font-size: 0.8rem;
+  text-transform: none;
+  letter-spacing: 0;
+  border: 1px solid #1B2A4A;
   border-radius: 6px;
   padding: 6px 14px;
   cursor: pointer;
@@ -3805,7 +3812,7 @@ a:focus-visible,
 }
 
 .cal-auth-email-btn:hover:not(:disabled) {
-  background: #243857;
+  background: #f0f3f8;
 }
 
 .cal-auth-email-btn:disabled {
@@ -4355,6 +4362,95 @@ a:focus-visible,
   flex-shrink: 0;
 }
 
+/* ── Auth pages: dark mode ─────────────────────────────── */
+.dark .cal-auth-right {
+  background: #1A1D27;
+}
+
+.dark .cal-auth-right-topbar {
+  background: #1A1D27;
+}
+
+.dark .cal-auth-form-title {
+  color: #F4F5F7 !important;
+}
+
+.dark .cal-auth-form-subtitle {
+  color: #9CA3AF !important;
+}
+
+.dark .cal-auth-right label,
+.dark .cal-auth-right .auth-label {
+  color: #F4F5F7 !important;
+}
+
+.dark .cal-auth-right input[type="text"].cal-auth-field,
+.dark .cal-auth-right input[type="email"].cal-auth-field,
+.dark .cal-auth-right input[type="password"].cal-auth-field,
+.dark .cal-auth-right input[type="tel"].cal-auth-field,
+.dark .cal-auth-right input.cal-auth-field {
+  background: #2A2D3A !important;
+  border-color: #3D3B55 !important;
+  color: #F4F5F7 !important;
+}
+
+.dark .cal-auth-right input.cal-auth-field::placeholder {
+  color: #6B7280 !important;
+}
+
+.dark .cal-auth-right input.cal-auth-field:focus {
+  border: 2px solid #C9A84C !important;
+  box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.18) !important;
+}
+
+.dark .cal-auth-right input.cal-auth-field:focus-visible {
+  border: 2px solid #C9A84C !important;
+}
+
+.dark .cal-auth-email-btn {
+  background: #2A2D3A !important;
+  border-color: #3D3B55 !important;
+  color: #F4F5F7 !important;
+}
+
+.dark .cal-auth-email-btn:hover:not(:disabled) {
+  background: #333750 !important;
+}
+
+.dark .cal-auth-tab-inactive {
+  color: #6B7280 !important;
+}
+
+.dark .cal-auth-tab-inactive:hover {
+  color: #9CA3AF !important;
+}
+
+.dark .cal-auth-step-label {
+  color: #9CA3AF;
+}
+
+.dark .cal-auth-progress-seg--inactive {
+  background: #2A2D3A;
+}
+
+.dark .cal-auth-root .site-footer {
+  background: #0F1117 !important;
+  border-top-color: #2A2D3A !important;
+}
+
+.dark .cal-auth-root .site-footer,
+.dark .cal-auth-root .site-footer * {
+  color: #9CA3AF !important;
+}
+
+.dark .cal-auth-root .site-footer a {
+  color: #C9A84C !important;
+}
+
+.dark .cal-auth-field-wrap .cal-auth-field-valid-icon {
+  background: #2A2D3A;
+}
+
 /* Responsive: stack on small screens */
 @media (max-width: 768px) {
   .cal-auth-root {
@@ -4419,6 +4515,48 @@ a:focus-visible,
 /* ──────────────────────────────────────────────────────────
    Dark mode overrides — client pages inside .dark SlackLayout
    ────────────────────────────────────────────────────────── */
+
+/* Triage chat workspace background */
+.dark .slack-chat-workspace {
+  background: #0F1117;
+}
+
+/* Button toolbar (Quick Exit / Clear Session / Read Aloud row) */
+.dark .chat-action-bar {
+  background: #1A1D27;
+  border-color: #2A2D3A;
+}
+
+/* Chat input bar (textarea + back/restart + disclaimer) */
+.dark .chat-input-bar {
+  background: #1A1D27;
+  border-color: #2A2D3A;
+}
+
+.dark .chat-input-bar textarea {
+  background: #2A2D3A !important;
+  color: #F4F5F7 !important;
+  border-color: #2A2D3A !important;
+}
+
+.dark .chat-input-bar textarea::placeholder {
+  color: #6B7280 !important;
+}
+
+.dark .chat-input-bar textarea:focus {
+  border-color: #C9A84C !important;
+}
+
+.dark .chat-input-bar .chat-nav-btn,
+.dark .chat-input-bar .chat-nav-btn * {
+  color: #9CA3AF !important;
+}
+
+.dark .chat-input-bar .chat-nav-btn:hover,
+.dark .chat-input-bar .chat-nav-btn:hover * {
+  color: #F4F5F7 !important;
+  background: transparent !important;
+}
 
 /* ThemeToggle in topbar */
 .dark .cal-topbar-extras .theme-toggle-btn {

@@ -275,6 +275,7 @@ export default function AdminPortal() {
 
   useLayoutEffect(() => {
     persistTheme(theme);
+    document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.setAttribute("data-cal-theme", theme);
   }, [theme]);
 

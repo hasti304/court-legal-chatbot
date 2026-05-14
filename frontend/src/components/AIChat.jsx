@@ -759,7 +759,10 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
               rows={1} disabled={isBusy} aria-label="Message input"
             />
             <button onClick={sendMessage} disabled={isBusy || !inputValue.trim()} type="button" title="Send message" aria-label="Send"
-              className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-40 hover:bg-primary/85 shadow-sm"
+              className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 disabled:opacity-40 shadow-sm"
+              style={{ background: "#C9A84C", color: "#1A1A1A" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#b8943f"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "#C9A84C"; }}
             >
               {isLoading ? <span className="w-3.5 h-3.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" /> : <FaPaperPlane className="w-3 h-3" />}
             </button>
