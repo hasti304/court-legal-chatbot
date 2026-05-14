@@ -15,7 +15,7 @@ export default function LoginLayout({
 }) {
   const { t } = useTranslation();
 
-  if (leftPanel) {
+  if (leftPanel || leftCenterPanel) {
     return (
       <div className="cal-auth-root">
         <div className="cal-auth-columns">

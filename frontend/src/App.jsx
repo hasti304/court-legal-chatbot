@@ -2212,7 +2212,7 @@ function App() {
       <LoginLayout
         title={t("login.heading")}
         subtitle={t("login.lead")}
-        leftPanel={renderAuthAside()}
+        leftCenterPanel={renderAuthAside()}
         showTrustBadge={true}
         extras={<><ThemeToggle /><LanguagePicker variant={lpVariant} /></>}
         footer={

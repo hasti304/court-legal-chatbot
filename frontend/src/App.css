@@ -3481,7 +3481,7 @@ a:focus-visible,
 .cal-auth-left-logo-wrap {
   flex-shrink: 0;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .cal-auth-left-logo {
@@ -3489,8 +3489,7 @@ a:focus-visible,
   height: auto;
   max-width: 100%;
   object-fit: contain;
-  mix-blend-mode: normal;
-  filter: brightness(0) invert(1);
+  mix-blend-mode: screen;
   display: block;
 }
 
@@ -3567,12 +3566,13 @@ a:focus-visible,
   flex-shrink: 0;
 }
 
-/* Center section of left panel (bullets for register page) */
+/* Center section of left panel (bullets / value props) */
 .cal-auth-left-center {
   flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding-top: 40px;
 }
 
 /* RIGHT PANEL */
@@ -3609,6 +3609,11 @@ a:focus-visible,
   max-width: 460px;
   margin-top: auto;
   margin-bottom: auto;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 2px 24px rgba(0, 0, 0, 0.08);
+  padding: 36px 40px;
+  box-sizing: border-box;
 }
 
 .cal-auth-form-title {
@@ -4367,6 +4372,12 @@ a:focus-visible,
   background: #1A1D27;
 }
 
+.dark .cal-auth-right-inner {
+  background: #1E2235;
+  box-shadow: 0 2px 24px rgba(0, 0, 0, 0.40);
+  border: 1px solid #2A2D3A;
+}
+
 .dark .cal-auth-right-topbar {
   background: #1A1D27;
 }
@@ -4473,9 +4484,16 @@ a:focus-visible,
   .cal-auth-left-bottom {
     display: none;
   }
+  .cal-auth-left-center {
+    display: none;
+  }
   .cal-auth-right-scroll {
     padding: 24px 20px;
     align-items: flex-start;
+  }
+  .cal-auth-right-inner {
+    padding: 20px 20px;
+    border-radius: 14px;
   }
   .cal-auth-right-topbar {
     padding: 16px 20px 0;

@@ -885,9 +885,27 @@ export default function AdminPortal() {
       <div className="admin-login-split" data-admin-entry-url={staffAdminUrl}>
         <div className="admin-login-left">
           <div className="admin-login-left-inner">
-            <div className="admin-login-left-brand">
+            {/* Logo at top */}
+            <div className="admin-login-left-logo-wrap">
               <img src={calLogo} alt="Chicago Advocate Legal, NFP logo" className="admin-login-logo" />
             </div>
+            {/* Feature bullets in middle */}
+            <div className="admin-login-left-center">
+              <ul className="admin-login-features">
+                {[
+                  "Secure staff access",
+                  "Manage client intakes and submissions",
+                  "View and update case data",
+                  "Role-based access control",
+                ].map((item) => (
+                  <li key={item} className="admin-login-feature-item">
+                    <span className="admin-login-feature-dot" aria-hidden="true">✓</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {/* Headline at bottom */}
             <div className="admin-login-left-text">
               <h2 className="admin-login-left-headline">Staff Admin Portal</h2>
               <p className="admin-login-left-body">
