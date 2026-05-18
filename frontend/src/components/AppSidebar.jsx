@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Home,
   FolderOpen,
@@ -30,12 +31,12 @@ function getPreviousCasesCount() {
   }
 }
 
-const NAV_ITEMS = [
-  { id: "home", label: "Home", icon: Home },
-  { id: "chat", label: "My Cases", icon: FolderOpen },
-  { id: "files", label: "Documents", icon: FileText },
-  { id: "resources", label: "Resources", icon: BookOpen },
-  { id: "settings", label: "Settings", icon: Settings },
+const NAV_ITEM_DEFS = [
+  { id: "home", labelKey: "nav.home", icon: Home },
+  { id: "chat", labelKey: "nav.cases", icon: FolderOpen },
+  { id: "files", labelKey: "nav.documents", icon: FileText },
+  { id: "resources", labelKey: "nav.resources", icon: BookOpen },
+  { id: "settings", labelKey: "nav.settings", icon: Settings },
 ];
 
 const SIDEBAR_BG = "#1B2A4A";
@@ -67,7 +68,9 @@ export default function AppSidebar({
   onTopicSelect,
   onStartChat,
   onSignOut,
+  onCloseMobile,
 }) {
+  const { t } = useTranslation();
   const recentSessions = useMemo(getRecentSessions, []);
   const [showSupport, setShowSupport] = useState(false);
   const [showNewCaseModal, setShowNewCaseModal] = useState(false);
@@ -87,13 +90,13 @@ export default function AppSidebar({
   return (
     <>
     <aside
-      className="w-64 shrink-0 flex flex-col h-full"
+      className="w-full max-w-full shrink-0 flex flex-col h-full"
       style={{ background: SIDEBAR_BG, borderRight: "1px solid rgba(255,255,255,0.08)" }}
       aria-label="Main navigation"
     >
       {/* Brand */}
       <div
-        className="flex items-center px-4 h-14 shrink-0"
+        className="flex items-center justify-between px-4 h-14 shrink-0"
         style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}
       >
         <img
@@ -101,6 +104,16 @@ export default function AppSidebar({
           alt="CAL logo"
           style={{ height: 40, width: "auto", objectFit: "contain", mixBlendMode: "screen" }}
         />
+        {onCloseMobile ? (
+          <button
+            type="button"
+            onClick={onCloseMobile}
+            className="md:hidden p-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            aria-label={t("nav.closeMenu")}
+          >
+            <X className="w-5 h-5" aria-hidden />
+          </button>
+        ) : null}
       </div>
 
       <ScrollArea className="flex-1">
@@ -115,20 +128,21 @@ export default function AppSidebar({
                 style={{ background: GOLD, color: "#1A1A1A", fontWeight: 700, border: "none" }}
               >
                 <Plus className="w-4 h-4" aria-hidden />
-                New Case
+                {t("nav.newCase")}
               </Button>
             </div>
           )}
 
           {/* Main nav */}
-          {NAV_ITEMS.map(({ id, label, icon: Icon }) => {
+          {NAV_ITEM_DEFS.map(({ id, labelKey, icon: Icon }) => {
+            const label = t(labelKey);
             const isActive = activeSection === id;
             return (
               <button
                 key={id}
                 type="button"
                 onClick={() => onNavigate?.(id)}
-                className="w-full flex items-center gap-2.5 py-2 text-sm font-medium transition-all"
+                className="w-full flex items-center gap-2.5 py-2.5 min-h-[44px] text-sm font-medium transition-all"
                 style={{
                   paddingLeft: isActive ? 9 : 12,
                   paddingRight: 12,
@@ -164,7 +178,7 @@ export default function AppSidebar({
                 className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest"
                 style={{ color: "rgba(255,255,255,0.38)" }}
               >
-                Recent
+                {t("nav.recent")}
               </p>
               {recentSessions.map((session) => (
                 <button
@@ -203,7 +217,7 @@ export default function AppSidebar({
             onMouseLeave={(e) => (e.currentTarget.style.background = SIDEBAR_BG)}
           >
             <Phone className="w-4 h-4" aria-hidden />
-            Guest Support
+            {t("nav.guestSupport")}
           </button>
         ) : (
           <div
@@ -240,7 +254,7 @@ export default function AppSidebar({
             <button
               type="button"
               onClick={onSignOut}
-              className="transition-colors p-1 rounded opacity-0 group-hover:opacity-100"
+              className="transition-colors p-2 rounded min-h-[44px] min-w-[44px] flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100"
               style={{ color: "rgba(255,255,255,0.55)" }}
               aria-label="Sign out"
               title="Sign out"

@@ -1,26 +1,11 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import AppSidebar from "../AppSidebar";
 import AppTopbar from "../AppTopbar";
 import "./SlackLayout.css";
+import "./MobileNav.css";
 
 /**
  * Main application layout — sidebar + topbar + scrollable content area.
- *
- * Props (unchanged API):
- *   isDark          – boolean, applies dark class to root
- *   activeSection   – 'home' | 'chat' | 'files' | 'resources' | 'settings'
- *   activeTopic     – topic ID string for sidebar highlight
- *   firstName       – user's first name
- *   intakeSaved     – boolean, whether the user has a saved session
- *   topbarTitle     – string shown in the topbar
- *   canGoBack       – boolean, enables the back button in topbar
- *   onNavigate      – (section: string) => void
- *   onTopicSelect   – (topicId: string) => void
- *   onStartChat     – () => void
- *   onSignOut       – () => void
- *   onBack          – () => void
- *   topbarExtras    – JSX rendered in topbar right section
- *   children        – main content area
  */
 export default function SlackLayout({
   isDark,
@@ -40,19 +25,68 @@ export default function SlackLayout({
   topbarExtras,
   children,
 }) {
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [activeSection]);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") setMobileNavOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileNavOpen]);
+
+  const handleNavigate = (section) => {
+    setMobileNavOpen(false);
+    onNavigate?.(section);
+  };
+
+  const handleTopicSelect = (topicId) => {
+    setMobileNavOpen(false);
+    onTopicSelect?.(topicId);
+  };
+
+  const handleStartChat = () => {
+    setMobileNavOpen(false);
+    onStartChat?.();
+  };
+
+  const handleSignOut = () => {
+    setMobileNavOpen(false);
+    onSignOut?.();
+  };
+
   return (
     <div className={`flex h-screen overflow-hidden bg-background${isDark ? " dark" : ""}`}>
-      <AppSidebar
-        activeSection={activeSection}
-        activeTopic={activeTopic}
-        firstName={firstName}
-        lastName={lastName}
-        intakeSaved={intakeSaved}
-        onNavigate={onNavigate}
-        onTopicSelect={onTopicSelect}
-        onStartChat={onStartChat}
-        onSignOut={onSignOut}
-      />
+      {mobileNavOpen ? (
+        <button
+          type="button"
+          className="app-sidebar-backdrop md:hidden"
+          aria-label="Close menu"
+          onClick={() => setMobileNavOpen(false)}
+        />
+      ) : null}
+
+      <div
+        className={`app-sidebar-drawer shrink-0 h-full${mobileNavOpen ? " app-sidebar-drawer--open" : ""}`}
+      >
+        <AppSidebar
+          activeSection={activeSection}
+          activeTopic={activeTopic}
+          firstName={firstName}
+          lastName={lastName}
+          intakeSaved={intakeSaved}
+          onNavigate={handleNavigate}
+          onTopicSelect={handleTopicSelect}
+          onStartChat={handleStartChat}
+          onSignOut={handleSignOut}
+          onCloseMobile={() => setMobileNavOpen(false)}
+        />
+      </div>
 
       <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden">
         <AppTopbar
@@ -61,6 +95,8 @@ export default function SlackLayout({
           canGoBack={canGoBack}
           onBack={onBack}
           extras={topbarExtras}
+          onMenuClick={() => setMobileNavOpen(true)}
+          showMenuButton
         />
         <div className="flex-1 overflow-auto min-h-0" id="main-content">
           {children}

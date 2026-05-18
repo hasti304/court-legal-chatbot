@@ -86,6 +86,13 @@ const resources = {
         signOutDevice: "Forget this device",
         requestFailed: "We could not send the link. Try again later.",
         verifyFailed: "This sign-in link is invalid or has expired. Request a new one.",
+        magicLinkDetected: "Email link detected. Click below to complete sign-in.",
+        completeSignInFromLink: "Complete sign-in from email link",
+        verifyingLink: "Verifying link…",
+        emailNotVerifiedTitle:
+          "Your email address has not been verified. Please check your inbox and click the verification link.",
+        resendVerification: "Resend verification email",
+        sendingResend: "Sending…",
         devLinkLabel: "Development only — open this link to sign in:",
         resetDevLinkLabel: "Development only — open this link to reset your password:",
         authAside: {
@@ -100,6 +107,19 @@ const resources = {
           testimonial: "This tool helped me understand my rights and connect with legal aid quickly.",
           testimonialSource: "— Illinois resident, Housing case",
         },
+      },
+
+      nav: {
+        home: "Home",
+        cases: "My Cases",
+        documents: "Documents",
+        resources: "Resources",
+        settings: "Settings",
+        newCase: "New Case",
+        recent: "Recent",
+        guestSupport: "Guest Support",
+        openMenu: "Open menu",
+        closeMenu: "Close menu",
       },
 
       intake: {
@@ -585,6 +605,13 @@ const resources = {
         signOutDevice: "Olvidar este dispositivo",
         requestFailed: "No pudimos enviar el enlace. Inténtelo más tarde.",
         verifyFailed: "Este enlace no es válido o caducó. Solicite uno nuevo.",
+        magicLinkDetected: "Enlace de correo detectado. Haga clic abajo para completar el inicio de sesión.",
+        completeSignInFromLink: "Completar inicio de sesión desde el enlace",
+        verifyingLink: "Verificando enlace…",
+        emailNotVerifiedTitle:
+          "Su correo no ha sido verificado. Revise su bandeja de entrada y haga clic en el enlace de verificación.",
+        resendVerification: "Reenviar correo de verificación",
+        sendingResend: "Enviando…",
         devLinkLabel: "Solo desarrollo — abra este enlace para iniciar sesión:",
         resetDevLinkLabel: "Solo desarrollo — abra este enlace para restablecer su contraseña:",
         authAside: {
@@ -599,6 +626,19 @@ const resources = {
           testimonial: "Esta herramienta me ayudó a entender mis derechos y conectarme rápidamente con ayuda legal.",
           testimonialSource: "— Residente de Illinois, caso de vivienda",
         },
+      },
+
+      nav: {
+        home: "Inicio",
+        cases: "Mis casos",
+        documents: "Documentos",
+        resources: "Recursos",
+        settings: "Configuración",
+        newCase: "Nuevo caso",
+        recent: "Recientes",
+        guestSupport: "Soporte para visitantes",
+        openMenu: "Abrir menú",
+        closeMenu: "Cerrar menú",
       },
 
       intake: {

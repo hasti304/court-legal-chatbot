@@ -1,0 +1,80 @@
+/* Mobile sidebar drawer — used by SlackLayout and AdminPortal */
+
+.app-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 40;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.app-sidebar-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(16rem, 88vw);
+  z-index: 50;
+  transform: translateX(-100%);
+  transition: transform 0.22s ease;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+}
+
+.app-sidebar-drawer--open {
+  transform: translateX(0);
+}
+
+@media (min-width: 768px) {
+  .app-sidebar-backdrop {
+    display: none !important;
+  }
+
+  .app-sidebar-drawer {
+    position: relative;
+    transform: none !important;
+    width: 16rem;
+    box-shadow: none;
+    z-index: auto;
+  }
+}
+
+@media (max-width: 767px) {
+  .app-sidebar-drawer:not(.app-sidebar-drawer--open) {
+    width: 0;
+    min-width: 0;
+    overflow: visible;
+  }
+}
+
+.admin-sidebar-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(260px, 88vw);
+  z-index: 50;
+  transform: translateX(-100%);
+  transition: transform 0.22s ease;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+}
+
+.admin-sidebar-drawer--open {
+  transform: translateX(0);
+}
+
+@media (min-width: 980px) {
+  .admin-sidebar-backdrop {
+    display: none !important;
+  }
+
+  .admin-sidebar-drawer {
+    position: sticky;
+    top: 14px;
+    transform: none;
+    width: auto;
+    box-shadow: none;
+    z-index: auto;
+  }
+}

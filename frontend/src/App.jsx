@@ -172,6 +172,27 @@ function stripMagicTokenFromLocation() {
   }
 }
 
+function stripResetTokenFromLocation() {
+  try {
+    const path = window.location.pathname || "/";
+    const sp = new URLSearchParams(
+      (window.location.search || "").startsWith("?") ? window.location.search.slice(1) : window.location.search
+    );
+    sp.delete("reset_token");
+    const qs = sp.toString();
+
+    let hash = window.location.hash || "";
+    if (hash.includes("reset_token=")) {
+      hash = hash.replace(/\?reset_token=[^&]+/g, "").replace(/&reset_token=[^&]+/g, "");
+      hash = hash.replace(/\?$/, "");
+    }
+
+    window.history.replaceState({}, "", `${path}${qs ? `?${qs}` : ""}${hash}`);
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Survives React StrictMode double-effect so we do not POST verify twice for one token. */
 let __magicLinkAutoVerifyToken = "";
 
@@ -704,6 +725,7 @@ function App() {
       setResetToken(String(resetTokenParam).trim());
       setResetError("");
       setView("resetPassword");
+      stripResetTokenFromLocation();
       return undefined;
     }
 
@@ -1278,11 +1300,7 @@ function App() {
       if (!res.ok) {
         throw new Error(data?.detail ? String(data.detail) : t("login.resetInvalid"));
       }
-      const p = new URLSearchParams(window.location.search);
-      p.delete("reset_token");
-      const qs = p.toString();
-      const newUrl = `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash || ""}`;
-      window.history.replaceState({}, "", newUrl);
+      stripResetTokenFromLocation();
       setResetToken("");
       setResetPassword1("");
       setResetPassword2("");
@@ -2246,7 +2264,7 @@ function App() {
           ) : null}
           {magicTokenPending ? (
             <div role="status" className="rounded-xl bg-muted px-4 py-3 text-sm border border-border">
-              Email link detected. Click below to complete sign-in.
+              {t("login.magicLinkDetected")}
             </div>
           ) : null}
           {passwordResetNotice ? (
@@ -2261,14 +2279,14 @@ function App() {
           ) : null}
           {emailNotVerified ? (
             <div role="alert" className="rounded-xl bg-destructive/10 text-destructive px-4 py-3 text-sm border border-destructive/20">
-              <p>Your email address has not been verified. Please check your inbox and click the verification link.</p>
+              <p>{t("login.emailNotVerifiedTitle")}</p>
               <button
                 type="button"
                 onClick={handleResendEmailVerification}
                 disabled={resendVerifyBusy}
                 style={{ color: "#B8860B", fontWeight: 600, marginTop: "8px", display: "block", background: "none", border: "none", padding: 0, cursor: "pointer", textDecoration: "underline" }}
               >
-                {resendVerifyBusy ? "Sending…" : "Resend verification email"}
+                {resendVerifyBusy ? t("login.sendingResend") : t("login.resendVerification")}
               </button>
               {resendVerifyNotice ? (
                 <p style={{ marginTop: "6px", color: resendVerifyNotice.startsWith("Failed") ? "inherit" : "#166534" }}>
@@ -2351,7 +2369,7 @@ function App() {
               disabled={magicLinkBusy || passwordLoginBusy || magicVerifyBusy}
               onClick={() => void verifyPendingMagicLink()}
             >
-              {magicVerifyBusy ? "Verifying link..." : "Complete sign-in from email link"}
+              {magicVerifyBusy ? t("login.verifyingLink") : t("login.completeSignInFromLink")}
             </Button>
           ) : null}
         </form>
@@ -2782,7 +2800,7 @@ function App() {
           onSubmit={(e) => { e.preventDefault(); submitIntake(); }}
           className="space-y-4"
         >
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="intake-first-name" className="auth-label" style={{ color: "#1A1A1A" }}>{t("intake.firstName")}</Label>
               <div className="cal-auth-field-wrap">

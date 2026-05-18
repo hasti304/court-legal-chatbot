@@ -244,10 +244,30 @@
 }
 
 /* ── Topbar ── */
+.admin-topbar-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  background: #FFFFFF;
+  color: #1B2A4A;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.admin-topbar-menu-btn:hover {
+  background: #F4F5F7;
+}
+
 .admin-portal-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   padding: 13px 20px;
   background: #FFFFFF;
   border-bottom: 1px solid #E5E7EB;
@@ -1643,11 +1663,85 @@
   .admin-portal-sidebar { position: static; min-height: unset; }
 }
 
-@media (max-width: 700px) {
-  .admin-login-split { flex-direction: column; height: auto; min-height: 100vh; overflow: auto; }
-  .admin-login-left { width: 100%; min-width: 0; min-height: 160px; }
-  .admin-login-left-inner { padding: 24px; flex-direction: row; align-items: center; }
-  .admin-login-left-text { display: none; }
-  .admin-login-left-center { display: none; }
-  .admin-login-right { padding: 32px 20px; }
+@media (max-width: 768px) {
+  .admin-login-split {
+    flex-direction: column;
+    height: auto;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .admin-login-left {
+    width: 100%;
+    min-width: 0;
+    min-height: auto;
+  }
+
+  .admin-login-left-inner {
+    padding: 28px 20px;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+  }
+
+  .admin-login-left-logo-wrap {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .admin-login-logo {
+    height: auto;
+    width: min(200px, 70vw);
+    margin: 0 auto;
+  }
+
+  .admin-login-left-center,
+  .admin-login-left-text {
+    display: block;
+    width: 100%;
+    text-align: center;
+  }
+
+  .admin-login-left-headline {
+    font-size: 1.35rem;
+  }
+
+  .admin-login-right {
+    padding: 24px 16px 32px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .admin-login-right-inner {
+    width: 100%;
+    max-width: 100%;
+    padding: 24px 20px;
+    box-sizing: border-box;
+  }
+
+  .admin-portal-page {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .admin-portal-topbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .admin-topbar-menu-btn {
+    display: inline-flex;
+  }
+
+  .admin-portal-table {
+    min-width: 900px;
+  }
+}
+
+@media (min-width: 769px) {
+  .admin-topbar-menu-btn {
+    display: none;
+  }
 }

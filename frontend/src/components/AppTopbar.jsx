@@ -1,14 +1,33 @@
 import React from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Menu } from "lucide-react";
 import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
 
-export default function AppTopbar({ title, titleMeta, canGoBack, onBack, extras }) {
+export default function AppTopbar({
+  title,
+  titleMeta,
+  canGoBack,
+  onBack,
+  extras,
+  showMenuButton = false,
+  onMenuClick,
+}) {
   return (
     <header
       className="h-14 flex items-center gap-3 px-4 border-b border-border bg-background/95 backdrop-blur-sm shrink-0 shadow-sm"
       role="banner"
     >
+      {showMenuButton ? (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onMenuClick}
+          className="rounded-xl w-11 h-11 shrink-0 md:hidden hover:bg-primary/10 hover:text-primary"
+          aria-label="Open menu"
+        >
+          <Menu className="w-5 h-5" aria-hidden />
+        </Button>
+      ) : null}
       {canGoBack && (
         <>
           <Button

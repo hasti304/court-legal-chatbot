@@ -2013,6 +2013,18 @@ body.discreet-mode .chat-input:focus {
 
   .chat-input {
     font-size: 16px;
+    min-height: 44px;
+  }
+
+  .slack-chat-workspace .chat-main,
+  .slack-chat-workspace .messages-container {
+    padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .home-cover__inner {
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -4466,37 +4478,101 @@ a:focus-visible,
 @media (max-width: 768px) {
   .cal-auth-root {
     height: auto;
-    min-height: 100vh;
-    overflow: auto;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
+
+  .cal-auth-columns {
+    flex-direction: column;
+  }
+
   .cal-auth-left {
     width: 100%;
-    min-height: 160px;
+    min-width: 0;
+    min-height: auto;
     height: auto;
+    flex-shrink: 0;
   }
+
   .cal-auth-left-content {
-    padding: 24px;
-    flex-direction: row;
-    justify-content: flex-start;
+    padding: 28px 20px;
+    flex-direction: column;
+    justify-content: center;
     align-items: center;
-    min-height: 140px;
+    text-align: center;
+    min-height: auto;
+    gap: 20px;
   }
-  .cal-auth-left-bottom {
-    display: none;
+
+  .cal-auth-left-logo-wrap {
+    justify-content: center;
+    width: 100%;
   }
+
+  .cal-auth-left-logo {
+    width: min(220px, 72vw);
+    margin: 0 auto;
+  }
+
+  .cal-auth-left-bottom,
   .cal-auth-left-center {
-    display: none;
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    text-align: left;
+    padding-top: 0;
   }
+
+  .cal-auth-left-center {
+    padding-top: 4px;
+  }
+
+  .cal-auth-left-text-content {
+    align-items: center;
+    text-align: center;
+  }
+
+  .cal-auth-left-bullets {
+    max-width: 100%;
+  }
+
+  .cal-auth-right {
+    width: 100%;
+    flex: 1;
+  }
+
   .cal-auth-right-scroll {
-    padding: 24px 20px;
-    align-items: flex-start;
+    padding: 20px 16px 28px;
+    align-items: stretch;
   }
+
   .cal-auth-right-inner {
-    padding: 20px 20px;
+    padding: 24px 20px;
     border-radius: 14px;
+    max-width: 100%;
+    box-sizing: border-box;
   }
+
   .cal-auth-right-topbar {
-    padding: 16px 20px 0;
+    padding: 12px 16px 0;
+  }
+
+  .cal-auth-form-title {
+    font-size: 1.45rem;
+  }
+
+  .cal-auth-field,
+  .cal-auth-field-wrap input {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .cal-auth-tabs {
+    flex-wrap: wrap;
+    gap: 8px;
   }
 }
 

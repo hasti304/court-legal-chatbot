@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { Eye, EyeOff, LayoutDashboard, Users, FileText, Download, AlertTriangle, X, Mail, CheckSquare, Square, Phone } from "lucide-react";
+import { Eye, EyeOff, LayoutDashboard, Users, FileText, Download, AlertTriangle, X, Mail, CheckSquare, Square, Phone, Menu } from "lucide-react";
+import EmergencyButton from "./EmergencyButton";
+import "./layout/MobileNav.css";
 import { useTranslation } from "react-i18next";
 import StatusBanner from "./StatusBanner";
 import "./AdminPortal.css";
@@ -213,6 +215,7 @@ export default function AdminPortal() {
   const [loggingIn, setLoggingIn] = useState(false);
 
   const [tab, setTab] = useState(initialTabFromHash);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -297,14 +300,15 @@ export default function AdminPortal() {
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
 
-  const setTabAndHash = (t) => {
-    setTab(t);
-    if (t === "overview") window.location.hash = "#/admin/overview";
-    else if (t === "submissions") window.location.hash = "#/admin/submissions";
-    else if (t === "intakes") window.location.hash = "#/admin/intakes";
-    else if (t === "export") window.location.hash = "#/admin/export";
-    else if (t === "emergency") window.location.hash = "#/admin/emergency";
-    else if (t === "callbacks") window.location.hash = "#/admin/callbacks";
+  const setTabAndHash = (nextTab) => {
+    setMobileNavOpen(false);
+    setTab(nextTab);
+    if (nextTab === "overview") window.location.hash = "#/admin/overview";
+    else if (nextTab === "submissions") window.location.hash = "#/admin/submissions";
+    else if (nextTab === "intakes") window.location.hash = "#/admin/intakes";
+    else if (nextTab === "export") window.location.hash = "#/admin/export";
+    else if (nextTab === "emergency") window.location.hash = "#/admin/emergency";
+    else if (nextTab === "callbacks") window.location.hash = "#/admin/callbacks";
     else window.location.hash = "#/admin/intakes";
   };
 
@@ -971,6 +975,7 @@ export default function AdminPortal() {
             </div>
           </div>
         </div>
+        <EmergencyButton />
       </div>
     );
   }
@@ -1248,9 +1253,20 @@ export default function AdminPortal() {
   return (
     <div className={portalClass}>
       <div className="admin-portal-layout" aria-busy={loading || healthBusy ? "true" : "false"}>
+        {mobileNavOpen ? (
+          <button
+            type="button"
+            className="app-sidebar-backdrop admin-sidebar-backdrop"
+            aria-label="Close menu"
+            onClick={() => setMobileNavOpen(false)}
+          />
+        ) : null}
 
         {/* ── Sidebar ── */}
-        <aside className="admin-portal-sidebar" aria-label="Admin navigation">
+        <aside
+          className={`admin-portal-sidebar admin-sidebar-drawer${mobileNavOpen ? " admin-sidebar-drawer--open" : ""}`}
+          aria-label="Admin navigation"
+        >
           <div className="admin-sidebar-brand">
             <img src={calLogo} alt="Chicago Advocate Legal, NFP logo" className="admin-sidebar-logo" />
             <span className="admin-sidebar-brand-sub">Chicago Advocate Legal, NFP</span>
@@ -1298,6 +1314,14 @@ export default function AdminPortal() {
         {/* ── Main ── */}
         <div className="admin-portal-main">
           <header className="admin-portal-topbar">
+            <button
+              type="button"
+              className="admin-topbar-menu-btn"
+              aria-label="Open menu"
+              onClick={() => setMobileNavOpen(true)}
+            >
+              <Menu size={20} aria-hidden />
+            </button>
             <span className="admin-topbar-title">{TAB_LABELS[tab] || "Dashboard"}</span>
             <div className="admin-topbar-right">
               {adminEmail && <span className="admin-topbar-email">{adminEmail}</span>}
@@ -2165,6 +2189,7 @@ export default function AdminPortal() {
           </div>
         </div>
       ) : null}
+      <EmergencyButton />
     </div>
   );
 }
