@@ -452,6 +452,7 @@ function App() {
   const [caseSaveToast, setCaseSaveToast] = useState(null); // null | "success" | "error"
   const [emailSummaryBusy, setEmailSummaryBusy] = useState(false);
   const [emailSummaryToast, setEmailSummaryToast] = useState(null); // null | string
+  const [pdfBusy, setPdfBusy] = useState(false);
   const [showCallbackModal, setShowCallbackModal] = useState(false);
   const [callbackPhone, setCallbackPhone] = useState("");
   const [callbackTime, setCallbackTime] = useState("morning");
@@ -1576,6 +1577,251 @@ function App() {
       setCaseSaveToast("error");
     }
     setTimeout(() => setCaseSaveToast(null), 4000);
+  };
+
+  const downloadIntakeSummaryPdf = async (finalMsg) => {
+    if (pdfBusy) return;
+    setPdfBusy(true);
+    try {
+      const { jsPDF } = await import("jspdf");
+
+      const navy = [26, 39, 68];
+      const gold = [201, 168, 76];
+      const dark = [30, 30, 30];
+      const gray = [90, 90, 90];
+      const white = [255, 255, 255];
+
+      const pdf = new jsPDF({ unit: "pt", format: "letter" });
+      const pw = pdf.internal.pageSize.getWidth();
+      const ph = pdf.internal.pageSize.getHeight();
+      const margin = 48;
+      const contentW = pw - margin * 2;
+      const footerH = 40;
+      let y = 0;
+
+      const checkBreak = (need = 18) => {
+        if (y + need > ph - footerH - 16) {
+          addFooter();
+          pdf.addPage();
+          y = margin;
+        }
+      };
+
+      const addFooter = () => {
+        const footerText =
+          "This document contains general legal information only. It is not legal advice and does not create an attorney-client relationship. Chicago Advocate Legal, NFP.";
+        pdf.setFillColor(...navy);
+        pdf.rect(0, ph - footerH, pw, footerH, "F");
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(...white);
+        const fLines = pdf.splitTextToSize(footerText, contentW);
+        const fY = ph - footerH + (footerH - fLines.length * 9) / 2 + 9;
+        pdf.text(fLines, pw / 2, fY, { align: "center" });
+      };
+
+      // ── Header ──────────────────────────────────────────────
+      pdf.setFillColor(...navy);
+      pdf.rect(0, 0, pw, 72, "F");
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(17);
+      pdf.setTextColor(...gold);
+      pdf.text("Chicago Advocate Legal", margin, 32);
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(11);
+      pdf.setTextColor(...white);
+      pdf.text("Intake Summary", margin, 52);
+
+      y = 88;
+
+      // ── Submission date ──────────────────────────────────────
+      const submissionDate = conversationState?.started_at
+        ? new Date(conversationState.started_at).toLocaleString()
+        : new Date().toLocaleString();
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.setTextColor(...gray);
+      pdf.text(`Date of Submission: ${submissionDate}`, margin, y);
+      y += 20;
+
+      // ── Client info ──────────────────────────────────────────
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(12);
+      pdf.setTextColor(...gold);
+      pdf.text("Client Information", margin, y);
+      y += 15;
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(10);
+      pdf.setTextColor(...dark);
+      const fullName = `${intakeFirstName} ${intakeLastName}`.trim();
+      pdf.text(`Name:   ${fullName || "—"}`, margin + 8, y);
+      y += 14;
+      pdf.text(`Email:  ${intakeEmail || "—"}`, margin + 8, y);
+      y += 14;
+      if (intakePhone) {
+        pdf.text(`Phone:  ${intakePhone}`, margin + 8, y);
+        y += 14;
+      }
+      y += 8;
+
+      // Divider
+      pdf.setDrawColor(...navy);
+      pdf.setLineWidth(0.5);
+      pdf.line(margin, y, pw - margin, y);
+      y += 18;
+
+      // ── Q & A ────────────────────────────────────────────────
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(12);
+      pdf.setTextColor(...gold);
+      pdf.text("Consultation Questions & Answers", margin, y);
+      y += 18;
+
+      let qNum = 0;
+      for (let i = 0; i < messages.length; i++) {
+        const m = messages[i];
+        if (m.role !== "bot" || m.referrals?.length) continue;
+        const botText = String(m.content || "")
+          .replace(/\*\*/g, "")
+          .replace(/\*/g, "")
+          .trim();
+        if (!botText) continue;
+
+        qNum++;
+        checkBreak(40);
+
+        // Question label + text
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(9);
+        pdf.setTextColor(...navy);
+        pdf.text(`Q${qNum}:`, margin, y);
+
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(9);
+        pdf.setTextColor(...dark);
+        const qLines = pdf.splitTextToSize(botText, contentW - 22);
+        pdf.text(qLines, margin + 22, y);
+        y += qLines.length * 12 + 4;
+
+        // User answer (next message)
+        if (i + 1 < messages.length && messages[i + 1].role === "user") {
+          const ans = String(messages[i + 1].content || "").trim();
+          if (ans) {
+            checkBreak(18);
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(9);
+            pdf.setTextColor(...gray);
+            pdf.text("A:", margin + 10, y);
+
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(9);
+            pdf.setTextColor(...dark);
+            const aLines = pdf.splitTextToSize(ans, contentW - 32);
+            pdf.text(aLines, margin + 24, y);
+            y += aLines.length * 12 + 4;
+          }
+        }
+        y += 6;
+      }
+
+      // ── Resources & Next Steps ───────────────────────────────
+      if (finalMsg?.decision_support || finalMsg?.referrals?.length) {
+        y += 6;
+        checkBreak(40);
+        pdf.setDrawColor(...navy);
+        pdf.setLineWidth(0.5);
+        pdf.line(margin, y, pw - margin, y);
+        y += 18;
+
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(12);
+        pdf.setTextColor(...gold);
+        pdf.text("Recommended Resources & Next Steps", margin, y);
+        y += 18;
+
+        if (finalMsg.decision_support) {
+          const nextSteps = [
+            ...(Array.isArray(finalMsg.decision_support.urgency?.reasons) ? finalMsg.decision_support.urgency.reasons : []),
+            ...(Array.isArray(finalMsg.decision_support.complexity?.reasons) ? finalMsg.decision_support.complexity.reasons : []),
+            ...(Array.isArray(finalMsg.decision_support.self_help?.reasons) ? finalMsg.decision_support.self_help.reasons : []),
+          ].slice(0, 5);
+
+          if (nextSteps.length) {
+            checkBreak(30);
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(10);
+            pdf.setTextColor(...navy);
+            pdf.text("Next Steps:", margin, y);
+            y += 14;
+
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(9);
+            pdf.setTextColor(...dark);
+            for (const step of nextSteps) {
+              checkBreak(18);
+              const lines = pdf.splitTextToSize(`• ${step}`, contentW - 8);
+              pdf.text(lines, margin + 8, y);
+              y += lines.length * 12 + 4;
+            }
+            y += 8;
+          }
+        }
+
+        if (finalMsg.referrals?.length) {
+          checkBreak(30);
+          pdf.setFont("helvetica", "bold");
+          pdf.setFontSize(10);
+          pdf.setTextColor(...navy);
+          pdf.text("Legal Organizations:", margin, y);
+          y += 14;
+
+          for (const ref of finalMsg.referrals) {
+            checkBreak(50);
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(10);
+            pdf.setTextColor(...dark);
+            pdf.text(ref.name || "Organization", margin + 8, y);
+            y += 13;
+
+            if (ref.description) {
+              pdf.setFont("helvetica", "normal");
+              pdf.setFontSize(9);
+              pdf.setTextColor(...gray);
+              const dLines = pdf.splitTextToSize(ref.description, contentW - 16);
+              checkBreak(dLines.length * 11 + 4);
+              pdf.text(dLines, margin + 8, y);
+              y += dLines.length * 11 + 4;
+            }
+            if (ref.phone) {
+              checkBreak(13);
+              pdf.setFont("helvetica", "normal");
+              pdf.setFontSize(9);
+              pdf.setTextColor(...gray);
+              pdf.text(`Phone: ${ref.phone}`, margin + 8, y);
+              y += 13;
+            }
+            if (ref.website) {
+              checkBreak(13);
+              pdf.text(`Web: ${ref.website}`, margin + 8, y);
+              y += 13;
+            }
+            pdf.setTextColor(...dark);
+            y += 8;
+          }
+        }
+      }
+
+      addFooter();
+
+      pdf.save(`CAL-Intake-Summary-${Date.now()}.pdf`);
+    } catch {
+      // silent — user can retry
+    } finally {
+      setPdfBusy(false);
+    }
   };
 
   const sendCaseSummaryEmail = async (msg) => {
@@ -3570,28 +3816,50 @@ function App() {
                           topic={conversationState?.topic}
                         />
                         {isLastReferralMsg && (
-                          <button
-                            type="button"
-                            disabled={emailSummaryBusy}
-                            onClick={() => sendCaseSummaryEmail(msg)}
-                            style={{
-                              background: "#C9A84C",
-                              color: "#1A1A1A",
-                              borderRadius: "8px",
-                              padding: "10px 24px",
-                              fontWeight: 700,
-                              fontSize: "0.875rem",
-                              border: "none",
-                              cursor: emailSummaryBusy ? "not-allowed" : "pointer",
-                              opacity: emailSummaryBusy ? 0.65 : 1,
-                              marginTop: "4px",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "6px",
-                            }}
-                          >
-                            {emailSummaryBusy ? "Sending…" : "📧 Email me this summary"}
-                          </button>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "4px" }}>
+                            <button
+                              type="button"
+                              disabled={emailSummaryBusy}
+                              onClick={() => sendCaseSummaryEmail(msg)}
+                              style={{
+                                background: "#C9A84C",
+                                color: "#1A1A1A",
+                                borderRadius: "8px",
+                                padding: "10px 24px",
+                                fontWeight: 700,
+                                fontSize: "0.875rem",
+                                border: "none",
+                                cursor: emailSummaryBusy ? "not-allowed" : "pointer",
+                                opacity: emailSummaryBusy ? 0.65 : 1,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                              }}
+                            >
+                              {emailSummaryBusy ? "Sending…" : "📧 Email me this summary"}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={pdfBusy}
+                              onClick={() => downloadIntakeSummaryPdf(msg)}
+                              style={{
+                                background: "#C9A84C",
+                                color: "#1A1A1A",
+                                borderRadius: "8px",
+                                padding: "10px 24px",
+                                fontWeight: 700,
+                                fontSize: "0.875rem",
+                                border: "none",
+                                cursor: pdfBusy ? "not-allowed" : "pointer",
+                                opacity: pdfBusy ? 0.65 : 1,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                              }}
+                            >
+                              {pdfBusy ? "Generating…" : "⬇ Download My Summary (PDF)"}
+                            </button>
+                          </div>
                         )}
                       </>
                     )}
