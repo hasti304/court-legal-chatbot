@@ -4834,3 +4834,11 @@ a:focus-visible,
 .dark .cal-feedback-improve-input::placeholder {
   color: #9CA3AF;
 }
+
+
+/* QR Resume — desktop only */
+@media (max-width: 767px) {
+  .qr-resume-desktop-only {
+    display: none;
+  }
+}

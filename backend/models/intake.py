@@ -23,6 +23,8 @@ class IntakeSubmission(Base):
     issue_type = Column(String(100), nullable=False, index=True)
     message = Column(Text, nullable=False)
     timestamp = Column(DateTime(timezone=True), default=utc_now, nullable=False, index=True)
+    case_status = Column(String(50), nullable=False, default="Submitted")
+    status_updated_at = Column(DateTime(timezone=True), nullable=True)
 
 
 class Intake(Base):

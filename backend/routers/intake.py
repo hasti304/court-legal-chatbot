@@ -8,42 +8,58 @@ try:
     from ..schemas.intake import (
         CallbackCreateRequest,
         IntakeEventRequest,
+        IntakeProgressSessionCreate,
+        IntakeProgressSessionUpdate,
         IntakeStartRequest,
         IntakeStartResponse,
         IntakeSubmissionCreate,
         IntakeSubmissionOut,
+        SubmissionStatusUpdate,
     )
     from ..services.config_service import SUPPORTED_LANGS
     from ..services.intake_service import (
         create_callback_request,
         create_intake_event,
+        create_intake_progress_session,
         create_intake_start,
         create_submission,
+        get_intake_progress_session,
+        get_my_case_status,
         get_my_referrals,
         get_my_sessions,
         get_submission,
         list_submissions,
+        update_intake_progress_session,
+        update_submission_status,
     )
 except ImportError:
     from database import get_db  # type: ignore
     from schemas.intake import (  # type: ignore
         CallbackCreateRequest,
         IntakeEventRequest,
+        IntakeProgressSessionCreate,
+        IntakeProgressSessionUpdate,
         IntakeStartRequest,
         IntakeStartResponse,
         IntakeSubmissionCreate,
         IntakeSubmissionOut,
+        SubmissionStatusUpdate,
     )
     from services.config_service import SUPPORTED_LANGS  # type: ignore
     from services.intake_service import (  # type: ignore
         create_callback_request,
         create_intake_event,
+        create_intake_progress_session,
         create_intake_start,
         create_submission,
+        get_intake_progress_session,
+        get_my_case_status,
         get_my_referrals,
         get_my_sessions,
         get_submission,
         list_submissions,
+        update_intake_progress_session,
+        update_submission_status,
     )
 
 router = APIRouter()
@@ -97,3 +113,36 @@ def my_referrals(x_intake_id: str = Header(None), db: Session = Depends(get_db))
     if not intake_id:
         raise HTTPException(status_code=401, detail="Authentication required")
     return get_my_referrals(intake_id=intake_id, db=db)
+
+
+@router.get("/intake/my-case-status")
+def my_case_status(x_intake_id: str = Header(None), db: Session = Depends(get_db)):
+    intake_id = (x_intake_id or "").strip()
+    if not intake_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return get_my_case_status(intake_id=intake_id, db=db)
+
+
+@router.patch("/intake/submissions/{submission_id}/status", response_model=IntakeSubmissionOut)
+def update_intake_submission_status(
+    submission_id: int,
+    body: SubmissionStatusUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    return update_submission_status(submission_id=submission_id, status=body.status, request=request, db=db)
+
+
+@router.post("/intake/session")
+def create_intake_session_endpoint(req: IntakeProgressSessionCreate):
+    return create_intake_progress_session(intake_id=req.intake_id)
+
+
+@router.patch("/intake/session/{token}")
+def update_intake_session_endpoint(token: str, req: IntakeProgressSessionUpdate):
+    return update_intake_progress_session(token=token, current_step=req.current_step, answers=req.answers)
+
+
+@router.get("/intake/session/{token}")
+def get_intake_session_endpoint(token: str):
+    return get_intake_progress_session(token=token)

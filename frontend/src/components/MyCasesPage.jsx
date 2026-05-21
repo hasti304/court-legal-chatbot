@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FolderOpen, ChevronRight, Clock, AlertTriangle, CheckCircle } from "lucide-react";
 import { getApiBaseUrl } from "../utils/apiBase";
+import CaseStatusTracker from "./CaseStatusTracker";
 
 const GOLD = "#C9A84C";
 const CASES_KEY = "cal_cases_history_v1";
@@ -150,9 +151,10 @@ export default function MyCasesPage({ intakeId, onStartConsultation, onResume })
       <div style={{ background: "var(--cal-bg-page)", minHeight: "100%", padding: "32px 24px" }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--cal-text-primary)", marginBottom: 4 }}>My Cases</h1>
-          <p style={{ color: "var(--cal-text-muted)", fontSize: 14, marginBottom: 40 }}>
+          <p style={{ color: "var(--cal-text-muted)", fontSize: 14, marginBottom: 24 }}>
             Your legal consultations and matched resources.
           </p>
+          <CaseStatusTracker intakeId={intakeId} />
           <div style={{ textAlign: "center", padding: "56px 24px" }}>
             <FolderOpen style={{ color: GOLD, width: 48, height: 48, margin: "0 auto 16px", display: "block" }} />
             <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--cal-text-primary)", marginBottom: 8 }}>No cases yet</h3>
@@ -180,9 +182,10 @@ export default function MyCasesPage({ intakeId, onStartConsultation, onResume })
     <div style={{ background: "var(--cal-bg-page)", minHeight: "100%", padding: "32px 24px" }}>
       <div style={{ maxWidth: 720, margin: "0 auto" }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--cal-text-primary)", marginBottom: 4 }}>My Cases</h1>
-        <p style={{ color: "var(--cal-text-muted)", fontSize: 14, marginBottom: 28 }}>
+        <p style={{ color: "var(--cal-text-muted)", fontSize: 14, marginBottom: 24 }}>
           Your legal consultations and matched resources.
         </p>
+        <CaseStatusTracker intakeId={intakeId} />
         {cases.map((c) => {
           const topic = TOPIC_LABELS[c.topic] || c.topic || "General Legal";
           return (

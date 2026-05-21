@@ -56,6 +56,7 @@ import DocumentsPage from "./components/DocumentsPage";
 import ResourcesPage from "./components/ResourcesPage";
 import SettingsPage from "./components/SettingsPage";
 import MyCasesPage, { saveCaseToStorage } from "./components/MyCasesPage";
+import QRResumeCard from "./components/QRResumeCard";
 
 const AIChat = lazy(() => import("./components/AIChat"));
 const ChatDashboard = lazy(() => import("./components/ChatDashboard"));
@@ -462,6 +463,13 @@ function App() {
   const [deadlineReminderChoice, setDeadlineReminderChoice] = useState(null); // null | "yes" | "no"
   const sessionTimers = useRef({ warning: null, signout: null });
 
+  const [qrSessionToken, setQrSessionToken] = useState("");
+  const [showQRCode, setShowQRCode] = useState(false);
+  const [sessionResumeLoading, setSessionResumeLoading] = useState(() => {
+    try { return !!new URLSearchParams(window.location.search).get("session"); } catch { return false; }
+  });
+  const [sessionResumeError, setSessionResumeError] = useState("");
+
   const [largeText, setLargeText] = useState(
     () => localStorage.getItem(LARGE_TEXT_KEY) === "1"
   );
@@ -727,6 +735,65 @@ function App() {
       setResetError("");
       setView("resetPassword");
       stripResetTokenFromLocation();
+      return undefined;
+    }
+
+    const sessionToken = params.get("session");
+    if (sessionToken) {
+      void (async () => {
+        setSessionResumeLoading(true);
+        setSessionResumeError("");
+        try {
+          const apiPath = (path) => `${getApiBaseUrl()}${path.startsWith("/") ? "" : "/"}${path}`;
+          const res = await fetchWithTimeout(
+            apiPath(`/intake/session/${encodeURIComponent(String(sessionToken).trim())}`),
+            {},
+            INTAKE_FETCH_TIMEOUT_MS
+          );
+          if (res.status === 404 || res.status === 410) {
+            const body = await res.json().catch(() => ({}));
+            setSessionResumeError(body?.detail || "This link has expired. Please log in to continue your intake.");
+            setSessionResumeLoading(false);
+            return;
+          }
+          if (!res.ok) {
+            setSessionResumeError("This link has expired. Please log in to continue your intake.");
+            setSessionResumeLoading(false);
+            return;
+          }
+          const data = await res.json().catch(() => ({}));
+          const saved = data.answers || {};
+          if (Array.isArray(saved.messages)) setMessages(saved.messages);
+          if (saved.conversationState && typeof saved.conversationState === "object") {
+            setConversationState(saved.conversationState);
+            if (saved.conversationState.topic) {
+              setCurrentTopic(String(saved.conversationState.topic).replace("_", " "));
+            }
+          }
+          if (Array.isArray(saved.conversationHistory)) setConversationHistory(saved.conversationHistory);
+          if (data.intake_id) {
+            setIntakeId(data.intake_id);
+            setIntakeSaved(true);
+            try {
+              localStorage.setItem(INTAKE_ID_KEY, data.intake_id);
+              localStorage.setItem(INTAKE_SAVED_KEY, "1");
+              localStorage.setItem(FIRST_VISIT_KEY, "1");
+            } catch {}
+          }
+          setQrSessionToken(String(sessionToken).trim());
+          setShowChat(true);
+          try {
+            const sp = new URLSearchParams(window.location.search);
+            sp.delete("session");
+            const qs = sp.toString();
+            window.history.replaceState({}, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
+          } catch {}
+        } catch {
+          setSessionResumeError("This link has expired. Please log in to continue your intake.");
+        } finally {
+          setSessionResumeLoading(false);
+        }
+      })();
       return undefined;
     }
 
@@ -1480,6 +1547,28 @@ function App() {
     } catch { return []; }
   }, [intakeId, sidebarSection]);
 
+  // Auto-save triage progress to QR session after each step
+  useEffect(() => {
+    if (!qrSessionToken || !showChat || messages.length === 0) return;
+    const save = async () => {
+      try {
+        await fetchWithTimeout(
+          apiUrl(`/intake/session/${qrSessionToken}`),
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              current_step: conversationState?.step || "",
+              answers: { messages, conversationState, conversationHistory },
+            }),
+          },
+          10000
+        );
+      } catch {}
+    };
+    void save();
+  }, [messages, conversationState, qrSessionToken, showChat]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const quickExit = () => {
     try {
       clearSessionAndStorage();
@@ -1507,6 +1596,26 @@ function App() {
         INTAKE_FETCH_TIMEOUT_MS
       );
     } catch (e) {}
+  };
+
+  const createQRSession = async (iid) => {
+    const id = iid || intakeId;
+    if (!id) return;
+    try {
+      const res = await fetchWithTimeout(
+        apiUrl("/intake/session"),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ intake_id: id }),
+        },
+        10000
+      );
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (data.session_token) setQrSessionToken(data.session_token);
+      }
+    } catch {}
   };
 
   const getLastReferralsFromMessages = () => {
@@ -2131,10 +2240,13 @@ function App() {
     setConversationHistory([]);
     setUserInput("");
     setCurrentTopic("");
+    setShowQRCode(false);
+    setQrSessionToken("");
     localStorage.setItem(FIRST_VISIT_KEY, "1");
     setShowChat(true);
     setView("chat");
     await postIntakeEvent("triage_started", "cover_begin");
+    if (intakeId) void createQRSession(intakeId);
     sendMessage("start");
   };
 
@@ -2394,6 +2506,33 @@ function App() {
       icon: <FaChild />,
     },
   ];
+
+  if (sessionResumeLoading) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", gap: "16px" }}>
+        <div style={{ width: "40px", height: "40px", border: "4px solid #e2e8f0", borderTopColor: "#1e293b", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+        <p style={{ color: "#64748b", fontSize: "0.875rem" }}>Loading your session…</p>
+      </div>
+    );
+  }
+
+  if (sessionResumeError) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", gap: "16px", padding: "24px", textAlign: "center" }}>
+        <div style={{ fontSize: "2rem" }}>🔒</div>
+        <p style={{ color: "#1e293b", fontWeight: 600, fontSize: "1rem", maxWidth: "360px" }}>
+          {sessionResumeError}
+        </p>
+        <button
+          type="button"
+          onClick={() => { setSessionResumeError(""); setView("login"); }}
+          style={{ background: "#1e293b", color: "#fff", border: "none", borderRadius: "8px", padding: "10px 24px", fontWeight: 600, cursor: "pointer", fontSize: "0.875rem" }}
+        >
+          Go to Sign In
+        </button>
+      </div>
+    );
+  }
 
   if (showAIChat) {
     return (
@@ -4084,6 +4223,22 @@ function App() {
                 {t("chat.restartTitle")}
               </Button>
             </div>
+            {intakeId && qrSessionToken && (
+              <div className="qr-resume-desktop-only" style={{ marginTop: "12px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", userSelect: "none" }}>
+                  <input
+                    type="checkbox"
+                    checked={showQRCode}
+                    onChange={(e) => setShowQRCode(e.target.checked)}
+                    style={{ width: "16px", height: "16px", accentColor: "#1e293b", cursor: "pointer" }}
+                  />
+                  <span style={{ fontSize: "0.8125rem", color: isDark ? "#94a3b8" : "#475569", fontWeight: 500 }}>
+                    Continue on your phone
+                  </span>
+                </label>
+                {showQRCode && <QRResumeCard sessionToken={qrSessionToken} />}
+              </div>
+            )}
             <p className="text-xs text-center mt-3" style={{ color: isDark ? "#6B7280" : "#94a3b8" }}>Legal information and resources only, not legal advice.</p>
           </div>
         </div>

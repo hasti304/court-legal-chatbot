@@ -1,6 +1,6 @@
 import re
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -132,6 +132,21 @@ class IntakeSubmissionOut(BaseModel):
     issue_type: str
     message: str
     timestamp: datetime
+    case_status: str = "Submitted"
+    status_updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
+
+
+class SubmissionStatusUpdate(BaseModel):
+    status: Literal["Submitted", "Under Review", "Referred", "Closed"]
+
+
+class IntakeProgressSessionCreate(BaseModel):
+    intake_id: str
+
+
+class IntakeProgressSessionUpdate(BaseModel):
+    current_step: str = ""
+    answers: dict = {}

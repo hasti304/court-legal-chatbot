@@ -194,6 +194,14 @@ function getStatusBadge(adminStatus) {
   return { label: "New", cls: "badge-new" };
 }
 
+function getSubmissionStatusStyle(status) {
+  const s = String(status || "Submitted");
+  if (s === "Under Review") return { bg: "#3B82F6", color: "#fff" };
+  if (s === "Referred") return { bg: "#C9A84C", color: "#1A1A1A" };
+  if (s === "Closed") return { bg: "#16A34A", color: "#fff" };
+  return { bg: "#6B7280", color: "#fff" }; // Submitted (grey)
+}
+
 export default function AdminPortal() {
   const { t } = useTranslation();
   const apiUrl = useMemo(
@@ -226,6 +234,7 @@ export default function AdminPortal() {
   const [intakes, setIntakes] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [statusBusy, setStatusBusy] = useState({});
+  const [submissionStatusBusy, setSubmissionStatusBusy] = useState({});
   const [statusDraft, setStatusDraft] = useState(null);
   const [statusNote, setStatusNote] = useState("");
   const [notifyUser, setNotifyUser] = useState(true);
@@ -722,6 +731,35 @@ export default function AdminPortal() {
       setLoadError(err?.message && String(err.message).trim().length > 0 ? String(err.message) : "Failed to load submissions.");
     } finally {
       setLoading(false);
+    }
+  }, [authFetch]);
+
+  const updateSubmissionStatus = useCallback(async (submissionId, newStatus) => {
+    setSubmissionStatusBusy((prev) => ({ ...prev, [submissionId]: true }));
+    try {
+      const res = await authFetch(`/intake/submissions/${submissionId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail ? String(data.detail) : `Status update failed (${res.status})`);
+      setSubmissions((prev) =>
+        prev.map((s) =>
+          s.id === submissionId
+            ? { ...s, case_status: data.case_status ?? newStatus, status_updated_at: data.status_updated_at ?? null }
+            : s
+        )
+      );
+      setSubmissionsDrawer((prev) =>
+        prev && prev.id === submissionId
+          ? { ...prev, case_status: data.case_status ?? newStatus, status_updated_at: data.status_updated_at ?? null }
+          : prev
+      );
+    } catch (err) {
+      setLoadError(err?.message && String(err.message).trim() ? String(err.message) : "Status update failed.");
+    } finally {
+      setSubmissionStatusBusy((prev) => ({ ...prev, [submissionId]: false }));
     }
   }, [authFetch]);
 
@@ -1629,6 +1667,7 @@ export default function AdminPortal() {
                         <th>ZIP</th>
                         <th>Issue</th>
                         <th>Message</th>
+                        <th>Status</th>
                         <th>When</th>
                         <th>Read</th>
                       </tr>
@@ -1636,7 +1675,7 @@ export default function AdminPortal() {
                     <tbody>
                       {filteredSubmissions.length === 0 && !loading ? (
                         <tr>
-                          <td colSpan={7} className="admin-portal-empty-cell">
+                          <td colSpan={8} className="admin-portal-empty-cell">
                             <div className="admin-submissions-empty">
                               <div className="admin-submissions-empty-icon">✉</div>
                               <div className="admin-submissions-empty-heading">No submissions yet</div>
@@ -1665,6 +1704,55 @@ export default function AdminPortal() {
                               <td>{row.zip_code ?? "—"}</td>
                               <td>{row.issue_type ?? "—"}</td>
                               <td title={msg || undefined}>{short}</td>
+                              <td onClick={(e) => e.stopPropagation()} style={{ minWidth: 140 }}>
+                                {(() => {
+                                  const st = row.case_status || "Submitted";
+                                  const { bg, color } = getSubmissionStatusStyle(st);
+                                  return (
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                                      <span
+                                        style={{
+                                          display: "inline-block",
+                                          background: bg,
+                                          color,
+                                          borderRadius: 999,
+                                          fontSize: "0.72rem",
+                                          fontWeight: 700,
+                                          padding: "3px 10px",
+                                          whiteSpace: "nowrap",
+                                        }}
+                                      >
+                                        {st}
+                                      </span>
+                                      <select
+                                        value={st}
+                                        disabled={!!submissionStatusBusy[row.id]}
+                                        onChange={(e) => updateSubmissionStatus(row.id, e.target.value)}
+                                        style={{
+                                          fontSize: 12,
+                                          padding: "3px 6px",
+                                          borderRadius: 6,
+                                          border: "1px solid var(--cal-border, #374151)",
+                                          background: "var(--cal-bg-input, #1E2532)",
+                                          color: "var(--cal-text-primary, #F9FAFB)",
+                                          cursor: "pointer",
+                                          width: "100%",
+                                        }}
+                                      >
+                                        <option value="Submitted">Submitted</option>
+                                        <option value="Under Review">Under Review</option>
+                                        <option value="Referred">Referred</option>
+                                        <option value="Closed">Closed</option>
+                                      </select>
+                                      {row.status_updated_at && (
+                                        <span style={{ fontSize: 11, color: "var(--cal-text-muted, #6B7280)" }}>
+                                          {formatTimestamp(row.status_updated_at)}
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                              </td>
                               <td>{formatTimestamp(row.timestamp)}</td>
                               <td>
                                 <button
@@ -1948,6 +2036,59 @@ export default function AdminPortal() {
               <div className="admin-drawer-field">
                 <span className="admin-drawer-field-label">When</span>
                 <span className="admin-drawer-field-value">{formatTimestamp(submissionsDrawer.timestamp)}</span>
+              </div>
+              <div className="admin-drawer-field">
+                <span className="admin-drawer-field-label">Status</span>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {(() => {
+                    const st = submissionsDrawer.case_status || "Submitted";
+                    const { bg, color } = getSubmissionStatusStyle(st);
+                    return (
+                      <>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            background: bg,
+                            color,
+                            borderRadius: 999,
+                            fontSize: "0.72rem",
+                            fontWeight: 700,
+                            padding: "3px 10px",
+                            whiteSpace: "nowrap",
+                            width: "fit-content",
+                          }}
+                        >
+                          {st}
+                        </span>
+                        <select
+                          value={st}
+                          disabled={!!submissionStatusBusy[submissionsDrawer.id]}
+                          onChange={(e) => updateSubmissionStatus(submissionsDrawer.id, e.target.value)}
+                          style={{
+                            fontSize: 13,
+                            padding: "5px 8px",
+                            borderRadius: 6,
+                            border: "1px solid var(--cal-border, #374151)",
+                            background: "var(--cal-bg-input, #1E2532)",
+                            color: "var(--cal-text-primary, #F9FAFB)",
+                            cursor: "pointer",
+                            maxWidth: 200,
+                          }}
+                        >
+                          <option value="Submitted">Submitted</option>
+                          <option value="Under Review">Under Review</option>
+                          <option value="Referred">Referred</option>
+                          <option value="Closed">Closed</option>
+                        </select>
+                        {submissionsDrawer.status_updated_at && (
+                          <span style={{ fontSize: 12, color: "var(--cal-text-muted, #6B7280)" }}>
+                            Updated: {formatTimestamp(submissionsDrawer.status_updated_at)}
+                          </span>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
               </div>
               <div className="admin-drawer-section">
                 <span className="admin-drawer-field-label">Message</span>

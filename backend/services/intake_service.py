@@ -276,6 +276,23 @@ CREATE INDEX IF NOT EXISTS idx_triage_sessions_zip
 ON triage_sessions (zip_code);
 """
 
+_CREATE_INTAKE_PROGRESS_SESSIONS_SQL = """
+CREATE TABLE IF NOT EXISTS intake_progress_sessions (
+  session_token TEXT PRIMARY KEY,
+  intake_id TEXT NOT NULL,
+  current_step TEXT NOT NULL DEFAULT '',
+  answers TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  FOREIGN KEY (intake_id) REFERENCES intakes(id)
+);
+"""
+
+_CREATE_INTAKE_PROGRESS_SESSIONS_INDEX_SQL = """
+CREATE INDEX IF NOT EXISTS idx_intake_progress_sessions_intake_id
+ON intake_progress_sessions (intake_id);
+"""
+
 
 def _apply_triage_sessions_ddl(conn) -> None:
     conn.execute(text(_CREATE_TRIAGE_SESSIONS_SQL))
@@ -399,6 +416,7 @@ def ensure_tables():
         _migrate_intakes_login_count,
         _migrate_triage_sessions_problem_summary,
         _migrate_intakes_is_verified,
+        _migrate_intake_submissions_case_status,
     ]:
         try:
             with engine.begin() as conn:
@@ -412,6 +430,14 @@ def ensure_tables():
             conn.execute(text(create_callback_requests))
     except SQLAlchemyError as e:
         print(f"Warning: ensure_tables (callback_requests) failed: {e}")
+
+    # Phase 6: intake_progress_sessions (QR resume feature)
+    try:
+        with engine.begin() as conn:
+            conn.execute(text(_CREATE_INTAKE_PROGRESS_SESSIONS_SQL))
+            conn.execute(text(_CREATE_INTAKE_PROGRESS_SESSIONS_INDEX_SQL))
+    except SQLAlchemyError as e:
+        print(f"Warning: ensure_tables (intake_progress_sessions) failed: {e}")
 
 
 def _migrate_intakes_admin_status(conn) -> None:
@@ -485,6 +511,23 @@ def _migrate_intakes_is_verified(conn) -> None:
     else:
         conn.execute(text("ALTER TABLE intakes ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT FALSE"))
         conn.execute(text("UPDATE intakes SET is_verified = TRUE WHERE is_verified = FALSE"))
+
+
+def _migrate_intake_submissions_case_status(conn) -> None:
+    """Add case_status and status_updated_at for client-facing case tracking."""
+    try:
+        dialect = conn.engine.dialect.name
+    except Exception:
+        dialect = ""
+    if dialect == "sqlite":
+        cols = {r[1] for r in conn.execute(text("PRAGMA table_info(intake_submissions)")).fetchall()}
+        if "case_status" not in cols:
+            conn.execute(text("ALTER TABLE intake_submissions ADD COLUMN case_status TEXT NOT NULL DEFAULT 'Submitted'"))
+        if "status_updated_at" not in cols:
+            conn.execute(text("ALTER TABLE intake_submissions ADD COLUMN status_updated_at TEXT"))
+    else:
+        conn.execute(text("ALTER TABLE intake_submissions ADD COLUMN IF NOT EXISTS case_status VARCHAR(50) NOT NULL DEFAULT 'Submitted'"))
+        conn.execute(text("ALTER TABLE intake_submissions ADD COLUMN IF NOT EXISTS status_updated_at TIMESTAMP WITH TIME ZONE"))
 
 
 def ensure_triage_session_row(conn, intake_id: str):
@@ -1535,6 +1578,7 @@ def admin_delete_intake(request: Request, intake_id: str, db: Session) -> dict:
         db.execute(text("DELETE FROM intake_events WHERE intake_id = :iid"), {"iid": iid})
         db.execute(text("DELETE FROM triage_sessions WHERE intake_id = :iid"), {"iid": iid})
         db.execute(text("DELETE FROM intake_deadlines WHERE intake_id = :iid"), {"iid": iid})
+        db.execute(text("DELETE FROM intake_progress_sessions WHERE intake_id = :iid"), {"iid": iid})
         if email:
             db.query(MagicLinkToken).filter(MagicLinkToken.email == email).delete(synchronize_session=False)
             db.query(PasswordResetToken).filter(PasswordResetToken.email == email).delete(synchronize_session=False)
@@ -1652,6 +1696,50 @@ def get_submission(submission_id: int, request: Request, db: Session):
     if not row:
         raise HTTPException(status_code=404, detail="Submission not found")
     return row
+
+
+_VALID_CASE_STATUSES = {"Submitted", "Under Review", "Referred", "Closed"}
+
+
+def update_submission_status(submission_id: int, status: str, request: Request, db: Session):
+    require_admin_access(request)
+    if status not in _VALID_CASE_STATUSES:
+        raise HTTPException(status_code=400, detail=f"status must be one of: {', '.join(sorted(_VALID_CASE_STATUSES))}")
+    row = db.query(IntakeSubmission).filter(IntakeSubmission.id == submission_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    row.case_status = status
+    row.status_updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def get_my_case_status(intake_id: str, db: Session) -> dict:
+    iid = (intake_id or "").strip()
+    if not iid:
+        return {"case_status": "Submitted", "status_updated_at": None}
+    intake = db.query(Intake).filter(Intake.id == iid).first()
+    if not intake:
+        return {"case_status": "Submitted", "status_updated_at": None}
+    email_norm = (intake.email or "").strip().lower()
+    if not email_norm:
+        return {"case_status": "Submitted", "status_updated_at": None}
+    submission = (
+        db.query(IntakeSubmission)
+        .filter(func.lower(IntakeSubmission.email) == email_norm)
+        .order_by(IntakeSubmission.timestamp.desc())
+        .first()
+    )
+    if not submission:
+        return {"case_status": "Submitted", "status_updated_at": None}
+    raw_status = getattr(submission, "case_status", None)
+    case_status = raw_status if raw_status in _VALID_CASE_STATUSES else "Submitted"
+    status_updated_at = getattr(submission, "status_updated_at", None)
+    return {
+        "case_status": case_status,
+        "status_updated_at": status_updated_at.isoformat() if status_updated_at else None,
+    }
 
 
 def _csv_topics_selected_expr(dialect_name: str) -> str:
@@ -2097,3 +2185,117 @@ def admin_health_checks(request: Request, db: Session) -> dict:
         "warn_checks": warned,
         "checks": checks,
     }
+
+
+def create_intake_progress_session(intake_id: str) -> dict:
+    """Create a QR-resume session for an intake. Returns session_token + expires_at."""
+    if not engine:
+        raise HTTPException(status_code=503, detail="Database not configured")
+    intake_id = (intake_id or "").strip()
+    if not intake_id:
+        raise HTTPException(status_code=400, detail="Missing intake_id")
+    ensure_tables()
+    session_token = os.urandom(24).hex()
+    now = utc_now_iso()
+    expires_at = (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat()
+    try:
+        with engine.begin() as conn:
+            intake_exists = conn.execute(
+                text("SELECT 1 FROM intakes WHERE id = :id"), {"id": intake_id}
+            ).first()
+            if not intake_exists:
+                raise HTTPException(status_code=404, detail="Intake not found")
+            # Replace any prior session for this intake to keep one active session per user.
+            conn.execute(
+                text("DELETE FROM intake_progress_sessions WHERE intake_id = :iid"),
+                {"iid": intake_id},
+            )
+            conn.execute(
+                text("""
+                INSERT INTO intake_progress_sessions
+                  (session_token, intake_id, current_step, answers, created_at, expires_at)
+                VALUES (:token, :intake_id, '', '{}', :now, :expires_at)
+                """),
+                {"token": session_token, "intake_id": intake_id, "now": now, "expires_at": expires_at},
+            )
+        return {"session_token": session_token, "expires_at": expires_at}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+def update_intake_progress_session(token: str, current_step: str, answers: dict) -> dict:
+    """Persist current step + answers (messages/state) for an active QR session."""
+    if not engine:
+        raise HTTPException(status_code=503, detail="Database not configured")
+    token = (token or "").strip()
+    if not token:
+        raise HTTPException(status_code=400, detail="Missing session token")
+    now = utc_now_iso()
+    try:
+        with engine.begin() as conn:
+            row = conn.execute(
+                text("SELECT expires_at FROM intake_progress_sessions WHERE session_token = :token"),
+                {"token": token},
+            ).mappings().first()
+            if not row:
+                raise HTTPException(status_code=404, detail="Session not found")
+            if str(row["expires_at"] or "") < now:
+                raise HTTPException(status_code=410, detail="Session has expired")
+            conn.execute(
+                text("""
+                UPDATE intake_progress_sessions
+                SET current_step = :step, answers = :answers
+                WHERE session_token = :token
+                """),
+                {
+                    "token": token,
+                    "step": (current_step or "").strip(),
+                    "answers": json.dumps(answers, ensure_ascii=False),
+                },
+            )
+        return {"ok": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+def get_intake_progress_session(token: str) -> dict:
+    """Return saved progress for a QR session token, or 404/410 if invalid/expired."""
+    if not engine:
+        raise HTTPException(status_code=503, detail="Database not configured")
+    token = (token or "").strip()
+    if not token:
+        raise HTTPException(status_code=400, detail="Missing session token")
+    now = utc_now_iso()
+    try:
+        with engine.begin() as conn:
+            row = conn.execute(
+                text("""
+                SELECT session_token, intake_id, current_step, answers, expires_at
+                FROM intake_progress_sessions
+                WHERE session_token = :token
+                """),
+                {"token": token},
+            ).mappings().first()
+            if not row:
+                raise HTTPException(status_code=404, detail="Session not found or expired")
+            if str(row["expires_at"] or "") < now:
+                raise HTTPException(status_code=410, detail="This link has expired. Please log in to continue your intake.")
+            try:
+                answers = json.loads(row["answers"] or "{}")
+            except Exception:
+                answers = {}
+            return {
+                "session_token": row["session_token"],
+                "intake_id": row["intake_id"],
+                "current_step": row["current_step"] or "",
+                "answers": answers,
+                "expires_at": row["expires_at"],
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
