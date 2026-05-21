@@ -465,6 +465,8 @@ function App() {
 
   const [qrSessionToken, setQrSessionToken] = useState("");
   const [showQRCode, setShowQRCode] = useState(false);
+  const [qrSessionLoading, setQrSessionLoading] = useState(false);
+  const [qrSessionError, setQrSessionError] = useState("");
   const [sessionResumeLoading, setSessionResumeLoading] = useState(() => {
     try { return !!new URLSearchParams(window.location.search).get("session"); } catch { return false; }
   });
@@ -1601,6 +1603,8 @@ function App() {
   const createQRSession = async (iid) => {
     const id = iid || intakeId;
     if (!id) return;
+    setQrSessionLoading(true);
+    setQrSessionError("");
     try {
       const res = await fetchWithTimeout(
         apiUrl("/intake/session"),
@@ -1613,9 +1617,20 @@ function App() {
       );
       if (res.ok) {
         const data = await res.json().catch(() => ({}));
-        if (data.session_token) setQrSessionToken(data.session_token);
+        if (data.session_token) {
+          setQrSessionToken(data.session_token);
+          setQrSessionError("");
+        } else {
+          setQrSessionError("Could not generate QR code.");
+        }
+      } else {
+        setQrSessionError("QR code unavailable right now.");
       }
-    } catch {}
+    } catch {
+      setQrSessionError("QR code unavailable right now.");
+    } finally {
+      setQrSessionLoading(false);
+    }
   };
 
   const getLastReferralsFromMessages = () => {
@@ -2242,6 +2257,7 @@ function App() {
     setCurrentTopic("");
     setShowQRCode(false);
     setQrSessionToken("");
+    setQrSessionError("");
     localStorage.setItem(FIRST_VISIT_KEY, "1");
     setShowChat(true);
     setView("chat");
@@ -4223,20 +4239,43 @@ function App() {
                 {t("chat.restartTitle")}
               </Button>
             </div>
-            {intakeId && qrSessionToken && (
+            {intakeId && (
               <div className="qr-resume-desktop-only" style={{ marginTop: "12px" }}>
                 <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", userSelect: "none" }}>
                   <input
                     type="checkbox"
                     checked={showQRCode}
-                    onChange={(e) => setShowQRCode(e.target.checked)}
+                    onChange={(e) => {
+                      setShowQRCode(e.target.checked);
+                      if (e.target.checked && !qrSessionToken && !qrSessionLoading) {
+                        void createQRSession(intakeId);
+                      }
+                    }}
                     style={{ width: "16px", height: "16px", accentColor: "#1e293b", cursor: "pointer" }}
                   />
                   <span style={{ fontSize: "0.8125rem", color: isDark ? "#94a3b8" : "#475569", fontWeight: 500 }}>
                     Continue on your phone
                   </span>
                 </label>
-                {showQRCode && <QRResumeCard sessionToken={qrSessionToken} />}
+                {showQRCode && qrSessionToken && <QRResumeCard sessionToken={qrSessionToken} />}
+                {showQRCode && qrSessionLoading && (
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 0", color: "#64748b", fontSize: "0.8125rem" }}>
+                    <div style={{ width: "14px", height: "14px", border: "2px solid #e2e8f0", borderTopColor: "#1e293b", borderRadius: "50%", animation: "spin 1s linear infinite", flexShrink: 0 }} />
+                    Generating QR code…
+                  </div>
+                )}
+                {showQRCode && !qrSessionToken && !qrSessionLoading && qrSessionError && (
+                  <div style={{ marginTop: "8px", fontSize: "0.8125rem", color: "#ef4444" }}>
+                    {qrSessionError}{" "}
+                    <button
+                      type="button"
+                      onClick={() => void createQRSession(intakeId)}
+                      style={{ color: "#1e293b", fontWeight: 600, background: "none", border: "none", padding: 0, cursor: "pointer", textDecoration: "underline", fontSize: "inherit" }}
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
               </div>
             )}
             <p className="text-xs text-center mt-3" style={{ color: isDark ? "#6B7280" : "#94a3b8" }}>Legal information and resources only, not legal advice.</p>
