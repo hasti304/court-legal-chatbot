@@ -3487,6 +3487,20 @@ function App() {
             {t("login.signIn")}
           </button>
         </p>
+
+        {/* Static QR code — desktop only, hides on mobile */}
+        <div className="cal-login-qr-section">
+          <div className="cal-login-qr-divider">
+            <span>Or open on your phone</span>
+          </div>
+          <div className="cal-login-qr-wrapper">
+            <div style={{ padding: "8px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: "8px", display: "inline-flex" }}>
+              <QRCodeSVG value="https://court-legal-chatbot.vercel.app/" size={140} level="M" includeMargin={false} />
+            </div>
+            <p className="cal-login-qr-label">Scan to open on your phone</p>
+          </div>
+        </div>
+
         <EmergencyButton />
       </LoginLayout>
     );

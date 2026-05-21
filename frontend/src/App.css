@@ -4474,6 +4474,11 @@ a:focus-visible,
   background: #2A2D3A;
 }
 
+/* Mobile logo — hidden on desktop, shown inside right panel on mobile */
+.cal-auth-mobile-logo-wrap {
+  display: none;
+}
+
 /* Responsive: stack on small screens */
 @media (max-width: 768px) {
   .cal-auth-root {
@@ -4487,55 +4492,9 @@ a:focus-visible,
     flex-direction: column;
   }
 
+  /* Hide the dark left panel entirely on mobile — form + mobile logo only */
   .cal-auth-left {
-    width: 100%;
-    min-width: 0;
-    min-height: auto;
-    height: auto;
-    flex-shrink: 0;
-  }
-
-  .cal-auth-left-content {
-    padding: 28px 20px;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    min-height: auto;
-    gap: 20px;
-  }
-
-  .cal-auth-left-logo-wrap {
-    justify-content: center;
-    width: 100%;
-  }
-
-  .cal-auth-left-logo {
-    width: min(220px, 72vw);
-    margin: 0 auto;
-  }
-
-  .cal-auth-left-bottom,
-  .cal-auth-left-center {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    justify-content: center;
-    text-align: left;
-    padding-top: 0;
-  }
-
-  .cal-auth-left-center {
-    padding-top: 4px;
-  }
-
-  .cal-auth-left-text-content {
-    align-items: center;
-    text-align: center;
-  }
-
-  .cal-auth-left-bullets {
-    max-width: 100%;
+    display: none !important;
   }
 
   .cal-auth-right {
@@ -4543,13 +4502,26 @@ a:focus-visible,
     flex: 1;
   }
 
+  /* Show mobile logo at top of form */
+  .cal-auth-mobile-logo-wrap {
+    display: flex;
+    justify-content: center;
+    padding-bottom: 24px;
+  }
+
+  .cal-auth-mobile-logo-wrap img {
+    width: min(200px, 58vw);
+    height: auto;
+    object-fit: contain;
+  }
+
   .cal-auth-right-scroll {
-    padding: 20px 16px 28px;
+    padding: 24px 16px 32px;
     align-items: stretch;
   }
 
   .cal-auth-right-inner {
-    padding: 24px 20px;
+    padding: 20px;
     border-radius: 14px;
     max-width: 100%;
     box-sizing: border-box;
@@ -4568,6 +4540,13 @@ a:focus-visible,
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+  }
+
+  /* Buttons: full width, minimum 48px touch target */
+  .cal-auth-submit-btn {
+    height: 48px !important;
+    min-height: 48px !important;
+    font-size: 1rem !important;
   }
 
   .cal-auth-tabs {
@@ -4905,15 +4884,31 @@ html.dark .app-topbar-mobile-logo {
     padding: 16px;
   }
 
-  /* Quick reply buttons: ensure they wrap and don't overflow */
+  /* Quick reply buttons: wrap, don't overflow, minimum 44px touch target */
   .messages-container .flex.flex-wrap {
     max-width: 100%;
     overflow-x: hidden;
   }
 
+  /* Quick reply option buttons: 44px min touch target */
+  .flex.flex-wrap.gap-2.ml-11 button,
+  .flex.flex-wrap.gap-2 button[type="button"] {
+    min-height: 44px !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+  }
+
+  /* Remove ml-11 indent on mobile for options to give more space */
+  .flex.flex-wrap.gap-2.ml-11 {
+    margin-left: 0;
+    padding-left: 4px;
+  }
+
   /* Chat input bar: add bottom padding above the emergency button */
   .chat-input-bar {
     padding-bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+    padding-left: 16px;
+    padding-right: 16px;
   }
 
   /* Chat action bar: compact on small screens */
@@ -4922,9 +4917,18 @@ html.dark .app-topbar-mobile-logo {
     gap: 8px;
   }
 
-  /* Remove ml-11 indent on mobile for options to give more space */
-  .flex.flex-wrap.gap-2.ml-11 {
-    margin-left: 0;
-    padding-left: 4px;
+  /* Home cover: minimum 16px body text on mobile */
+  .home-cover__step-desc,
+  .home-cover__topic-desc,
+  .home-cover__subtext {
+    font-size: 1rem !important;
+    line-height: 1.55 !important;
   }
+
+  /* Home cover: ensure all buttons are full-width and at least 48px */
+  .home-cover__get-started-btn,
+  .home-cover__secondary-btn {
+    min-height: 48px !important;
+  }
+
 }

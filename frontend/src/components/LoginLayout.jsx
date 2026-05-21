@@ -71,6 +71,13 @@ export default function LoginLayout({
               </div>
             )}
             <div className="cal-auth-right-scroll">
+              {/* Mobile-only: CAL logo centered above the form (left panel is hidden on mobile) */}
+              <div className="cal-auth-mobile-logo-wrap">
+                <img
+                  src={calLogo}
+                  alt="Chicago Advocate Legal, NFP logo"
+                />
+              </div>
               <div className="cal-auth-right-inner">
                 {progressContent && progressContent}
                 {title && (
