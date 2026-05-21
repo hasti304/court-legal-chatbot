@@ -57,6 +57,7 @@ import ResourcesPage from "./components/ResourcesPage";
 import SettingsPage from "./components/SettingsPage";
 import MyCasesPage, { saveCaseToStorage } from "./components/MyCasesPage";
 import QRResumeCard from "./components/QRResumeCard";
+import { QRCodeSVG } from "qrcode.react";
 
 const AIChat = lazy(() => import("./components/AIChat"));
 const ChatDashboard = lazy(() => import("./components/ChatDashboard"));
@@ -1090,7 +1091,9 @@ function App() {
 
   const TopbarActions = () => (
     <div className="cal-topbar-extras">
-      <ThemeToggle />
+      <span className="hidden md:inline-flex items-center">
+        <ThemeToggle />
+      </span>
       <LanguagePicker variant={lpVariant} />
     </div>
   );
@@ -2775,6 +2778,19 @@ function App() {
           ) : null}
         </form>
 
+        {/* Static QR code — desktop only, hides on mobile */}
+        <div className="cal-login-qr-section">
+          <div className="cal-login-qr-divider">
+            <span>Or open on your phone</span>
+          </div>
+          <div className="cal-login-qr-wrapper">
+            <div style={{ padding: "8px", background: "#fff", border: "1px solid #e2e8f0", borderRadius: "8px", display: "inline-flex" }}>
+              <QRCodeSVG value="https://court-legal-chatbot.vercel.app/" size={140} level="M" includeMargin={false} />
+            </div>
+            <p className="cal-login-qr-label">Scan to open on your phone</p>
+          </div>
+        </div>
+
         <div className="mt-6 pt-6 border-t border-[#e2e8f0]">
           <p className="text-xs leading-relaxed" style={{ color: "#6B7280" }}>
             We do not share your information with third parties except as required by law or to provide requested services.{" "}
@@ -4239,45 +4255,6 @@ function App() {
                 {t("chat.restartTitle")}
               </Button>
             </div>
-            {intakeId && (
-              <div className="qr-resume-desktop-only" style={{ marginTop: "12px" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", userSelect: "none" }}>
-                  <input
-                    type="checkbox"
-                    checked={showQRCode}
-                    onChange={(e) => {
-                      setShowQRCode(e.target.checked);
-                      if (e.target.checked && !qrSessionToken && !qrSessionLoading) {
-                        void createQRSession(intakeId);
-                      }
-                    }}
-                    style={{ width: "16px", height: "16px", accentColor: "#1e293b", cursor: "pointer" }}
-                  />
-                  <span style={{ fontSize: "0.8125rem", color: isDark ? "#94a3b8" : "#475569", fontWeight: 500 }}>
-                    Continue on your phone
-                  </span>
-                </label>
-                {showQRCode && qrSessionToken && <QRResumeCard sessionToken={qrSessionToken} />}
-                {showQRCode && qrSessionLoading && (
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 0", color: "#64748b", fontSize: "0.8125rem" }}>
-                    <div style={{ width: "14px", height: "14px", border: "2px solid #e2e8f0", borderTopColor: "#1e293b", borderRadius: "50%", animation: "spin 1s linear infinite", flexShrink: 0 }} />
-                    Generating QR code…
-                  </div>
-                )}
-                {showQRCode && !qrSessionToken && !qrSessionLoading && qrSessionError && (
-                  <div style={{ marginTop: "8px", fontSize: "0.8125rem", color: "#ef4444" }}>
-                    {qrSessionError}{" "}
-                    <button
-                      type="button"
-                      onClick={() => void createQRSession(intakeId)}
-                      style={{ color: "#1e293b", fontWeight: 600, background: "none", border: "none", padding: 0, cursor: "pointer", textDecoration: "underline", fontSize: "inherit" }}
-                    >
-                      Retry
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
             <p className="text-xs text-center mt-3" style={{ color: isDark ? "#6B7280" : "#94a3b8" }}>Legal information and resources only, not legal advice.</p>
           </div>
         </div>

@@ -719,6 +719,13 @@ html.dark .slack-chat-workspace .messages-container {
   background: var(--bg-page);
 }
 
+/* ── Chat workspace: constrain main-content so input stays at bottom ── */
+#main-content:has(.slack-chat-workspace) {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 /* ── Responsive ────────────────────────────────────── */
 
 @media (max-width: 960px) {

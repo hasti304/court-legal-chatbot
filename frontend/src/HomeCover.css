@@ -329,7 +329,7 @@
 
 @media (max-width: 720px) {
   .home-cover__inner {
-    padding: 24px 20px 0;
+    padding: 24px 16px 0;
     gap: 32px;
   }
 
@@ -360,6 +360,19 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+  }
+
+  /* Buttons full width on mobile */
+  .home-cover__get-started-btn,
+  .home-cover__secondary-btn {
+    width: 100%;
+    padding: 14px 20px;
+    text-align: center;
+  }
+
+  .home-cover__resume-row {
+    flex-direction: column;
+    width: 100%;
   }
 }
 

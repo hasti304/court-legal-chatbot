@@ -42,9 +42,7 @@
 
 @media (max-width: 767px) {
   .app-sidebar-drawer:not(.app-sidebar-drawer--open) {
-    width: 0;
-    min-width: 0;
-    overflow: visible;
+    overflow: hidden;
   }
 }
 

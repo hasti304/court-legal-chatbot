@@ -4842,3 +4842,89 @@ a:focus-visible,
     display: none;
   }
 }
+
+/* ── App topbar mobile logo blend mode ─────────────────── */
+.app-topbar-mobile-logo {
+  mix-blend-mode: multiply;
+}
+html.dark .app-topbar-mobile-logo {
+  mix-blend-mode: screen;
+}
+
+/* ── Login page static QR code ─────────────────────────── */
+
+.cal-login-qr-section {
+  margin-top: 24px;
+}
+
+.cal-login-qr-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #9CA3AF;
+  font-size: 0.875rem;
+  margin-bottom: 0;
+}
+
+.cal-login-qr-divider::before,
+.cal-login-qr-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #E5E7EB;
+}
+
+.cal-login-qr-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-top: 18px;
+}
+
+.cal-login-qr-label {
+  font-size: 0.8125rem;
+  color: #6B7280;
+  margin: 0;
+  text-align: center;
+}
+
+/* Hide QR on mobile — pointless to scan on mobile */
+@media (max-width: 767px) {
+  .cal-login-qr-section {
+    display: none;
+  }
+}
+
+/* ── Mobile layout fixes ────────────────────────────────── */
+
+@media (max-width: 767px) {
+  /* Messages container: prevent horizontal overflow from long words/links */
+  .messages-container {
+    overflow-x: hidden;
+    padding: 16px;
+  }
+
+  /* Quick reply buttons: ensure they wrap and don't overflow */
+  .messages-container .flex.flex-wrap {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Chat input bar: add bottom padding above the emergency button */
+  .chat-input-bar {
+    padding-bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Chat action bar: compact on small screens */
+  .chat-action-bar {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  /* Remove ml-11 indent on mobile for options to give more space */
+  .flex.flex-wrap.gap-2.ml-11 {
+    margin-left: 0;
+    padding-left: 4px;
+  }
+}
