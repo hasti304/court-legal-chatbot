@@ -1,5 +1,6 @@
 /* Mobile sidebar drawer — used by SlackLayout and AdminPortal */
 
+/* ── Backdrop ─────────────────────────────────────────── */
 .app-sidebar-backdrop {
   position: fixed;
   inset: 0;
@@ -7,45 +8,88 @@
   z-index: 40;
   border: none;
   padding: 0;
+  min-height: 0;
   cursor: pointer;
 }
 
+/* ── Sidebar Drawer ───────────────────────────────────── */
+/*
+ * Mobile strategy: the wrapper div has ZERO flex width so it never
+ * pushes the main content aside. The actual <aside> (AppSidebar's
+ * root element) is position:fixed and acts as the overlay panel.
+ *
+ * Desktop strategy: the wrapper is a normal flex item (width:16rem)
+ * and the <aside> fills it with position:relative.
+ *
+ * This approach avoids browser quirks where position:fixed children
+ * of flex containers can still participate in flex layout in some
+ * browsers.
+ */
+
+/* Mobile default: wrapper occupies zero flex space */
 .app-sidebar-drawer {
+  flex: 0 0 0;
+  width: 0;
+  min-width: 0;
+  /* overflow:visible lets fixed-positioned children escape the zero-width box */
+  overflow: visible;
+  /* Ensure it stays at the start of the flex row */
+  align-self: stretch;
+}
+
+/* Mobile: the actual panel — <aside> is AppSidebar's root element */
+.app-sidebar-drawer > aside {
   position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
-  width: min(16rem, 88vw);
+  /* !important overrides Tailwind w-full (which computes to 0 from zero-width parent) */
+  width: min(16rem, 88vw) !important;
+  height: 100vh;
+  height: 100dvh;
   z-index: 50;
   transform: translateX(-100%);
-  transition: transform 0.22s ease;
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+  transition: transform 0.25s cubic-bezier(0.32, 0, 0.67, 1);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
 }
 
-.app-sidebar-drawer--open {
+/* Mobile open: slide in from left */
+.app-sidebar-drawer--open > aside {
   transform: translateX(0);
 }
 
+/* ── Desktop (768px and up) ───────────────────────────── */
 @media (min-width: 768px) {
+  /* Hide backdrop on desktop */
   .app-sidebar-backdrop {
     display: none !important;
   }
 
+  /* Wrapper: normal flex item with full width */
   .app-sidebar-drawer {
-    position: relative;
-    transform: none !important;
+    flex: 0 0 16rem;
     width: 16rem;
-    box-shadow: none;
-    z-index: auto;
-  }
-}
-
-@media (max-width: 767px) {
-  .app-sidebar-drawer:not(.app-sidebar-drawer--open) {
     overflow: hidden;
+    height: 100%;
+  }
+
+  /* Panel: fill the wrapper, no fixed positioning */
+  .app-sidebar-drawer > aside {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    bottom: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    transform: none !important;
+    box-shadow: none !important;
+    transition: none !important;
+    overflow: hidden !important;
   }
 }
 
+/* ── Admin portal sidebar (separate component) ────────── */
 .admin-sidebar-drawer {
   position: fixed;
   top: 0;

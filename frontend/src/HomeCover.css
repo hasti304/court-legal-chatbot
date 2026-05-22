@@ -329,7 +329,7 @@
 
 @media (max-width: 720px) {
   .home-cover__inner {
-    padding: 24px 16px 0;
+    padding: 24px 16px calc(88px + env(safe-area-inset-bottom, 0px));
     gap: 32px;
   }
 

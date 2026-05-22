@@ -1358,6 +1358,9 @@ body.discreet-mode .ai-dashboard-sidebar {
   color: #92710A;
   border-radius: 999px;
   padding: 6px 14px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;

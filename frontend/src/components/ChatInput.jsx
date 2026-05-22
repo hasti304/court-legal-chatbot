@@ -42,7 +42,7 @@ export default function ChatInput({
               type="button"
               variant="outline"
               size="sm"
-              className="rounded-xl text-xs h-8 font-normal"
+              className="rounded-xl text-xs min-h-[44px] px-3 font-normal"
               onClick={() => onOptionClick?.(opt)}
               disabled={loading}
             >

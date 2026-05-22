@@ -1970,12 +1970,12 @@ body.discreet-mode .chat-input:focus {
   }
 
   .message {
-    max-width: 92%;
+    max-width: 85%;
     padding: 13px 14px;
   }
 
   .message.user {
-    max-width: min(520px, 94%);
+    max-width: min(480px, 85%);
   }
 
   .message-wrapper.bot.has-referrals .message.bot {
@@ -4516,15 +4516,18 @@ a:focus-visible,
   }
 
   .cal-auth-right-scroll {
-    padding: 24px 16px 32px;
+    padding: 24px 0 32px;
     align-items: stretch;
   }
 
   .cal-auth-right-inner {
-    padding: 20px;
-    border-radius: 14px;
+    padding: 24px 20px;
+    border-radius: 0;
+    box-shadow: none;
     max-width: 100%;
     box-sizing: border-box;
+    margin-top: 0;
+    margin-bottom: 0;
   }
 
   .cal-auth-right-topbar {
