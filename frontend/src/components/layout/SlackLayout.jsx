@@ -61,7 +61,7 @@ export default function SlackLayout({
   };
 
   return (
-    <div className={`flex h-screen overflow-hidden bg-background${isDark ? " dark" : ""}`}>
+    <div className={`flex h-screen overflow-hidden bg-background${isDark ? " dark" : ""}`} style={{ height: "100dvh" }}>
       {mobileNavOpen ? (
         <button
           type="button"

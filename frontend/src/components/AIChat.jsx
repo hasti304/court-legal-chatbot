@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import StatusBanner from "./StatusBanner";
+import calLogo from "../assets/cal_logo.png";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { useTranslation } from "react-i18next";
@@ -50,6 +51,14 @@ const STARTER_QUESTIONS = [
   "What are my rights as a tenant in Illinois?",
   "How do I respond to an eviction notice?",
   "What is a motion to dismiss?",
+];
+
+const TOPIC_CARDS = [
+  { id: "housing",      label: "Housing",       icon: "🏠", prompt: "I need help with a housing issue in Illinois" },
+  { id: "divorce",      label: "Divorce",        icon: "⚖️", prompt: "I need help with divorce in Illinois" },
+  { id: "custody",      label: "Child Custody",  icon: "👪", prompt: "I need help with child custody in Illinois" },
+  { id: "child_support",label: "Child Support",  icon: "💰", prompt: "I need help with child support in Illinois" },
+  { id: "education",    label: "Education",      icon: "📚", prompt: "I need help with an education issue in Illinois" },
 ];
 
 function trackQuery(topic, snippet) {
@@ -453,104 +462,111 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
         {/* Centered chat card + footer */}
         <div className="aichat-card-outer">
           <div className="aichat-card">
-            {/* Messages */}
-            <div className="aichat-messages-area">
-              {requestError && (
-                <StatusBanner type="error" role="alert" className="mb-2">
-                  {requestError}
-                </StatusBanner>
-              )}
-
-              {messages.map((message, index) => {
-                const isUser = message.role === "user";
-                const isLastAssistant = !isUser && index === lastAssistantIdx;
-
-                if (isUser) {
-                  return (
-                    <div key={index} className="aichat-msg-row aichat-msg-row--user">
-                      <div className="aichat-bubble aichat-bubble--user">{message.content}</div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div key={index} className="aichat-msg-row aichat-msg-row--ai">
-                    <div className="aichat-avatar" aria-hidden>AI</div>
-                    <div className="aichat-msg-body">
-                      <div
-                        className="aichat-bubble aichat-bubble--ai prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={renderMessageContent(message.content)}
-                      />
-                      <p className="aichat-disclaimer">This is general legal information, not legal advice.</p>
-                      <div className="aichat-msg-actions">
-                        <button type="button" className="aichat-action-btn" onClick={() => copyMessage(message.content, index)} title="Copy response">
-                          {copiedIdx === index
-                            ? <><FaCheck style={{ color: "#166534" }} /> Copied</>
-                            : <><FaCopy /> Copy</>}
-                        </button>
-                        {speechSupported && (
-                          <button type="button" className="aichat-action-btn" onClick={() => speakText(message.content)} title="Read aloud">
-                            <FaVolumeUp /> Read
-                          </button>
-                        )}
-                        {isLastAssistant && hasUserMessages && !isBusy && (
-                          <button type="button" className="aichat-action-btn" onClick={regenerateAnswer} title="Regenerate answer">
-                            <FaRedo /> Regenerate
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Streaming bubble */}
-              {streamingContent !== null && (
-                <div className="aichat-msg-row aichat-msg-row--ai">
-                  <div className="aichat-avatar" aria-hidden>AI</div>
-                  <div className="aichat-msg-body">
-                    <div className="aichat-bubble aichat-bubble--ai aichat-bubble--streaming prose prose-sm max-w-none">
-                      <div dangerouslySetInnerHTML={renderMessageContent(streamingContent)} />
-                      <span className="aichat-cursor" aria-hidden />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Typing indicator */}
-              {isLoading && streamingContent === null && (
-                <div className="aichat-msg-row aichat-msg-row--ai">
-                  <div className="aichat-avatar" aria-hidden>AI</div>
-                  <div className="aichat-msg-body">
-                    <div className="aichat-bubble aichat-bubble--ai aichat-bubble--typing">
-                      <span className="aichat-dot" style={{ animationDelay: "-0.3s" }} />
-                      <span className="aichat-dot" style={{ animationDelay: "-0.15s" }} />
-                      <span className="aichat-dot" />
-                      <span className="aichat-typing-label">Analyzing your legal question…</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input area */}
-            <div className="aichat-input-wrap">
-              {!hasUserMessages && (
-                <div className="aichat-starters">
-                  {STARTER_QUESTIONS.map((q) => (
+            {/* Welcome screen (before first user message) */}
+            {!hasUserMessages ? (
+              <div className="aichat-welcome-screen">
+                <img src={calLogo} alt="CAL" className="aichat-welcome-logo" />
+                <h2 className="aichat-welcome-heading">How can we help you today?</h2>
+                <div className="aichat-welcome-topics">
+                  {TOPIC_CARDS.map((card) => (
                     <button
-                      key={q}
+                      key={card.id}
                       type="button"
-                      className="aichat-starter-chip"
-                      onClick={() => { setInputValue(q); inputRef.current?.focus(); }}
+                      className="aichat-welcome-topic-card"
+                      onClick={() => { setInputValue(card.prompt); inputRef.current?.focus(); }}
                     >
-                      {q}
+                      <span className="aichat-welcome-topic-icon">{card.icon}</span>
+                      <span className="aichat-welcome-topic-label">{card.label}</span>
                     </button>
                   ))}
                 </div>
-              )}
+              </div>
+            ) : (
+              /* Messages */
+              <div className="aichat-messages-area">
+                {requestError && (
+                  <StatusBanner type="error" role="alert" className="mb-2">
+                    {requestError}
+                  </StatusBanner>
+                )}
+
+                {messages.map((message, index) => {
+                  const isUser = message.role === "user";
+                  const isLastAssistant = !isUser && index === lastAssistantIdx;
+
+                  if (isUser) {
+                    return (
+                      <div key={index} className="aichat-msg-row aichat-msg-row--user">
+                        <div className="aichat-bubble aichat-bubble--user">{message.content}</div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={index} className="aichat-msg-row aichat-msg-row--ai">
+                      <div className="aichat-avatar" aria-hidden>AI</div>
+                      <div className="aichat-msg-body">
+                        <div
+                          className="aichat-bubble aichat-bubble--ai prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={renderMessageContent(message.content)}
+                        />
+                        <p className="aichat-disclaimer">This is general legal information, not legal advice.</p>
+                        <div className="aichat-msg-actions">
+                          <button type="button" className="aichat-action-btn" onClick={() => copyMessage(message.content, index)} title="Copy response">
+                            {copiedIdx === index
+                              ? <><FaCheck style={{ color: "#166534" }} /> Copied</>
+                              : <><FaCopy /> Copy</>}
+                          </button>
+                          {speechSupported && (
+                            <button type="button" className="aichat-action-btn" onClick={() => speakText(message.content)} title="Read aloud">
+                              <FaVolumeUp /> Read
+                            </button>
+                          )}
+                          {isLastAssistant && hasUserMessages && !isBusy && (
+                            <button type="button" className="aichat-action-btn" onClick={regenerateAnswer} title="Regenerate answer">
+                              <FaRedo /> Regenerate
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Streaming bubble */}
+                {streamingContent !== null && (
+                  <div className="aichat-msg-row aichat-msg-row--ai">
+                    <div className="aichat-avatar" aria-hidden>AI</div>
+                    <div className="aichat-msg-body">
+                      <div className="aichat-bubble aichat-bubble--ai aichat-bubble--streaming prose prose-sm max-w-none">
+                        <div dangerouslySetInnerHTML={renderMessageContent(streamingContent)} />
+                        <span className="aichat-cursor" aria-hidden />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Typing indicator */}
+                {isLoading && streamingContent === null && (
+                  <div className="aichat-msg-row aichat-msg-row--ai">
+                    <div className="aichat-avatar" aria-hidden>AI</div>
+                    <div className="aichat-msg-body">
+                      <div className="aichat-bubble aichat-bubble--ai aichat-bubble--typing">
+                        <span className="aichat-dot" style={{ animationDelay: "-0.3s" }} />
+                        <span className="aichat-dot" style={{ animationDelay: "-0.15s" }} />
+                        <span className="aichat-dot" />
+                        <span className="aichat-typing-label">Analyzing your legal question…</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div ref={messagesEndRef} />
+              </div>
+            )}
+
+            {/* Input area */}
+            <div className="aichat-input-wrap">
               <div className="aichat-input-row">
                 <textarea
                   ref={inputRef}

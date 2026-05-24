@@ -1018,7 +1018,7 @@ function App() {
     }
   }, [messages, speechEnabled]);
 
-  const LanguagePicker = ({ variant = "light", labelOnDarkBackground = false }) => {
+  const LanguagePicker = ({ variant = "light", labelOnDarkBackground = false, noMargin = false }) => {
     const isDark = variant === "dark";
     const labelColor = labelOnDarkBackground
       ? "#f0f6fc"
@@ -1030,8 +1030,8 @@ function App() {
       alignItems: "center",
       gap: "8px",
       justifyContent: "center",
-      marginTop: isDark ? 0 : "14px",
-      marginBottom: isDark ? 0 : "6px",
+      marginTop: (isDark || noMargin) ? 0 : "14px",
+      marginBottom: (isDark || noMargin) ? 0 : "6px",
       color: labelColor,
       fontWeight: 700,
       fontSize: "0.95rem",
@@ -1094,7 +1094,7 @@ function App() {
       <span className="hidden md:inline-flex items-center">
         <ThemeToggle />
       </span>
-      <LanguagePicker variant={lpVariant} />
+      <LanguagePicker variant={lpVariant} noMargin />
     </div>
   );
 
@@ -2150,7 +2150,7 @@ function App() {
           .replace(/\s+/g, " ")
           .trim()
       : message;
-    const userMessage = { role: "user", content: userDisplayText };
+    const userMessage = { role: "user", content: userDisplayText, ts: Date.now() };
     const nextUserMessages = [...messages, userMessage];
     setMessages((prev) => [...prev, userMessage]);
     setUserInput("");
@@ -2205,6 +2205,7 @@ function App() {
           data.decision_support && typeof data.decision_support === "object"
             ? data.decision_support
             : null,
+        ts: Date.now(),
       };
 
       setMessages((prev) => [...prev, botMessage]);
@@ -3966,6 +3967,7 @@ function App() {
                   content={msg.role === "bot" ? renderBotText(msg) : msg.content}
                   speechSupported={speechSupported}
                   onSpeak={speakText}
+                  ts={msg.ts}
                 />
 
                 {msg.role === "bot" && msg.options?.length > 0 && (
@@ -4204,8 +4206,33 @@ function App() {
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="border-t px-6 py-4 shrink-0 chat-input-bar">
+        <div className="border-t px-6 pt-3 shrink-0 chat-input-bar">
           <div className="max-w-3xl mx-auto">
+            <div className="flex items-center gap-4 mb-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-xs gap-1.5 px-0 h-auto text-[#64748b] hover:text-[#1e293b] chat-nav-btn"
+                onClick={handleBack}
+                disabled={loading}
+              >
+                <ArrowLeft className="w-3 h-3" aria-hidden />
+                {t("chat.backTitle")}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-xs gap-1.5 px-0 h-auto text-[#64748b] hover:text-[#1e293b] chat-nav-btn"
+                onClick={handleRestart}
+                disabled={loading}
+              >
+                <RotateCcw className="w-3 h-3" aria-hidden />
+                {t("chat.restartTitle")}
+              </Button>
+            </div>
+            <p className="text-xs text-center mb-2" style={{ color: isDark ? "#6B7280" : "#94a3b8" }}>Legal information and resources only, not legal advice.</p>
             <form onSubmit={handleSubmit} className="relative">
               <Textarea
                 value={userInput}
@@ -4245,31 +4272,6 @@ function App() {
                 )}
               </Button>
             </form>
-            <div className="flex items-center gap-4 mt-3">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="text-xs gap-1.5 px-0 h-auto text-[#64748b] hover:text-[#1e293b] chat-nav-btn"
-                onClick={handleBack}
-                disabled={loading}
-              >
-                <ArrowLeft className="w-3 h-3" aria-hidden />
-                {t("chat.backTitle")}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="text-xs gap-1.5 px-0 h-auto text-[#64748b] hover:text-[#1e293b] chat-nav-btn"
-                onClick={handleRestart}
-                disabled={loading}
-              >
-                <RotateCcw className="w-3 h-3" aria-hidden />
-                {t("chat.restartTitle")}
-              </Button>
-            </div>
-            <p className="text-xs text-center mt-3" style={{ color: isDark ? "#6B7280" : "#94a3b8" }}>Legal information and resources only, not legal advice.</p>
           </div>
         </div>
         </main>

@@ -1437,6 +1437,77 @@ body.discreet-mode .ai-dashboard-sidebar {
 .aichat-bubble--ai a           { color: #1B2A4A; font-weight: 600; }
 .aichat-bubble--ai code        { background: #f1f5f9; padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
 
+/* ── Welcome screen ──────────────────────────────────── */
+.aichat-welcome-screen {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  gap: 20px;
+  text-align: center;
+}
+
+.aichat-welcome-logo {
+  height: 56px;
+  width: auto;
+  object-fit: contain;
+}
+
+.aichat-welcome-heading {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1B2A4A;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.aichat-welcome-topics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.aichat-welcome-topic-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 10px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  text-align: center;
+}
+
+.aichat-welcome-topic-card:hover {
+  border-color: #C9A84C;
+  background: rgba(201, 168, 76, 0.05);
+  box-shadow: 0 2px 8px rgba(201, 168, 76, 0.15);
+}
+
+.aichat-welcome-topic-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.aichat-welcome-topic-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1B2A4A;
+}
+
+/* 5th card spans full width */
+.aichat-welcome-topic-card:nth-child(5) {
+  grid-column: 1 / -1;
+}
+
 /* ── Responsive ──────────────────────────────────────── */
 @media (max-width: 640px) {
   .aichat-embedded {
@@ -1453,9 +1524,47 @@ body.discreet-mode .ai-dashboard-sidebar {
     font-size: 0.74rem;
     padding: 5px 10px;
   }
+  .aichat-welcome-screen {
+    padding: 24px 16px;
+    gap: 16px;
+  }
+  .aichat-welcome-logo {
+    height: 44px;
+  }
+  .aichat-welcome-heading {
+    font-size: 1.1rem;
+  }
+  .aichat-welcome-topics {
+    gap: 8px;
+  }
+  .aichat-welcome-topic-card {
+    padding: 12px 8px;
+  }
 }
 
 /* ── Dark mode (inside .dark SlackLayout) ────────────── */
+.dark .aichat-welcome-screen {
+  background: #1A1D27;
+}
+
+.dark .aichat-welcome-heading {
+  color: #F4F5F7;
+}
+
+.dark .aichat-welcome-topic-card {
+  background: #232636;
+  border-color: #2A2D3A;
+}
+
+.dark .aichat-welcome-topic-card:hover {
+  border-color: #C9A84C;
+  background: rgba(201, 168, 76, 0.1);
+}
+
+.dark .aichat-welcome-topic-label {
+  color: #F4F5F7;
+}
+
 .dark .aichat-embedded {
   background: #0F1117;
 }

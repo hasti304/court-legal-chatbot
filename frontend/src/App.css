@@ -4559,6 +4559,13 @@ a:focus-visible,
 }
 
 /* ──────────────────────────────────────────────────────────
+   Chat input bar — safe-area padding for iOS keyboard
+   ────────────────────────────────────────────────────────── */
+.chat-input-bar {
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ──────────────────────────────────────────────────────────
    Topbar extras: ThemeToggle + LanguagePicker wrapper
    ────────────────────────────────────────────────────────── */
 .cal-topbar-extras {

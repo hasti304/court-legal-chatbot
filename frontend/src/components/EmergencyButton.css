@@ -281,13 +281,19 @@
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .emergency-floating-button {
-    bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
     right: 16px;
-    left: 16px;
+    left: auto;
+    width: 56px;
+    height: 56px;
+    min-width: unset;
+    padding: 0;
+    border-radius: 50%;
     justify-content: center;
-    padding: 14px 18px;
-    font-size: 15px;
-    border-radius: 14px;
+  }
+
+  .emergency-floating-button span {
+    display: none;
   }
 
   .emergency-modal-overlay {
