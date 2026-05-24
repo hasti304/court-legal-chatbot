@@ -111,17 +111,17 @@ const EmergencyButton = () => {
             aria-modal="true"
             aria-labelledby="emergency-modal-title"
           >
+            <button
+              ref={closeButtonRef}
+              className="emergency-close-btn"
+              onClick={closeModal}
+              aria-label="Close emergency resources"
+              type="button"
+            >
+              <FaTimes size={20} />
+            </button>
             <div className="emergency-modal-header">
               <h2 id="emergency-modal-title">{t("emergency.title")}</h2>
-              <button
-                ref={closeButtonRef}
-                className="emergency-close-btn"
-                onClick={closeModal}
-                aria-label="Close emergency resources"
-                type="button"
-              >
-                <FaTimes size={24} />
-              </button>
             </div>
 
             <div className="emergency-modal-body">

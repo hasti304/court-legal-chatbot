@@ -74,6 +74,7 @@
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.3s ease;
+  position: relative;
 }
 
 @keyframes slideUp {
@@ -87,13 +88,38 @@
   }
 }
 
-/* Modal Header — single sober tone (no rainbow; body stays neutral) */
-.emergency-modal-header {
+/* Close button — positioned absolutely at top-right corner */
+.emergency-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: white;
+  cursor: pointer;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  transition: background 0.2s ease;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  padding: 24px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.emergency-close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.emergency-close-btn:focus {
+  outline: 3px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 3px;
+}
+
+/* Modal Header */
+.emergency-modal-header {
+  padding: 24px 64px 24px 24px;
   background: #1B2A4A;
   color: #f8fafc;
   border-radius: 16px 16px 0 0;
@@ -105,29 +131,6 @@
   font-size: 24px;
   font-weight: 800;
   line-height: 1.2;
-}
-
-.emergency-close-btn {
-  background: transparent;
-  border: none;
-  color: white;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 50%;
-  transition: background 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.emergency-close-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.emergency-close-btn:focus {
-  outline: 3px solid rgba(255, 255, 255, 0.85);
-  outline-offset: 3px;
 }
 
 /* Modal Body */
@@ -297,27 +300,35 @@
   }
 
   .emergency-modal-overlay {
-    padding: 10px;
+    padding: 0;
     align-items: flex-end;
   }
 
   .emergency-modal {
     width: 100%;
     max-height: 94vh;
+    max-height: 94dvh;
     border-radius: 16px 16px 0 0;
   }
 
+  .emergency-close-btn {
+    top: 10px;
+    right: 10px;
+    width: 44px;
+    height: 44px;
+  }
+
   .emergency-modal-header {
-    padding: 18px;
+    padding: 18px 60px 18px 16px;
     border-radius: 16px 16px 0 0;
   }
 
   .emergency-modal-header h2 {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .emergency-modal-body {
-    padding: 18px;
+    padding: 16px;
   }
 
   .emergency-warning {
@@ -336,6 +347,13 @@
   .quick-exit-button,
   .emergency-call-button {
     width: 100%;
+    min-height: 48px;
     justify-content: center;
+  }
+
+  .emergency-resource-card {
+    padding: 16px;
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }

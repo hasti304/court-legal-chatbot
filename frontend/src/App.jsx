@@ -3057,8 +3057,6 @@ function App() {
 
     return (
       <LoginLayout
-        title={t("login.welcomeBackTitle")}
-        subtitle={t("login.welcomeBackBody")}
         extras={<><ThemeToggle /><LanguagePicker variant={lpVariant} /></>}
         footer={
           <SiteFooter
@@ -3068,46 +3066,95 @@ function App() {
           />
         }
       >
-        <div className="flex flex-col gap-3">
-          <Button
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "#1a2744", margin: "0 0 4px", lineHeight: 1.2 }}>
+            {t("login.welcomeBackTitle")}
+          </h1>
+          <p style={{ fontSize: "0.9rem", color: "#64748b", margin: "0 0 12px", lineHeight: 1.55 }}>
+            {t("login.welcomeBackBody")}
+          </p>
+          <button
             type="button"
-            className="w-full rounded-xl"
-            size="lg"
+            style={{
+              width: "100%",
+              height: "48px",
+              background: hasSaved && !loading ? "#c9a84c" : "#e5c96e",
+              color: "#1a1a1a",
+              border: "none",
+              borderRadius: "8px",
+              fontSize: "1rem",
+              fontWeight: 700,
+              cursor: loading || !hasSaved ? "not-allowed" : "pointer",
+              opacity: loading || !hasSaved ? 0.65 : 1,
+              transition: "background 0.15s",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
             onClick={() => setView("cover")}
             disabled={loading || !hasSaved}
           >
             {t("login.continueThisDevice")}
-          </Button>
-          <Button
+          </button>
+          <button
             type="button"
-            variant="secondary"
-            size="lg"
-            className="w-full rounded-xl"
+            style={{
+              width: "100%",
+              height: "48px",
+              background: "transparent",
+              color: "#1a2744",
+              border: "2px solid #1a2744",
+              borderRadius: "8px",
+              fontSize: "1rem",
+              fontWeight: 600,
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.65 : 1,
+              transition: "background 0.15s, color 0.15s",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
             onClick={() => { setMagicLinkEmail(""); setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
             disabled={loading}
           >
             {t("login.useDifferentEmail")}
-          </Button>
-          <Button
+          </button>
+          <button
             type="button"
-            variant="ghost"
-            size="lg"
-            className="w-full rounded-xl"
+            style={{
+              background: "none",
+              border: "none",
+              padding: "10px 0",
+              textAlign: "center",
+              color: "#9ca3af",
+              fontSize: "0.875rem",
+              cursor: loading ? "not-allowed" : "pointer",
+              display: "block",
+              width: "100%",
+              minHeight: "44px",
+            }}
             onClick={() => { clearSavedIntake(); setMagicLinkEmail(""); setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
             disabled={loading}
           >
             {t("login.signOutDevice")}
-          </Button>
-        </div>
-        <div className="text-center mt-4">
-          <Button
-            type="button"
-            variant="link"
-            className="p-0 h-auto text-xs text-muted-foreground"
-            onClick={() => setView("privacy")}
-          >
-            {t("intake.privacyLink")}
-          </Button>
+          </button>
+          <div style={{ textAlign: "center" }}>
+            <button
+              type="button"
+              style={{
+                background: "none",
+                border: "none",
+                padding: "6px 0",
+                color: "#9ca3af",
+                fontSize: "0.75rem",
+                cursor: "pointer",
+                minHeight: "44px",
+              }}
+              onClick={() => setView("privacy")}
+            >
+              {t("intake.privacyLink")}
+            </button>
+          </div>
         </div>
         <EmergencyButton />
       </LoginLayout>
@@ -3891,7 +3938,7 @@ function App() {
             type="button"
             variant="outline"
             size="sm"
-            className="rounded-full gap-1.5 border-2 border-[#e2e8f0] text-[#1e293b] hover:bg-[#f1f5f9]"
+            className="rounded-full gap-1.5 border-2 border-[#e2e8f0] bg-[#f1f5f9] text-[#1e293b] hover:bg-[#e2e8f0] min-h-[44px]"
             onClick={quickExit}
           >
             <ArrowLeft className="w-4 h-4" aria-hidden />
@@ -3901,7 +3948,7 @@ function App() {
             type="button"
             variant="outline"
             size="sm"
-            className="rounded-full gap-1.5 border-2 border-[#e2e8f0] text-[#1e293b] hover:bg-[#f1f5f9]"
+            className="rounded-full gap-1.5 border-2 border-[#e2e8f0] bg-[#f1f5f9] text-[#1e293b] hover:bg-[#e2e8f0] min-h-[44px]"
             onClick={clearSessionAndStorage}
           >
             <RotateCcw className="w-4 h-4" aria-hidden />
@@ -3912,10 +3959,10 @@ function App() {
               type="button"
               variant="outline"
               size="sm"
-              className={`rounded-full gap-1.5 border-2 transition-colors ${
+              className={`rounded-full gap-1.5 border-2 transition-colors min-h-[44px] ${
                 speechEnabled
                   ? "bg-[#1e293b] text-white border-[#1e293b] hover:bg-[#334155]"
-                  : "border-[#e2e8f0] text-[#1e293b] hover:bg-[#f1f5f9]"
+                  : "border-[#e2e8f0] bg-[#f1f5f9] text-[#1e293b] hover:bg-[#e2e8f0]"
               }`}
               onClick={() => {
                 if (speechEnabled) {
@@ -3978,7 +4025,7 @@ function App() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="rounded-full border-2 border-[#1e293b] text-[#1e293b] text-sm font-normal hover:bg-[#1e293b] hover:text-white transition-colors"
+                        className="rounded-full border-2 border-[#1e293b] text-[#1e293b] text-sm font-normal hover:bg-[#1e293b] hover:text-white transition-colors min-h-[44px] py-2 px-4"
                         onClick={() => handleOptionClick(opt)}
                         disabled={loading}
                       >

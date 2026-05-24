@@ -83,6 +83,11 @@ function formatTimeAgo(ts) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+function formatTime(ts) {
+  if (!ts) return "";
+  return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 function getConfidenceLevel(content) {
   if (!content) return null;
   const lower = content.toLowerCase();
@@ -200,7 +205,7 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
   const { t, i18n } = useTranslation();
 
   const [messages, setMessages] = useState([
-    { role: "assistant", content: t("ai.placeholder") },
+    { role: "assistant", content: t("ai.placeholder"), ts: Date.now() },
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -235,7 +240,7 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
 
   useEffect(() => {
     if (messages.length === 1 && messages[0]?.role === "assistant") {
-      setMessages([{ role: "assistant", content: t("ai.placeholder") }]);
+      setMessages([{ role: "assistant", content: t("ai.placeholder"), ts: Date.now() }]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [i18n.language]);
@@ -314,7 +319,7 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
     stopSpeaking();
     clearTimeout(streamTimerRef.current);
     setStreamingContent(null);
-    setMessages([{ role: "assistant", content: t("ai.placeholder") }]);
+    setMessages([{ role: "assistant", content: t("ai.placeholder"), ts: Date.now() }]);
     setInputValue("");
     setRequestError("");
   };
@@ -356,7 +361,7 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
     if (!inputValue.trim() || isLoading || streamingContent !== null) return;
     setRequestError("");
     const userContent = inputValue.trim();
-    const userMessage = { role: "user", content: userContent };
+    const userMessage = { role: "user", content: userContent, ts: Date.now() };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     setInputValue("");
@@ -396,7 +401,7 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
       const fullContent = data.response || "I'm sorry, I couldn't generate a response right now. Please try again.";
       setIsLoading(false);
       streamText(fullContent, (completed) => {
-        setMessages((prev) => [...prev, { role: "assistant", content: completed }]);
+        setMessages((prev) => [...prev, { role: "assistant", content: completed, ts: Date.now() }]);
       });
     } catch (error) {
       console.error("AI request failed:", error);
@@ -411,6 +416,16 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
       setMessages((prev) => [...prev, { role: "assistant", content: errorContent }]);
       setIsLoading(false);
     }
+  };
+
+  const sendQuickMessage = async (prompt) => {
+    if (isLoading || streamingContent !== null) return;
+    setRequestError("");
+    const userMessage = { role: "user", content: prompt, ts: Date.now() };
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
+    trackQuery(topic || "general", prompt);
+    await sendMessageWithHistory(updatedMessages);
   };
 
   const handleKeyDown = (e) => {
@@ -440,11 +455,6 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
           <button type="button" className="aichat-pill-btn" onClick={clearAIConversation}>
             <FaTrashAlt /> Clear Session
           </button>
-          {hasUserMessages && !isBusy && (
-            <button type="button" className="aichat-pill-btn" onClick={regenerateAnswer}>
-              <FaRedo /> Regenerate
-            </button>
-          )}
           {speechSupported && (
             <button
               type="button"
@@ -459,146 +469,103 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
           )}
         </div>
 
-        {/* Centered chat card + footer */}
-        <div className="aichat-card-outer">
-          <div className="aichat-card">
-            {/* Welcome screen (before first user message) */}
-            {!hasUserMessages ? (
-              <div className="aichat-welcome-screen">
-                <img src={calLogo} alt="CAL" className="aichat-welcome-logo" />
-                <h2 className="aichat-welcome-heading">How can we help you today?</h2>
-                <div className="aichat-welcome-topics">
-                  {TOPIC_CARDS.map((card) => (
-                    <button
-                      key={card.id}
-                      type="button"
-                      className="aichat-welcome-topic-card"
-                      onClick={() => { setInputValue(card.prompt); inputRef.current?.focus(); }}
-                    >
-                      <span className="aichat-welcome-topic-icon">{card.icon}</span>
-                      <span className="aichat-welcome-topic-label">{card.label}</span>
+        {/* Messages area */}
+        <div className="aichat-messages-area">
+          {requestError && (
+            <StatusBanner type="error" role="alert" className="mb-2">
+              {requestError}
+            </StatusBanner>
+          )}
+
+          {messages.map((message, index) => {
+            const isUser = message.role === "user";
+            const isLastAssistant = !isUser && index === lastAssistantIdx;
+
+            if (isUser) {
+              return (
+                <div key={index} className="aichat-msg-row aichat-msg-row--user">
+                  <div className="aichat-bubble aichat-bubble--user">{message.content}</div>
+                  {message.ts && <span className="aichat-msg-ts">{formatTime(message.ts)}</span>}
+                </div>
+              );
+            }
+
+            return (
+              <div key={index} className="aichat-msg-row aichat-msg-row--ai">
+                <div className="aichat-avatar" aria-hidden>AI</div>
+                <div className="aichat-msg-body">
+                  <div
+                    className="aichat-bubble aichat-bubble--ai prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={renderMessageContent(message.content)}
+                  />
+                  {message.ts && <span className="aichat-msg-ts">{formatTime(message.ts)}</span>}
+                  {index === 0 && !hasUserMessages && (
+                    <div className="aichat-quick-replies" role="group" aria-label="Choose a topic">
+                      {TOPIC_CARDS.map((card) => (
+                        <button
+                          key={card.id}
+                          type="button"
+                          className="aichat-quick-reply-pill"
+                          onClick={() => sendQuickMessage(card.prompt)}
+                          disabled={isBusy}
+                        >
+                          {card.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <p className="aichat-disclaimer">This is general legal information, not legal advice.</p>
+                  <div className="aichat-msg-actions">
+                    <button type="button" className="aichat-action-btn" onClick={() => copyMessage(message.content, index)} title="Copy response">
+                      {copiedIdx === index
+                        ? <><FaCheck style={{ color: "#166534" }} /> Copied</>
+                        : <><FaCopy /> Copy</>}
                     </button>
-                  ))}
+                    {speechSupported && (
+                      <button type="button" className="aichat-action-btn" onClick={() => speakText(message.content)} title="Read aloud">
+                        <FaVolumeUp /> Read
+                      </button>
+                    )}
+                    {isLastAssistant && hasUserMessages && !isBusy && (
+                      <button type="button" className="aichat-action-btn" onClick={regenerateAnswer} title="Regenerate answer">
+                        <FaRedo /> Regenerate
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            ) : (
-              /* Messages */
-              <div className="aichat-messages-area">
-                {requestError && (
-                  <StatusBanner type="error" role="alert" className="mb-2">
-                    {requestError}
-                  </StatusBanner>
-                )}
+            );
+          })}
 
-                {messages.map((message, index) => {
-                  const isUser = message.role === "user";
-                  const isLastAssistant = !isUser && index === lastAssistantIdx;
-
-                  if (isUser) {
-                    return (
-                      <div key={index} className="aichat-msg-row aichat-msg-row--user">
-                        <div className="aichat-bubble aichat-bubble--user">{message.content}</div>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div key={index} className="aichat-msg-row aichat-msg-row--ai">
-                      <div className="aichat-avatar" aria-hidden>AI</div>
-                      <div className="aichat-msg-body">
-                        <div
-                          className="aichat-bubble aichat-bubble--ai prose prose-sm max-w-none"
-                          dangerouslySetInnerHTML={renderMessageContent(message.content)}
-                        />
-                        <p className="aichat-disclaimer">This is general legal information, not legal advice.</p>
-                        <div className="aichat-msg-actions">
-                          <button type="button" className="aichat-action-btn" onClick={() => copyMessage(message.content, index)} title="Copy response">
-                            {copiedIdx === index
-                              ? <><FaCheck style={{ color: "#166534" }} /> Copied</>
-                              : <><FaCopy /> Copy</>}
-                          </button>
-                          {speechSupported && (
-                            <button type="button" className="aichat-action-btn" onClick={() => speakText(message.content)} title="Read aloud">
-                              <FaVolumeUp /> Read
-                            </button>
-                          )}
-                          {isLastAssistant && hasUserMessages && !isBusy && (
-                            <button type="button" className="aichat-action-btn" onClick={regenerateAnswer} title="Regenerate answer">
-                              <FaRedo /> Regenerate
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* Streaming bubble */}
-                {streamingContent !== null && (
-                  <div className="aichat-msg-row aichat-msg-row--ai">
-                    <div className="aichat-avatar" aria-hidden>AI</div>
-                    <div className="aichat-msg-body">
-                      <div className="aichat-bubble aichat-bubble--ai aichat-bubble--streaming prose prose-sm max-w-none">
-                        <div dangerouslySetInnerHTML={renderMessageContent(streamingContent)} />
-                        <span className="aichat-cursor" aria-hidden />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Typing indicator */}
-                {isLoading && streamingContent === null && (
-                  <div className="aichat-msg-row aichat-msg-row--ai">
-                    <div className="aichat-avatar" aria-hidden>AI</div>
-                    <div className="aichat-msg-body">
-                      <div className="aichat-bubble aichat-bubble--ai aichat-bubble--typing">
-                        <span className="aichat-dot" style={{ animationDelay: "-0.3s" }} />
-                        <span className="aichat-dot" style={{ animationDelay: "-0.15s" }} />
-                        <span className="aichat-dot" />
-                        <span className="aichat-typing-label">Analyzing your legal question…</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div ref={messagesEndRef} />
+          {/* Streaming bubble */}
+          {streamingContent !== null && (
+            <div className="aichat-msg-row aichat-msg-row--ai">
+              <div className="aichat-avatar" aria-hidden>AI</div>
+              <div className="aichat-msg-body">
+                <div className="aichat-bubble aichat-bubble--ai aichat-bubble--streaming prose prose-sm max-w-none">
+                  <div dangerouslySetInnerHTML={renderMessageContent(streamingContent)} />
+                  <span className="aichat-cursor" aria-hidden />
+                </div>
               </div>
-            )}
-
-            {/* Input area */}
-            <div className="aichat-input-wrap">
-              <div className="aichat-input-row">
-                <textarea
-                  ref={inputRef}
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Ask about your legal issue…"
-                  className="aichat-input"
-                  rows={1}
-                  disabled={isBusy}
-                  aria-label="Message input"
-                  style={{ resize: "none", overflowY: "auto", maxHeight: "120px" }}
-                />
-                <button
-                  onClick={sendMessage}
-                  disabled={isBusy || !inputValue.trim()}
-                  type="button"
-                  className="aichat-send-btn"
-                  aria-label="Send message"
-                >
-                  {isLoading
-                    ? <span className="aichat-spinner" aria-hidden />
-                    : <FaPaperPlane aria-hidden />}
-                </button>
-              </div>
-              <p className="aichat-input-hint">
-                <kbd>Enter</kbd> to send · <kbd>Shift+Enter</kbd> for new line
-              </p>
             </div>
-          </div>
+          )}
 
-          {/* Footer contact card */}
+          {/* Typing indicator */}
+          {isLoading && streamingContent === null && (
+            <div className="aichat-msg-row aichat-msg-row--ai">
+              <div className="aichat-avatar" aria-hidden>AI</div>
+              <div className="aichat-msg-body">
+                <div className="aichat-bubble aichat-bubble--ai aichat-bubble--typing">
+                  <span className="aichat-dot" style={{ animationDelay: "-0.3s" }} />
+                  <span className="aichat-dot" style={{ animationDelay: "-0.15s" }} />
+                  <span className="aichat-dot" />
+                  <span className="aichat-typing-label">Analyzing your legal question…</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Footer contact card scrolls with messages */}
           <div className="aichat-footer-card">
             <p className="aichat-footer-label">{helpText}</p>
             <div className="aichat-footer-items">
@@ -632,6 +599,48 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
                 </span>
               </div>
             </div>
+          </div>
+
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input area */}
+        <div className="aichat-input-wrap">
+          <div className="aichat-input-nav-row">
+            {onBack && (
+              <button type="button" className="aichat-nav-link" onClick={onBack}>
+                ← Go Back
+              </button>
+            )}
+            <button type="button" className="aichat-nav-link" onClick={clearAIConversation}>
+              ↺ Restart
+            </button>
+          </div>
+          <p className="aichat-disclaimer-text">Legal information and resources only, not legal advice.</p>
+          <div className="aichat-input-row">
+            <textarea
+              ref={inputRef}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Type your message here..."
+              className="aichat-input"
+              rows={1}
+              disabled={isBusy}
+              aria-label="Message input"
+              style={{ resize: "none", overflowY: "auto", maxHeight: "120px" }}
+            />
+            <button
+              onClick={sendMessage}
+              disabled={isBusy || !inputValue.trim()}
+              type="button"
+              className="aichat-send-btn"
+              aria-label="Send message"
+            >
+              {isLoading
+                ? <span className="aichat-spinner" aria-hidden />
+                : <FaPaperPlane aria-hidden />}
+            </button>
           </div>
         </div>
       </div>
