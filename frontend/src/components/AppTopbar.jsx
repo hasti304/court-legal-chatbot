@@ -12,10 +12,11 @@ export default function AppTopbar({
   extras,
   showMenuButton = false,
   onMenuClick,
+  headerClassName = "",
 }) {
   return (
     <header
-      className="border-b border-border bg-background/95 backdrop-blur-sm shrink-0 shadow-sm"
+      className={`border-b border-border bg-background/95 backdrop-blur-sm shrink-0 shadow-sm ${headerClassName}`}
       style={{
         display: "grid",
         gridTemplateColumns: "48px 1fr auto",

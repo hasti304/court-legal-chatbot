@@ -23,6 +23,7 @@ export default function SlackLayout({
   onSignOut,
   onBack,
   topbarExtras,
+  topbarClassName = "",
   children,
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -97,6 +98,7 @@ export default function SlackLayout({
           extras={topbarExtras}
           onMenuClick={() => setMobileNavOpen(true)}
           showMenuButton
+          headerClassName={topbarClassName}
         />
         <div className="flex-1 overflow-auto min-h-0" id="main-content">
           {children}

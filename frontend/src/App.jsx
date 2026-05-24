@@ -3,6 +3,7 @@ import {
   FaPaperPlane,
   FaRedo,
   FaPhone,
+  FaEnvelope,
   FaFileAlt,
   FaInfoCircle,
   FaRobot,
@@ -2571,6 +2572,7 @@ function App() {
         onBack={() => setShowAIChat(false)}
         topbarTitle="AI Legal Assistant"
         topbarExtras={<TopbarActions />}
+        topbarClassName="app-topbar--navy"
       >
         <Suspense
           fallback={
@@ -3819,28 +3821,55 @@ function App() {
               </div>
             </section>
 
-            {/* Section 7: Footer bar — links unchanged, style updated */}
+            {/* Section 7: Footer — styled action buttons + contact card */}
             <footer className="home-cover__footer">
+              {/* Contact card */}
+              <div className="home-cover__contact-card">
+                <p className="home-cover__contact-label">Need immediate help? Contact:</p>
+                <div className="home-cover__contact-items">
+                  <div className="home-cover__contact-item">
+                    <FaPhone className="home-cover__contact-icon" aria-hidden />
+                    <span>
+                      <strong>Chicago Advocate Legal, NFP:</strong>{" "}
+                      <a href="tel:+13128015918" className="home-cover__contact-link">(312) 801-5918</a>
+                    </span>
+                  </div>
+                  <div className="home-cover__contact-item">
+                    <FaEnvelope className="home-cover__contact-icon" aria-hidden />
+                    <span>
+                      <strong>Email:</strong>{" "}
+                      <a href={`mailto:${SUPPORT_EMAIL}`} className="home-cover__contact-link">{SUPPORT_EMAIL}</a>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Back to start */}
               <button
                 type="button"
-                className="home-cover__footer-link"
+                className="home-cover__cta-btn home-cover__cta-btn--outlined"
                 onClick={() => setView(intakeSaved && intakeId ? "intakeChoice" : "intake")}
               >
-                Back to start
+                <FaArrowLeft aria-hidden /> Back to start
               </button>
+
+              {/* Chat with staff */}
               <button
                 type="button"
-                className="home-cover__footer-link"
+                className="home-cover__cta-btn home-cover__cta-btn--gold"
                 onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
               >
-                Click here to chat with staff
+                💬 Chat with a Staff Member
               </button>
-              <a
-                href={`mailto:${SUPPORT_EMAIL}`}
-                className="home-cover__footer-email"
-              >
-                {SUPPORT_EMAIL}
-              </a>
+
+              {/* Email card */}
+              <div className="home-cover__email-card">
+                <p className="home-cover__email-card-label">Or email us directly</p>
+                <div className="home-cover__email-card-row">
+                  <FaEnvelope className="home-cover__email-icon" aria-hidden />
+                  <a href={`mailto:${SUPPORT_EMAIL}`} className="home-cover__email-link">{SUPPORT_EMAIL}</a>
+                </div>
+              </div>
             </footer>
 
           </div>
@@ -3901,7 +3930,6 @@ function App() {
       lastName={intakeLastName}
       intakeSaved={intakeSaved}
       topbarTitle="Legal Consultation"
-      topbarMeta={messages.length > 0 ? `Step ${progressCurrent} of ${progressTotal}` : ""}
       canGoBack={conversationHistory.length > 1}
       onNavigate={handleSidebarNav}
       onTopicSelect={(topicId) => setCurrentTopic(topicId)}
@@ -3913,76 +3941,48 @@ function App() {
       }}
       onBack={handleBack}
       topbarExtras={<TopbarActions />}
+      topbarClassName="app-topbar--navy"
     >
-      {messages.length > 0 && conversationState?.step !== "complete" && (
-        <div className="px-4 py-2 border-b border-border bg-background/95 shrink-0">
-          <div className="flex items-center mb-1.5 text-xs text-muted-foreground">
-            <span>{t("progress.stepOf", { current: progressCurrent, total: progressTotal })}</span>
-          </div>
-          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-foreground rounded-full transition-all duration-300"
-              style={{ width: `${progressPercent}%` }}
-              role="progressbar"
-              aria-valuenow={progressCurrent}
-              aria-valuemin={1}
-              aria-valuemax={progressTotal}
-            />
-          </div>
-        </div>
-      )}
-
         <div className="slack-chat-workspace">
-        <div className="flex items-center gap-3 px-6 py-3 border-b shrink-0 flex-wrap chat-action-bar">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="rounded-full gap-1.5 border-2 border-[#e2e8f0] bg-[#f1f5f9] text-[#1e293b] hover:bg-[#e2e8f0] min-h-[44px]"
-            onClick={quickExit}
-          >
-            <ArrowLeft className="w-4 h-4" aria-hidden />
-            Quick Exit
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="rounded-full gap-1.5 border-2 border-[#e2e8f0] bg-[#f1f5f9] text-[#1e293b] hover:bg-[#e2e8f0] min-h-[44px]"
-            onClick={clearSessionAndStorage}
-          >
-            <RotateCcw className="w-4 h-4" aria-hidden />
-            Clear Session
-          </Button>
-          {speechSupported && (
-            <Button
+        <div className="chat-action-bar">
+          <div className="chat-action-bar__buttons">
+            <button
               type="button"
-              variant="outline"
-              size="sm"
-              className={`rounded-full gap-1.5 border-2 transition-colors min-h-[44px] ${
-                speechEnabled
-                  ? "bg-[#1e293b] text-white border-[#1e293b] hover:bg-[#334155]"
-                  : "border-[#e2e8f0] bg-[#f1f5f9] text-[#1e293b] hover:bg-[#e2e8f0]"
-              }`}
-              onClick={() => {
-                if (speechEnabled) {
-                  stopSpeaking();
-                  setSpeechEnabled(false);
-                } else {
-                  setSpeechEnabled(true);
-                }
-              }}
+              className="chat-action-btn chat-action-btn--exit"
+              onClick={quickExit}
             >
-              {speechEnabled ? (
-                <><VolumeX className="w-4 h-4" aria-hidden /> Turn Off Read Aloud</>
-              ) : (
-                <><Volume2 className="w-4 h-4" aria-hidden /> Turn On Read Aloud</>
-              )}
-            </Button>
+              <ArrowLeft className="w-3.5 h-3.5" aria-hidden />
+              Quick Exit
+            </button>
+            <button
+              type="button"
+              className="chat-action-btn"
+              onClick={clearSessionAndStorage}
+            >
+              <RotateCcw className="w-3.5 h-3.5" aria-hidden />
+              Clear Session
+            </button>
+            {speechSupported && (
+              <button
+                type="button"
+                className={`chat-action-btn${speechEnabled ? " chat-action-btn--active" : ""}`}
+                onClick={() => {
+                  if (speechEnabled) { stopSpeaking(); setSpeechEnabled(false); }
+                  else setSpeechEnabled(true);
+                }}
+              >
+                {speechEnabled
+                  ? <><VolumeX className="w-3.5 h-3.5" aria-hidden /> Turn Off Read Aloud</>
+                  : <><Volume2 className="w-3.5 h-3.5" aria-hidden /> Turn On Read Aloud</>}
+              </button>
+            )}
+          </div>
+          {messages.length > 0 && conversationState?.step !== "complete" && (
+            <span className="chat-step-text">Step {progressCurrent} of {progressTotal}</span>
           )}
         </div>
 
-        <main className="chat-main" id="main-content">
+        <main className="chat-main">
         <div className="messages-container" ref={messagesContainerRef}>
           {chatError && (
             <StatusBanner type="error" className="chat-status-banner" role="alert">
@@ -4252,35 +4252,32 @@ function App() {
 
           <div ref={messagesEndRef} />
         </div>
+        </main>
 
-        <div className="border-t px-6 pt-3 shrink-0 chat-input-bar">
-          <div className="max-w-3xl mx-auto">
-            <div className="flex items-center gap-4 mb-2">
-              <Button
+        <div className="chat-input-bar">
+          <div className="chat-input-bar__inner">
+            <div className="chat-input-nav-row">
+              <button
                 type="button"
-                variant="ghost"
-                size="sm"
-                className="text-xs gap-1.5 px-0 h-auto text-[#64748b] hover:text-[#1e293b] chat-nav-btn"
+                className="chat-nav-btn"
                 onClick={handleBack}
                 disabled={loading}
               >
                 <ArrowLeft className="w-3 h-3" aria-hidden />
                 {t("chat.backTitle")}
-              </Button>
-              <Button
+              </button>
+              <button
                 type="button"
-                variant="ghost"
-                size="sm"
-                className="text-xs gap-1.5 px-0 h-auto text-[#64748b] hover:text-[#1e293b] chat-nav-btn"
+                className="chat-nav-btn"
                 onClick={handleRestart}
                 disabled={loading}
               >
                 <RotateCcw className="w-3 h-3" aria-hidden />
                 {t("chat.restartTitle")}
-              </Button>
+              </button>
             </div>
-            <p className="text-xs text-center mb-2" style={{ color: isDark ? "#6B7280" : "#94a3b8" }}>Legal information and resources only, not legal advice.</p>
-            <form onSubmit={handleSubmit} className="relative">
+            <p className="chat-input-disclaimer">Legal information and resources only, not legal advice.</p>
+            <form onSubmit={handleSubmit} className="chat-input-form">
               <Textarea
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
@@ -4301,14 +4298,13 @@ function App() {
                 }
                 disabled={loading}
                 rows={1}
-                style={{ resize: "none", minHeight: "52px", maxHeight: "160px", overflowY: "auto" }}
-                className="w-full rounded-full py-3 px-5 pr-14 border-2 border-[#e2e8f0] text-[#1e293b] placeholder:text-[#94a3b8] text-sm leading-relaxed focus:outline-none focus:border-[#1e293b]"
+                style={{ resize: "none", overflowY: "auto", minHeight: "44px", maxHeight: "120px" }}
+                className="chat-textarea"
                 aria-label={t("chat.placeholder")}
               />
-              <Button
+              <button
                 type="submit"
-                size="icon"
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full h-10 w-10 shrink-0 bg-[#C9A84C] hover:bg-[#b8943f] text-[#1A1A1A]"
+                className="chat-send-btn"
                 disabled={loading || !userInput.trim()}
                 aria-label="Send message"
               >
@@ -4317,11 +4313,10 @@ function App() {
                 ) : (
                   <Send className="w-4 h-4" aria-hidden />
                 )}
-              </Button>
+              </button>
             </form>
           </div>
         </div>
-        </main>
         </div>
 
       <EmergencyButton />

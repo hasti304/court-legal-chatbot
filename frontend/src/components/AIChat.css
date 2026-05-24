@@ -1016,12 +1016,15 @@ body.discreet-mode .ai-dashboard-sidebar {
 /* ── Toolbar strip ───────────────────────────────────── */
 .aichat-toolbar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-wrap: nowrap;
+  gap: 6px;
   flex-shrink: 0;
-  padding: 10px 16px;
+  padding: 8px 16px;
   background: #ffffff;
   border-bottom: 1px solid #e2e8f0;
+  min-height: 48px;
+  align-items: center;
+  overflow-x: auto;
 }
 
 .aichat-pill-btn {
@@ -1131,15 +1134,15 @@ body.discreet-mode .ai-dashboard-sidebar {
   background: #ffffff;
   color: #1e293b;
   border: 1px solid #e2e8f0;
-  border-left: 3px solid #1B2A4A;
-  border-radius: 16px;
+  border-radius: 18px;
   border-top-left-radius: 4px;
+  box-shadow: 0 1px 4px rgba(15,23,42,0.06);
 }
 
 .aichat-bubble--user {
   background: #1a2744;
   color: #ffffff;
-  border-radius: 16px;
+  border-radius: 18px;
   border-top-right-radius: 4px;
   display: inline-block;
   max-width: 100%;

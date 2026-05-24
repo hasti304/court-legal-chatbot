@@ -219,6 +219,7 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
   const messagesEndRef = useRef(null);
   const streamTimerRef = useRef(null);
   const inputRef = useRef(null);
+  const isSendingRef = useRef(false);
 
   const speechSupported =
     typeof window !== "undefined" &&
@@ -358,7 +359,8 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
   };
 
   const sendMessage = async () => {
-    if (!inputValue.trim() || isLoading || streamingContent !== null) return;
+    if (!inputValue.trim() || isLoading || streamingContent !== null || isSendingRef.current) return;
+    isSendingRef.current = true;
     setRequestError("");
     const userContent = inputValue.trim();
     const userMessage = { role: "user", content: userContent, ts: Date.now() };
@@ -366,7 +368,11 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
     setMessages(updatedMessages);
     setInputValue("");
     trackQuery(topic || "general", userContent);
-    await sendMessageWithHistory(updatedMessages);
+    try {
+      await sendMessageWithHistory(updatedMessages);
+    } finally {
+      isSendingRef.current = false;
+    }
   };
 
   const sendMessageWithHistory = async (history) => {
@@ -564,42 +570,6 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
               </div>
             </div>
           )}
-
-          {/* Footer contact card scrolls with messages */}
-          <div className="aichat-footer-card">
-            <p className="aichat-footer-label">{helpText}</p>
-            <div className="aichat-footer-items">
-              <div className="aichat-footer-item">
-                <span className="aichat-footer-icon"><FaPhone aria-hidden /></span>
-                <span className="aichat-footer-text">
-                  <strong>{orgLabel}</strong>{" "}
-                  <a href="tel:+13128015918" className="aichat-footer-link">(312) 801-5918</a>
-                  {" · "}
-                  <a href="https://www.chicagoadvocatelegal.com/intake.html" target="_blank" rel="noopener noreferrer" className="aichat-footer-link">
-                    Direct Intake Form
-                  </a>
-                </span>
-              </div>
-              <div className="aichat-footer-item">
-                <span className="aichat-footer-icon"><FaEnvelope aria-hidden /></span>
-                <span className="aichat-footer-text">
-                  <strong>Email:</strong>{" "}
-                  <a href={`mailto:${SUPPORT_EMAIL}`} className="aichat-footer-link">{SUPPORT_EMAIL}</a>
-                </span>
-              </div>
-              <div className="aichat-footer-item">
-                <span className="aichat-footer-icon"><FaPhone aria-hidden /></span>
-                <span className="aichat-footer-text">
-                  <strong>Justice Entrepreneurs Project (JEP):</strong>{" "}
-                  <a href="tel:+13125463282" className="aichat-footer-link">(312) 546-3282</a>
-                  {" · "}
-                  <a href="https://jepchicago.org/connect-with-a-lawyer/" target="_blank" rel="noopener noreferrer" className="aichat-footer-link">
-                    Find a Lawyer
-                  </a>
-                </span>
-              </div>
-            </div>
-          </div>
 
           <div ref={messagesEndRef} />
         </div>
