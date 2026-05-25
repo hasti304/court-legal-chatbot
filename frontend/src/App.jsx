@@ -2,8 +2,6 @@ import React, { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense, us
 import {
   FaPaperPlane,
   FaRedo,
-  FaPhone,
-  FaEnvelope,
   FaFileAlt,
   FaInfoCircle,
   FaRobot,
@@ -3831,24 +3829,6 @@ function App() {
               >
                 <FaArrowLeft aria-hidden /> Back to start
               </button>
-
-              {/* Chat with staff */}
-              <button
-                type="button"
-                className="home-cover__cta-btn home-cover__cta-btn--gold"
-                onClick={() => { setMagicLinkError(""); setMagicVerifyError(""); setView("login"); }}
-              >
-                💬 Chat with a Staff Member
-              </button>
-
-              {/* Email card */}
-              <div className="home-cover__email-card">
-                <p className="home-cover__email-card-label">Or email us directly</p>
-                <div className="home-cover__email-card-row">
-                  <FaEnvelope className="home-cover__email-icon" aria-hidden />
-                  <a href={`mailto:${SUPPORT_EMAIL}`} className="home-cover__email-link">{SUPPORT_EMAIL}</a>
-                </div>
-              </div>
             </footer>
 
           </div>
