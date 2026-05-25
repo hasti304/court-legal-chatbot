@@ -3821,29 +3821,8 @@ function App() {
               </div>
             </section>
 
-            {/* Section 7: Footer — styled action buttons + contact card */}
+            {/* Section 7: Footer — styled action buttons */}
             <footer className="home-cover__footer">
-              {/* Contact card */}
-              <div className="home-cover__contact-card">
-                <p className="home-cover__contact-label">Need immediate help? Contact:</p>
-                <div className="home-cover__contact-items">
-                  <div className="home-cover__contact-item">
-                    <FaPhone className="home-cover__contact-icon" aria-hidden />
-                    <span>
-                      <strong>Chicago Advocate Legal, NFP:</strong>{" "}
-                      <a href="tel:+13128015918" className="home-cover__contact-link">(312) 801-5918</a>
-                    </span>
-                  </div>
-                  <div className="home-cover__contact-item">
-                    <FaEnvelope className="home-cover__contact-icon" aria-hidden />
-                    <span>
-                      <strong>Email:</strong>{" "}
-                      <a href={`mailto:${SUPPORT_EMAIL}`} className="home-cover__contact-link">{SUPPORT_EMAIL}</a>
-                    </span>
-                  </div>
-                </div>
-              </div>
-
               {/* Back to start */}
               <button
                 type="button"

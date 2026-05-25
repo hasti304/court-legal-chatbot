@@ -296,55 +296,6 @@
   border-top: 1px solid #E5E7EB;
 }
 
-/* Contact card */
-.home-cover__contact-card {
-  background: #ffffff;
-  border-left: 4px solid #C9A84C;
-  border-radius: 10px;
-  padding: 14px 16px;
-  box-shadow: 0 1px 6px rgba(15,23,42,0.06);
-}
-
-.home-cover__contact-label {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #92400e;
-  margin: 0 0 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.home-cover__contact-items {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.home-cover__contact-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  font-size: 0.85rem;
-  color: #374151;
-  line-height: 1.5;
-}
-
-.home-cover__contact-icon {
-  color: #C9A84C;
-  font-size: 0.85rem;
-  margin-top: 3px;
-  flex-shrink: 0;
-}
-
-.home-cover__contact-link {
-  color: #1a2744;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.home-cover__contact-link:hover {
-  text-decoration: underline;
-}
 
 /* CTA buttons */
 .home-cover__cta-btn {
@@ -570,22 +521,6 @@ html.dark .home-cover__footer-email {
   color: var(--cal-text-secondary);
 }
 
-html.dark .home-cover__contact-card {
-  background: var(--cal-bg-card);
-  box-shadow: 0 1px 6px rgba(0,0,0,0.3);
-}
-
-html.dark .home-cover__contact-label {
-  color: #C9A84C;
-}
-
-html.dark .home-cover__contact-item {
-  color: var(--cal-text-secondary);
-}
-
-html.dark .home-cover__contact-link {
-  color: #C9A84C;
-}
 
 html.dark .home-cover__cta-btn--outlined {
   background: transparent;
