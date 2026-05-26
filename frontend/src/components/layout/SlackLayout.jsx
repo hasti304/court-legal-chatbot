@@ -20,6 +20,7 @@ export default function SlackLayout({
   onNavigate,
   onTopicSelect,
   onStartChat,
+  onStartAIAssistant,
   onSignOut,
   onBack,
   topbarExtras,
@@ -84,6 +85,7 @@ export default function SlackLayout({
           onNavigate={handleNavigate}
           onTopicSelect={handleTopicSelect}
           onStartChat={handleStartChat}
+          onStartAIAssistant={onStartAIAssistant}
           onSignOut={handleSignOut}
           onCloseMobile={() => setMobileNavOpen(false)}
         />

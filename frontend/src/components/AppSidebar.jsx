@@ -67,6 +67,7 @@ export default function AppSidebar({
   onNavigate,
   onTopicSelect,
   onStartChat,
+  onStartAIAssistant,
   onSignOut,
   onCloseMobile,
 }) {
@@ -425,7 +426,11 @@ export default function AppSidebar({
           </a>
           <button
             type="button"
-            onClick={() => { setShowSupport(false); if (onStartChat) onStartChat(); }}
+            onClick={() => {
+              setShowSupport(false);
+              if (onStartAIAssistant) onStartAIAssistant();
+              else if (onStartChat) onStartChat();
+            }}
             style={{
               width: "100%", background: GOLD, color: "#1A1A1A",
               fontWeight: 700, borderRadius: 8, padding: "11px 0",

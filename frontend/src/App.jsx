@@ -2269,6 +2269,11 @@ function App() {
     sendMessage("start");
   };
 
+  const openAIAssistant = () => {
+    void postIntakeEvent("ai_assistant_opened", currentTopic || "guest");
+    setShowAIChat(true);
+  };
+
   const resumeTriageFromCover = async () => {
     if (loading) return;
     setChatError("");
@@ -2566,6 +2571,7 @@ function App() {
         onNavigate={handleSidebarNav}
         onTopicSelect={(topicId) => setCurrentTopic(topicId)}
         onStartChat={startChatFromCover}
+        onStartAIAssistant={openAIAssistant}
         onSignOut={() => { clearSavedIntake(); setView("login"); }}
         onBack={() => setShowAIChat(false)}
         topbarTitle="AI Legal Assistant"
@@ -3596,6 +3602,7 @@ function App() {
     onNavigate: handleSidebarNav,
     onTopicSelect: (topicId) => setCurrentTopic(topicId),
     onStartChat: startChatFromCover,
+    onStartAIAssistant: openAIAssistant,
     onSignOut: () => { clearSavedIntake(); setView("login"); },
     onBack: () => {},
     topbarExtras: <TopbarActions />,
@@ -3680,6 +3687,7 @@ function App() {
           startChatFromCover();
         }}
         onStartChat={startChatFromCover}
+        onStartAIAssistant={openAIAssistant}
         onSignOut={() => {
           clearSavedIntake();
           setView("login");
@@ -3893,6 +3901,7 @@ function App() {
       onNavigate={handleSidebarNav}
       onTopicSelect={(topicId) => setCurrentTopic(topicId)}
       onStartChat={startChatFromCover}
+      onStartAIAssistant={openAIAssistant}
       onSignOut={() => {
         clearSavedIntake();
         setShowChat(false);
