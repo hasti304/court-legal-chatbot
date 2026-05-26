@@ -1090,7 +1090,7 @@ function App() {
 
   const TopbarActions = () => (
     <div className="cal-topbar-extras">
-      <span className="hidden md:inline-flex items-center">
+      <span className="inline-flex items-center">
         <ThemeToggle />
       </span>
       <LanguagePicker variant="dark" labelOnDarkBackground noMargin />
