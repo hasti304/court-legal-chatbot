@@ -18,6 +18,7 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import calLogo from "../assets/cal_logo.png";
+import EmergencyButton from "./EmergencyButton";
 
 const QUERY_HISTORY_KEY = "cal_ai_query_history_v1";
 const CASES_KEY = "cal_cases_history_v1";
@@ -207,7 +208,10 @@ export default function AppSidebar({
       </ScrollArea>
 
       {/* Footer */}
-      <div className="p-3 shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+      <div
+        className="p-3 shrink-0 flex flex-col gap-3"
+        style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}
+      >
         {activeSection === "home" ? (
           <button
             type="button"
@@ -266,6 +270,8 @@ export default function AppSidebar({
             </button>
           </div>
         )}
+
+        <EmergencyButton variant="sidebar" />
       </div>
     </aside>
 

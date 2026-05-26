@@ -26,6 +26,21 @@
   animation: pulse 2s infinite;
 }
 
+/* Sidebar Emergency Button (non-floating / inline in nav footer) */
+.emergency-sidebar-button {
+  position: relative;
+  bottom: auto;
+  right: auto;
+  left: auto;
+  width: 100%;
+  justify-content: flex-start;
+  padding: 12px 14px;
+  border-radius: 12px;
+  animation: none;
+  z-index: auto;
+  box-shadow: none;
+}
+
 /* Sit above bottom input bars instead of covering them */
 #main-content:has(.chat-input-bar) .emergency-floating-button,
 #main-content:has(.aichat-input-wrap) .emergency-floating-button,

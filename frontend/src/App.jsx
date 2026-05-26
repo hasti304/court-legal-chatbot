@@ -2593,7 +2593,6 @@ function App() {
             embedded={true}
           />
         </Suspense>
-        <EmergencyButton />
       </SlackLayout>
     );
   }
@@ -3830,7 +3829,6 @@ function App() {
 
           </div>
         </div>
-        <EmergencyButton />
         {showSessionWarning && (
           <div className="cal-session-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="session-heading">
             <div className="cal-session-modal">
@@ -4276,7 +4274,6 @@ function App() {
         </div>
         </div>
 
-      <EmergencyButton />
       {caseSaveToast && (
         <div
           className={`cal-case-save-toast${caseSaveToast === "error" ? " cal-case-save-toast--error" : ""}`}

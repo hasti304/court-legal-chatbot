@@ -101,7 +101,7 @@ export default function LoginLayout({
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#ffffff" }}>
       {extras && (
-        <div className="flex items-center justify-end gap-2 px-6 pt-4 shrink-0">
+        <div className="cal-auth-right-topbar flex items-center justify-end gap-2 px-6 pt-4 shrink-0">
           {extras}
         </div>
       )}

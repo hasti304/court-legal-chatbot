@@ -1529,6 +1529,39 @@
   justify-content: center;
   overflow-y: auto;
   padding: 40px;
+  position: relative;
+}
+
+.admin-login-topbar {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 10;
+}
+
+.admin-login-topbar .theme-toggle-btn {
+  border-color: var(--border-medium);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.admin-login-topbar .theme-toggle-btn:hover {
+  background: #e8e7e4;
+  border-color: #b0bbc8;
+}
+
+.dark .admin-login-topbar .theme-toggle-btn {
+  border-color: #3A3D4A;
+  background: #2A2D3A;
+  color: #F4F5F7;
+}
+
+.dark .admin-login-topbar .theme-toggle-btn:hover {
+  background: #30363d;
+  border-color: #484f58;
 }
 
 .admin-login-right-inner {

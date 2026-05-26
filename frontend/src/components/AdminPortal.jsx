@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { Eye, EyeOff, LayoutDashboard, Users, FileText, Download, AlertTriangle, X, Mail, CheckSquare, Square, Phone, Menu } from "lucide-react";
+import { Eye, EyeOff, LayoutDashboard, Users, FileText, Download, AlertTriangle, X, Mail, CheckSquare, Square, Phone, Menu, Sun, Moon } from "lucide-react";
 import EmergencyButton from "./EmergencyButton";
 import "./layout/MobileNav.css";
 import { useTranslation } from "react-i18next";
@@ -958,6 +958,18 @@ export default function AdminPortal() {
         </div>
 
         <div className="admin-login-right">
+          <div className="admin-login-topbar">
+            <button
+              type="button"
+              className="theme-toggle-btn"
+              onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
+              aria-pressed={theme === "dark"}
+              title={theme === "dark" ? "Use light mode" : "Use dark mode"}
+              aria-label={theme === "dark" ? "Use light mode" : "Use dark mode"}
+            >
+              {theme === "dark" ? <Sun size={20} aria-hidden /> : <Moon size={20} aria-hidden />}
+            </button>
+          </div>
           <div className="admin-login-right-inner">
             <h1 className="admin-login-heading">Admin Sign In</h1>
             <p className="admin-login-subheading">Sign in with your staff credentials.</p>
@@ -1346,6 +1358,8 @@ export default function AdminPortal() {
               Sign out
             </button>
             <a className="admin-sidebar-back-link" href="#/">← Back to app</a>
+
+            <EmergencyButton variant="sidebar" />
           </div>
         </aside>
 
@@ -2330,7 +2344,6 @@ export default function AdminPortal() {
           </div>
         </div>
       ) : null}
-      <EmergencyButton />
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { FaExclamationTriangle, FaTimes, FaSignOutAlt, FaPhone } from "react-ico
 import "./EmergencyButton.css";
 import { useTranslation } from "react-i18next";
 
-const EmergencyButton = () => {
+const EmergencyButton = ({ variant = "floating" }) => {
   const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
   const closeButtonRef = useRef(null);
@@ -88,7 +88,11 @@ const EmergencyButton = () => {
   return (
     <>
       <button
-        className="emergency-floating-button"
+        className={
+          variant === "sidebar"
+            ? "emergency-floating-button emergency-sidebar-button"
+            : "emergency-floating-button"
+        }
         onClick={openModal}
         title={t("emergency.button")}
         aria-label={t("emergency.button")}
