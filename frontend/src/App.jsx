@@ -1083,8 +1083,8 @@ function App() {
       aria-label={isDark ? t("theme.useLight") : t("theme.useDark")}
     >
       {isDark
-        ? <LightbulbOff size={20} aria-hidden style={{ color: "#FFFFFF" }} />
-        : <Lightbulb size={20} aria-hidden style={{ color: "#1A1A1A" }} />}
+        ? <LightbulbOff size={20} aria-hidden />
+        : <Lightbulb size={20} aria-hidden />}
     </button>
   );
 
@@ -2593,6 +2593,7 @@ function App() {
             embedded={true}
           />
         </Suspense>
+        <EmergencyButton />
       </SlackLayout>
     );
   }

@@ -4574,6 +4574,10 @@ a:focus-visible,
   color: #ffffff !important;
 }
 
+.app-topbar--navy .cal-topbar-extras .theme-toggle-btn svg {
+  color: #ffffff !important;
+}
+
 .app-topbar--navy .cal-topbar-extras select {
   color: #ffffff !important;
   background: rgba(255,255,255,0.12) !important;
@@ -4713,7 +4717,7 @@ a:focus-visible,
   background: #ffffff;
   border-top: 1px solid #e2e8f0;
   padding: 10px 16px;
-  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--emergency-fab-clearance-y, 80px) + env(safe-area-inset-bottom, 0px));
 }
 
 .chat-input-bar__inner {
@@ -4766,6 +4770,7 @@ a:focus-visible,
   display: flex;
   align-items: flex-end;
   gap: 10px;
+  padding-right: var(--emergency-fab-clearance-x, 150px);
 }
 
 .chat-textarea {
@@ -4886,6 +4891,10 @@ a:focus-visible,
   background: transparent;
   color: #374151;
   box-shadow: none;
+}
+
+.cal-topbar-extras .theme-toggle-btn svg {
+  color: currentColor;
 }
 
 .cal-topbar-extras .theme-toggle-btn:hover {
@@ -5177,11 +5186,15 @@ html.dark .app-topbar-mobile-logo {
     padding-left: 4px;
   }
 
-  /* Chat input bar: add bottom padding above the emergency button on mobile */
+  /* Chat input bar: keep emergency clearance on small screens */
   .chat-input-bar {
-    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(var(--emergency-fab-clearance-y, 80px) + env(safe-area-inset-bottom, 0px));
     padding-left: 12px;
     padding-right: 12px;
+  }
+
+  .chat-input-form {
+    padding-right: var(--emergency-fab-clearance-x, 130px);
   }
 
   /* Chat action bar: compact on small screens */

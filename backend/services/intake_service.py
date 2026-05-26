@@ -1593,7 +1593,7 @@ def admin_delete_intake(request: Request, intake_id: str, db: Session) -> dict:
 
 
 def get_my_sessions(intake_id: str, db: Session) -> List[Dict[str, Any]]:
-    """Return triage sessions for the authenticated user."""
+    """Return all triage sessions for the authenticated user across every intake sharing the same email."""
     iid = (intake_id or "").strip()
     if not iid:
         return []
@@ -1601,10 +1601,11 @@ def get_my_sessions(intake_id: str, db: Session) -> List[Dict[str, Any]]:
         rows = db.execute(
             text(
                 """
-                SELECT intake_id, topic, started_at, completed, level, referral_names
-                FROM triage_sessions
-                WHERE intake_id = :iid
-                ORDER BY started_at DESC
+                SELECT ts.intake_id, ts.topic, ts.started_at, ts.completed, ts.level, ts.referral_names
+                FROM triage_sessions ts
+                JOIN intakes i ON ts.intake_id = i.id
+                WHERE i.email = (SELECT email FROM intakes WHERE id = :iid)
+                ORDER BY ts.started_at DESC
                 LIMIT 50
                 """
             ),
@@ -1618,7 +1619,7 @@ def get_my_sessions(intake_id: str, db: Session) -> List[Dict[str, Any]]:
         status = "complete" if r.get("completed") else "in_progress"
         referral_names = parse_referral_names(str(r.get("referral_names") or "[]"))
         result.append({
-            "id": r.get("intake_id") or iid,
+            "id": r.get("intake_id"),
             "topic": r.get("topic") or "",
             "date": r.get("started_at") or "",
             "status": status,

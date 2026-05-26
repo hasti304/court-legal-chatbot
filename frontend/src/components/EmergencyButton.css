@@ -1,3 +1,9 @@
+/* Reserve space when a bottom chat input bar is on screen (triage, AI assistant, etc.) */
+:root {
+  --emergency-fab-clearance-y: 80px;
+  --emergency-fab-clearance-x: 150px;
+}
+
 /* Floating Emergency Button */
 .emergency-floating-button {
   position: fixed;
@@ -18,6 +24,13 @@
   z-index: 9999;
   transition: all 0.3s ease;
   animation: pulse 2s infinite;
+}
+
+/* Sit above bottom input bars instead of covering them */
+#main-content:has(.chat-input-bar) .emergency-floating-button,
+#main-content:has(.aichat-input-wrap) .emergency-floating-button,
+#main-content:has(.ai-chat-input-container) .emergency-floating-button {
+  bottom: calc(var(--emergency-fab-clearance-y) + env(safe-area-inset-bottom, 0px));
 }
 
 .emergency-floating-button:hover {
@@ -297,6 +310,12 @@
 
   .emergency-floating-button span {
     display: none;
+  }
+
+  #main-content:has(.chat-input-bar) .emergency-floating-button,
+  #main-content:has(.aichat-input-wrap) .emergency-floating-button,
+  #main-content:has(.ai-chat-input-container) .emergency-floating-button {
+    bottom: calc(var(--emergency-fab-clearance-y) + env(safe-area-inset-bottom, 0px));
   }
 
   .emergency-modal-overlay {
