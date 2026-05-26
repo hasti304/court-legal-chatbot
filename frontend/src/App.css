@@ -4584,6 +4584,11 @@ a:focus-visible,
   border-color: rgba(255,255,255,0.25) !important;
 }
 
+/* LanguagePicker uses inline styles — override on navy topbar */
+.app-topbar--navy .cal-topbar-extras > div span {
+  color: #ffffff !important;
+}
+
 /* ──────────────────────────────────────────────────────────
    Slack chat workspace — WhatsApp-style flex layout
    ────────────────────────────────────────────────────────── */

@@ -1093,7 +1093,7 @@ function App() {
       <span className="hidden md:inline-flex items-center">
         <ThemeToggle />
       </span>
-      <LanguagePicker variant={lpVariant} noMargin />
+      <LanguagePicker variant="dark" labelOnDarkBackground noMargin />
     </div>
   );
 
@@ -3607,6 +3607,7 @@ function App() {
     onSignOut: () => { clearSavedIntake(); setView("login"); },
     onBack: () => {},
     topbarExtras: <TopbarActions />,
+    topbarClassName: "app-topbar--navy",
   };
 
   if (sidebarSection === "cases") {
@@ -3695,6 +3696,7 @@ function App() {
         }}
         onBack={() => {}}
         topbarExtras={<TopbarActions />}
+        topbarClassName="app-topbar--navy"
       >
         <div className="home-cover">
           <div className="home-cover__inner">
