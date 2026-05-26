@@ -3700,20 +3700,6 @@ function App() {
       >
         <div className="home-cover">
           <div className="home-cover__inner">
-
-            {/* Language selector — keep exactly as-is, top-right */}
-            <div className="home-cover__lang">
-              <select
-                className="px-4 py-2 border-2 border-[#e2e8f0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e293b]"
-                style={{ color: "#1e293b" }}
-                value={normalizedLang}
-                onChange={(e) => setAppLanguage(e.target.value)}
-              >
-                <option value="en">Language / Idioma: English</option>
-                <option value="es">Español</option>
-              </select>
-            </div>
-
             {/* Section 1: Hero */}
             <section className="home-cover__hero">
               <h1 className="home-cover__headline">
