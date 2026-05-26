@@ -41,7 +41,7 @@ import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
 import calLogo from "./assets/cal_logo.png";
-import { Eye, EyeOff, Send, RotateCcw, Loader2, ArrowLeft, ShieldAlert, Trash2, Volume2, VolumeX, Check, Shield, Lock, Clock, ChevronRight, Lightbulb, LightbulbOff } from "lucide-react";
+import { Eye, EyeOff, Send, RotateCcw, Loader2, ArrowLeft, ShieldAlert, Trash2, Volume2, VolumeX, Check, Shield, Lock, Clock, ChevronRight, Sun, Moon } from "lucide-react";
 
 import { useTranslation } from "react-i18next";
 import i18n, { setAppLanguage, getNormalizedLanguage } from "./i18n";
@@ -1083,8 +1083,8 @@ function App() {
       aria-label={isDark ? t("theme.useLight") : t("theme.useDark")}
     >
       {isDark
-        ? <LightbulbOff size={20} aria-hidden />
-        : <Lightbulb size={20} aria-hidden />}
+        ? <Sun size={20} aria-hidden />
+        : <Moon size={20} aria-hidden />}
     </button>
   );
 
