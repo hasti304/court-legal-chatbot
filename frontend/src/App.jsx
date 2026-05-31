@@ -41,7 +41,7 @@ import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
 import calLogo from "./assets/cal_logo.png";
-import { Eye, EyeOff, Send, RotateCcw, Loader2, ArrowLeft, ShieldAlert, Trash2, Volume2, VolumeX, Check, Shield, Lock, Clock, ChevronRight, Sun, Moon } from "lucide-react";
+import { Eye, EyeOff, Send, RotateCcw, Loader2, ArrowLeft, ShieldAlert, Trash2, Volume2, VolumeX, Check, Shield, Lock, Clock, ChevronRight, Sun, Moon, Users, GraduationCap, Home, Scale, Baby } from "lucide-react";
 
 import { useTranslation } from "react-i18next";
 import i18n, { setAppLanguage, getNormalizedLanguage } from "./i18n";
@@ -1154,6 +1154,19 @@ function App() {
       return clean.replace(/_/g, " ");
     }
     return clean;
+  };
+
+  const TOPIC_OPTION_ICONS = {
+    child_support: Users,
+    education: GraduationCap,
+    housing: Home,
+    divorce: Scale,
+    custody: Baby,
+  };
+
+  const getOptionIcon = (optionCode) => {
+    const normalized = String(optionCode || "").trim().toLowerCase();
+    return TOPIC_OPTION_ICONS[normalized] || null;
   };
 
   const renderBotText = (msg) => {
@@ -3973,20 +3986,27 @@ function App() {
                 />
 
                 {msg.role === "bot" && msg.options?.length > 0 && (
-                  <div className="flex flex-wrap gap-2 ml-11 mt-3 mb-1" role="group" aria-label="Quick replies">
-                    {msg.options.map((opt, i) => (
-                      <Button
-                        key={i}
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="rounded-full border-2 border-[#1e293b] text-[#1e293b] text-sm font-normal hover:bg-[#1e293b] hover:text-white transition-colors min-h-[44px] py-2 px-4"
-                        onClick={() => handleOptionClick(opt)}
-                        disabled={loading}
-                      >
-                        {safeOptionLabel(opt)}
-                      </Button>
-                    ))}
+                  <div className="triage-option-list ml-11 mt-3 mb-1" role="group" aria-label="Quick replies">
+                    {msg.options.map((opt, i) => {
+                      const OptionIcon = getOptionIcon(opt);
+                      const isFirst = i === 0;
+                      const isLast = i === msg.options.length - 1;
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          className={`triage-option-row${isFirst ? " triage-option-row--first" : ""}${isLast ? " triage-option-row--last" : ""}`}
+                          onClick={() => handleOptionClick(opt)}
+                          disabled={loading}
+                        >
+                          <span className="triage-option-row__icon">
+                            {OptionIcon ? <OptionIcon className="w-4 h-4" aria-hidden /> : null}
+                          </span>
+                          <span className="triage-option-row__label">{safeOptionLabel(opt)}</span>
+                          <ChevronRight className="triage-option-row__chevron w-4 h-4" aria-hidden />
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
 

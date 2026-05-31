@@ -15,6 +15,8 @@ function formatTs(ts) {
 
 export default function ChatMessage({ role, content, onSpeak, speechSupported, ts }) {
   const timeStr = formatTs(ts);
+  const showSpeakButton =
+    speechSupported && onSpeak && typeof content === "string" && content.trim().length > 0;
 
   if (role === "bot") {
     return (
@@ -27,24 +29,23 @@ export default function ChatMessage({ role, content, onSpeak, speechSupported, t
         </div>
         <div className="max-w-[80%] xl:max-w-2xl min-w-0">
           <div
-            className="bg-white border border-[#e2e8f0] rounded-2xl rounded-tl-none px-4 py-3 text-sm leading-relaxed shadow-sm [&_p]:m-0 [&_p+p]:mt-2"
+            className={`relative bg-white border border-[#e2e8f0] rounded-2xl rounded-tl-none px-4 py-3 text-sm leading-relaxed shadow-sm [&_p]:m-0 [&_p+p]:mt-2${showSpeakButton ? " pr-10 pb-9" : ""}`}
             style={{ color: "#1e293b" }}
-            dangerouslySetInnerHTML={{ __html: formatMessage(content) }}
-          />
+          >
+            <div dangerouslySetInnerHTML={{ __html: formatMessage(content) }} />
+            {showSpeakButton && (
+              <button
+                type="button"
+                onClick={() => onSpeak(content)}
+                className="absolute bottom-2 right-2 inline-flex items-center justify-center w-7 h-7 rounded-md text-[#94a3b8] hover:text-[#1B2A4A] hover:bg-[#f0f0f0] transition-colors"
+                aria-label="Read aloud"
+              >
+                <Volume2 className="w-4 h-4" aria-hidden />
+              </button>
+            )}
+          </div>
           {timeStr && (
             <span className="block mt-1 text-[10px] px-1" style={{ color: "#94a3b8" }}>{timeStr}</span>
-          )}
-          {speechSupported && onSpeak && typeof content === "string" && (
-            <button
-              type="button"
-              onClick={() => onSpeak(content)}
-              className="mt-1 flex items-center gap-1.5 text-xs transition-colors px-1"
-              style={{ color: "#94a3b8" }}
-              aria-label="Read aloud"
-            >
-              <Volume2 className="w-3 h-3" aria-hidden />
-              Read aloud
-            </button>
           )}
         </div>
       </div>

@@ -4740,6 +4740,99 @@ a:focus-visible,
   color: #6B7280;
 }
 
+/* ── Triage quick-select option list ── */
+.triage-option-list {
+  display: flex;
+  flex-direction: column;
+  max-width: min(480px, calc(100% - 2.75rem));
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fafafa;
+}
+
+.triage-option-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 12px 16px;
+  background: #fafafa;
+  border: none;
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.15s ease;
+}
+
+.triage-option-row--first {
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+.triage-option-row--last {
+  border-bottom: none;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+.triage-option-row:hover:not(:disabled) {
+  background: #f0f0f0;
+}
+
+.triage-option-row:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.triage-option-row__icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  color: #1B2A4A;
+}
+
+.triage-option-row__label {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+  color: #1B2A4A;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.triage-option-row__chevron {
+  flex-shrink: 0;
+  color: #94a3b8;
+}
+
+.dark .triage-option-list {
+  background: #1A1D27;
+  border-color: #2A2D3A;
+}
+
+.dark .triage-option-row {
+  background: #1A1D27;
+  border-bottom-color: #2A2D3A;
+}
+
+.dark .triage-option-row:hover:not(:disabled) {
+  background: #2A2D3A;
+}
+
+.dark .triage-option-row__icon,
+.dark .triage-option-row__label {
+  color: #F4F5F7;
+}
+
+.dark .triage-option-row__chevron {
+  color: #9CA3AF;
+}
+
 /* ── Chat input bar — WhatsApp bottom bar ── */
 .chat-input-bar {
   flex-shrink: 0;
@@ -5210,9 +5303,14 @@ html.dark .app-topbar-mobile-logo {
   }
 
   /* Remove ml-11 indent on mobile for options to give more space */
-  .flex.flex-wrap.gap-2.ml-11 {
+  .flex.flex-wrap.gap-2.ml-11,
+  .triage-option-list.ml-11 {
     margin-left: 0;
     padding-left: 4px;
+  }
+
+  .triage-option-list {
+    max-width: 100%;
   }
 
   /* Chat input bar: keep emergency clearance on small screens */
