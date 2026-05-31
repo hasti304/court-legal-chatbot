@@ -23,6 +23,7 @@ import {
   FaPhone,
   FaEnvelope,
   FaExternalLinkAlt,
+  FaChevronRight,
 } from "react-icons/fa";
 import { getApiBaseUrl, rewriteLegacyRenderFetchUrl } from "../utils/apiBase";
 import "./AIChat.css";
@@ -500,22 +501,34 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
               <div key={index} className="aichat-msg-row aichat-msg-row--ai">
                 <div className="aichat-avatar" aria-hidden>AI</div>
                 <div className="aichat-msg-body">
-                  <div
-                    className="aichat-bubble aichat-bubble--ai prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={renderMessageContent(message.content)}
-                  />
+                  <div className="aichat-bubble aichat-bubble--ai prose prose-sm max-w-none">
+                    <div dangerouslySetInnerHTML={renderMessageContent(message.content)} />
+                    {speechSupported && (
+                      <button
+                        type="button"
+                        className="aichat-bubble-speak-btn"
+                        onClick={() => speakText(message.content)}
+                        title="Read aloud"
+                        aria-label="Read aloud"
+                      >
+                        <FaVolumeUp />
+                      </button>
+                    )}
+                  </div>
                   {message.ts && <span className="aichat-msg-ts">{formatTime(message.ts)}</span>}
                   {index === 0 && !hasUserMessages && (
-                    <div className="aichat-quick-replies" role="group" aria-label="Choose a topic">
+                    <div className="aichat-topic-list" role="group" aria-label="Choose a topic">
                       {TOPIC_CARDS.map((card) => (
                         <button
                           key={card.id}
                           type="button"
-                          className="aichat-quick-reply-pill"
+                          className="aichat-topic-row"
                           onClick={() => sendQuickMessage(card.prompt)}
                           disabled={isBusy}
                         >
-                          {card.label}
+                          <span className="aichat-topic-icon">{card.icon}</span>
+                          <span className="aichat-topic-label">{card.label}</span>
+                          <FaChevronRight className="aichat-topic-chevron" />
                         </button>
                       ))}
                     </div>
@@ -527,11 +540,6 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
                         ? <><FaCheck style={{ color: "#166534" }} /> Copied</>
                         : <><FaCopy /> Copy</>}
                     </button>
-                    {speechSupported && (
-                      <button type="button" className="aichat-action-btn" onClick={() => speakText(message.content)} title="Read aloud">
-                        <FaVolumeUp /> Read
-                      </button>
-                    )}
                     {isLastAssistant && hasUserMessages && !isBusy && (
                       <button type="button" className="aichat-action-btn" onClick={regenerateAnswer} title="Regenerate answer">
                         <FaRedo /> Regenerate
