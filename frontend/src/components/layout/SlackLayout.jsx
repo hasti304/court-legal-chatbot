@@ -25,6 +25,9 @@ export default function SlackLayout({
   onBack,
   topbarExtras,
   topbarClassName = "",
+  notifications,
+  onMarkNotificationRead,
+  onMarkAllNotificationsRead,
   children,
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -88,6 +91,9 @@ export default function SlackLayout({
           onStartAIAssistant={onStartAIAssistant}
           onSignOut={handleSignOut}
           onCloseMobile={() => setMobileNavOpen(false)}
+          notifications={notifications}
+          onMarkNotificationRead={onMarkNotificationRead}
+          onMarkAllNotificationsRead={onMarkAllNotificationsRead}
         />
       </div>
 

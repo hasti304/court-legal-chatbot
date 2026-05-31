@@ -58,6 +58,37 @@ def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+VALID_ANALYTICS_PERIODS = frozenset({"today", "week", "month"})
+
+
+def analytics_period_start_iso(period: Optional[str]) -> Optional[str]:
+    """Return UTC ISO timestamp for the start of today/week/month, or None if invalid."""
+    p = (period or "").strip().lower()
+    if p not in VALID_ANALYTICS_PERIODS:
+        return None
+    now = datetime.now(timezone.utc)
+    if p == "today":
+        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif p == "week":
+        start = now - timedelta(days=7)
+    else:
+        start = now - timedelta(days=30)
+    return start.isoformat()
+
+
+def analytics_period_start_datetime(period: Optional[str]) -> Optional[datetime]:
+    iso = analytics_period_start_iso(period)
+    if not iso:
+        return None
+    return datetime.fromisoformat(iso)
+
+
+def _period_where(column: str, period_start: Optional[str]) -> tuple[str, dict]:
+    if not period_start:
+        return "", {}
+    return f" WHERE {column} >= :period_start", {"period_start": period_start}
+
+
 def normalize_us_phone(phone: str) -> str:
     digits = re.sub(r"[^0-9]", "", phone or "")
     if len(digits) == 11 and digits.startswith("1"):
@@ -293,6 +324,28 @@ CREATE INDEX IF NOT EXISTS idx_intake_progress_sessions_intake_id
 ON intake_progress_sessions (intake_id);
 """
 
+_CREATE_NOTIFICATIONS_SQL = """
+CREATE TABLE IF NOT EXISTS notifications (
+  id TEXT PRIMARY KEY,
+  intake_id TEXT NOT NULL,
+  message TEXT NOT NULL,
+  is_read BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (intake_id) REFERENCES intakes(id)
+);
+"""
+
+_CREATE_NOTIFICATIONS_INDEX_SQL = """
+CREATE INDEX IF NOT EXISTS idx_notifications_intake_id_created_at
+ON notifications (intake_id, created_at);
+"""
+
+_NOTIFICATION_MESSAGES = {
+    "accepted": "Your case has been reviewed and accepted. Our team will be in touch soon.",
+    "rejected": "Your case status has been updated. Please contact us for more information.",
+    "pending": "Your case has been moved back to pending review.",
+}
+
 
 def _apply_triage_sessions_ddl(conn) -> None:
     conn.execute(text(_CREATE_TRIAGE_SESSIONS_SQL))
@@ -417,6 +470,7 @@ def ensure_tables():
         _migrate_triage_sessions_problem_summary,
         _migrate_intakes_is_verified,
         _migrate_intake_submissions_case_status,
+        _migrate_intakes_admin_note,
     ]:
         try:
             with engine.begin() as conn:
@@ -438,6 +492,14 @@ def ensure_tables():
             conn.execute(text(_CREATE_INTAKE_PROGRESS_SESSIONS_INDEX_SQL))
     except SQLAlchemyError as e:
         print(f"Warning: ensure_tables (intake_progress_sessions) failed: {e}")
+
+    # Phase 7: notifications (in-app status change alerts)
+    try:
+        with engine.begin() as conn:
+            conn.execute(text(_CREATE_NOTIFICATIONS_SQL))
+            conn.execute(text(_CREATE_NOTIFICATIONS_INDEX_SQL))
+    except SQLAlchemyError as e:
+        print(f"Warning: ensure_tables (notifications) failed: {e}")
 
 
 def _migrate_intakes_admin_status(conn) -> None:
@@ -528,6 +590,20 @@ def _migrate_intake_submissions_case_status(conn) -> None:
     else:
         conn.execute(text("ALTER TABLE intake_submissions ADD COLUMN IF NOT EXISTS case_status VARCHAR(50) NOT NULL DEFAULT 'Submitted'"))
         conn.execute(text("ALTER TABLE intake_submissions ADD COLUMN IF NOT EXISTS status_updated_at TIMESTAMP WITH TIME ZONE"))
+
+
+def _migrate_intakes_admin_note(conn) -> None:
+    """Add admin_note for per-intake staff notes stored in the database."""
+    try:
+        dialect = conn.engine.dialect.name
+    except Exception:
+        dialect = ""
+    if dialect == "sqlite":
+        cols = {r[1] for r in conn.execute(text("PRAGMA table_info(intakes)")).fetchall()}
+        if "admin_note" not in cols:
+            conn.execute(text("ALTER TABLE intakes ADD COLUMN admin_note TEXT"))
+    else:
+        conn.execute(text("ALTER TABLE intakes ADD COLUMN IF NOT EXISTS admin_note TEXT"))
 
 
 def ensure_triage_session_row(conn, intake_id: str):
@@ -1150,6 +1226,7 @@ def list_intakes_for_admin(request: Request, db: Session):
     has_admin_status = _column_exists("intakes", "admin_status")
     has_login_count = _column_exists("intakes", "login_count")
     has_problem_summary = has_triage_sessions and _column_exists("triage_sessions", "problem_summary")
+    has_admin_note = _column_exists("intakes", "admin_note")
 
     admin_status_expr = (
         "COALESCE(NULLIF(TRIM(i.admin_status), ''), 'pending') AS admin_status"
@@ -1158,6 +1235,7 @@ def list_intakes_for_admin(request: Request, db: Session):
     )
     login_count_expr = "COALESCE(i.login_count, 0) AS login_count" if has_login_count else "0 AS login_count"
     problem_summary_expr = "ts.problem_summary AS problem_summary" if has_problem_summary else "NULL AS problem_summary"
+    admin_note_expr = "i.admin_note AS admin_note" if has_admin_note else "NULL AS admin_note"
     issue_topic_expr = "ts.topic AS issue_topic" if has_triage_sessions else "NULL AS issue_topic"
     consent_expr = (
         "CAST(i.consent AS INTEGER) AS consent"
@@ -1219,6 +1297,7 @@ def list_intakes_for_admin(request: Request, db: Session):
                   {login_count_expr},
                   {issue_topic_expr},
                   {problem_summary_expr},
+                  {admin_note_expr},
                   {next_deadline_date_expr}
                   {next_deadline_type_expr}
                   {deadline_count_expr}
@@ -1253,6 +1332,7 @@ def list_intakes_for_admin(request: Request, db: Session):
                 "login_count": int(getattr(r, "login_count", 0) or 0),
                 "issue_topic": None,
                 "problem_summary": None,
+                "admin_note": getattr(r, "admin_note", None),
                 "next_deadline_date": None,
                 "next_deadline_type": None,
                 "deadline_count": 0,
@@ -1446,6 +1526,27 @@ def send_intake_status_notification_email(
     return send_transactional_email(email, subject, text_body, html_body)
 
 
+def create_notification(intake_id: str, message: str) -> None:
+    if not engine:
+        return
+    try:
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "INSERT INTO notifications (id, intake_id, message, is_read, created_at) "
+                    "VALUES (:id, :intake_id, :message, FALSE, :created_at)"
+                ),
+                {
+                    "id": os.urandom(16).hex(),
+                    "intake_id": intake_id,
+                    "message": message,
+                    "created_at": utc_now_iso(),
+                },
+            )
+    except Exception as e:
+        print(f"Warning: failed to create notification for intake {intake_id}: {e}")
+
+
 def set_intake_admin_status(
     request: Request,
     intake_id: str,
@@ -1475,6 +1576,9 @@ def set_intake_admin_status(
             status=st,
             note=notification_note or "",
         )
+    msg = _NOTIFICATION_MESSAGES.get(st, "")
+    if msg:
+        create_notification(row.id, msg)
     return {
         "id": row.id,
         "admin_status": row.admin_status,
@@ -1483,6 +1587,23 @@ def set_intake_admin_status(
         "email": row.email,
         "email_sent": email_sent,
     }
+
+
+def set_intake_admin_note(request: Request, intake_id: str, note: str, db: Session) -> dict:
+    require_admin_access(request)
+    iid = (intake_id or "").strip()
+    if not iid:
+        raise HTTPException(status_code=400, detail="Invalid intake id")
+    row = db.query(Intake).filter(Intake.id == iid).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Intake not found")
+    row.admin_note = (note or "").strip() or None
+    try:
+        db.commit()
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    return {"ok": True, "id": iid}
 
 
 def send_intake_staff_email(request: Request, intake_id: str, subject: str, body: str, db: Session) -> dict:
@@ -1579,6 +1700,7 @@ def admin_delete_intake(request: Request, intake_id: str, db: Session) -> dict:
         db.execute(text("DELETE FROM triage_sessions WHERE intake_id = :iid"), {"iid": iid})
         db.execute(text("DELETE FROM intake_deadlines WHERE intake_id = :iid"), {"iid": iid})
         db.execute(text("DELETE FROM intake_progress_sessions WHERE intake_id = :iid"), {"iid": iid})
+        db.execute(text("DELETE FROM notifications WHERE intake_id = :iid"), {"iid": iid})
         if email:
             db.query(MagicLinkToken).filter(MagicLinkToken.email == email).delete(synchronize_session=False)
             db.query(PasswordResetToken).filter(PasswordResetToken.email == email).delete(synchronize_session=False)
@@ -1822,64 +1944,76 @@ def export_intakes_csv(request: Request):
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 
-def _admin_stats_overview_sql(dialect_name: str) -> str:
+def _admin_stats_overview_sql(dialect_name: str, period_start: Optional[str] = None) -> tuple[str, dict]:
     """FILTER aggregate is PostgreSQL-only; use CASE sums on SQLite."""
+    where, params = _period_where("started_at", period_start)
     if dialect_name == "sqlite":
-        return """
+        return (
+            f"""
                 SELECT
                   COUNT(*) AS total_sessions,
                   SUM(CASE WHEN completed THEN 1 ELSE 0 END) AS completed_sessions,
                   SUM(CASE WHEN ai_used THEN 1 ELSE 0 END) AS ai_used_sessions,
                   SUM(CASE WHEN emergency = 'yes' THEN 1 ELSE 0 END) AS emergency_sessions
                 FROM triage_sessions
-            """
-    return """
+                {where}
+            """,
+            params,
+        )
+    return (
+        f"""
                 SELECT
                   COUNT(*) AS total_sessions,
                   COUNT(*) FILTER (WHERE completed = TRUE) AS completed_sessions,
                   COUNT(*) FILTER (WHERE ai_used = TRUE) AS ai_used_sessions,
                   COUNT(*) FILTER (WHERE emergency = 'yes') AS emergency_sessions
                 FROM triage_sessions
-            """
+                {where}
+            """,
+        params,
+    )
 
 
-def admin_stats(request: Request):
+def admin_stats(request: Request, period: Optional[str] = None):
     if not engine:
         raise HTTPException(status_code=503, detail="Database not configured")
     require_admin_access(request)
+    period_start = analytics_period_start_iso(period)
     try:
         ensure_tables()
         dialect = getattr(engine.dialect, "name", "") or "sqlite"
         with engine.begin() as conn:
-            overview = conn.execute(text(_admin_stats_overview_sql(dialect))).mappings().first()
+            overview_sql, overview_params = _admin_stats_overview_sql(dialect, period_start)
+            overview = conn.execute(text(overview_sql), overview_params).mappings().first()
 
-            top_topics = conn.execute(text("""
+            ts_where, ts_params = _period_where("started_at", period_start)
+            top_topics = conn.execute(text(f"""
                 SELECT topic, COUNT(*) AS count
                 FROM triage_sessions
-                WHERE topic IS NOT NULL AND topic <> ''
+                {ts_where}{" AND" if ts_where else " WHERE"} topic IS NOT NULL AND topic <> ''
                 GROUP BY topic
                 ORDER BY count DESC, topic ASC
                 LIMIT 10
-            """)).mappings().all()
+            """), ts_params).mappings().all()
 
-            top_zips = conn.execute(text("""
+            top_zips = conn.execute(text(f"""
                 SELECT zip_code, COUNT(*) AS count
                 FROM triage_sessions
-                WHERE zip_code IS NOT NULL AND zip_code <> ''
+                {ts_where}{" AND" if ts_where else " WHERE"} zip_code IS NOT NULL AND zip_code <> ''
                 GROUP BY zip_code
                 ORDER BY count DESC, zip_code ASC
                 LIMIT 5
-            """)).mappings().all()
+            """), ts_params).mappings().all()
 
-            level_breakdown = conn.execute(text("""
+            level_breakdown = conn.execute(text(f"""
                 SELECT level, COUNT(*) AS count
                 FROM triage_sessions
-                WHERE level IS NOT NULL
+                {ts_where}{" AND" if ts_where else " WHERE"} level IS NOT NULL
                 GROUP BY level
                 ORDER BY level ASC
-            """)).mappings().all()
+            """), ts_params).mappings().all()
 
-            recent_sessions = conn.execute(text("""
+            recent_sessions = conn.execute(text(f"""
                 SELECT
                   intake_id,
                   started_at,
@@ -1896,75 +2030,77 @@ def admin_stats(request: Request):
                   restart_count,
                   back_count
                 FROM triage_sessions
+                {ts_where}
                 ORDER BY started_at DESC
                 LIMIT 20
-            """)).mappings().all()
+            """), ts_params).mappings().all()
 
-            feedback = conn.execute(text("""
+            ev_where, ev_params = _period_where("created_at", period_start)
+            feedback = conn.execute(text(f"""
                 SELECT
                   SUM(CASE WHEN event_value = 'helpful_yes' THEN 1 ELSE 0 END) AS helpful_yes,
                   SUM(CASE WHEN event_value = 'helpful_no' THEN 1 ELSE 0 END) AS helpful_no,
                   MAX(created_at) AS most_recent_feedback_date
                 FROM intake_events
-                WHERE event_type = 'triage_feedback'
-            """)).mappings().first()
+                {ev_where}{" AND" if ev_where else " WHERE"} event_type = 'triage_feedback'
+            """), ev_params).mappings().first()
 
             # Cross-cutting feature analytics (guarded for partially migrated environments).
             try:
                 timeline_usage = conn.execute(
-                    text(
-                        """
+                    text(f"""
                         SELECT
                           SUM(CASE WHEN event_type = 'timeline_step_viewed' THEN 1 ELSE 0 END) AS step_views,
                           SUM(CASE WHEN event_type = 'timeline_checklist_toggled' THEN 1 ELSE 0 END) AS checklist_toggles
                         FROM intake_events
-                        """
-                    )
+                        {ev_where}
+                    """),
+                    ev_params,
                 ).mappings().first()
             except Exception:
                 timeline_usage = {"step_views": 0, "checklist_toggles": 0}
 
             try:
+                dl_where, dl_params = _period_where("created_at", period_start)
                 deadline_stats = conn.execute(
-                    text(
-                        """
+                    text(f"""
                         SELECT
                           COUNT(*) AS total_deadlines,
                           SUM(CASE WHEN due_date < :today THEN 1 ELSE 0 END) AS overdue_deadlines
                         FROM intake_deadlines
-                        """
-                    ),
-                    {"today": datetime.now(timezone.utc).date().isoformat()},
+                        {dl_where}
+                    """),
+                    {**dl_params, "today": datetime.now(timezone.utc).date().isoformat()},
                 ).mappings().first()
             except Exception:
                 deadline_stats = {"total_deadlines": 0, "overdue_deadlines": 0}
 
             try:
+                ef_where, ef_params = _period_where("uploaded_at", period_start)
                 evidence_stats = conn.execute(
-                    text(
-                        """
+                    text(f"""
                         SELECT
                           COUNT(*) AS total_evidence_files,
                           SUM(CASE WHEN COALESCE(TRIM(ai_summary), '') <> '' THEN 1 ELSE 0 END) AS ai_summary_ready
                         FROM evidence_files
-                        """
-                    )
+                        {ef_where}
+                    """),
+                    ef_params,
                 ).mappings().first()
             except Exception:
                 evidence_stats = {"total_evidence_files": 0, "ai_summary_ready": 0}
 
             try:
                 feedback_comments = conn.execute(
-                    text(
-                        """
+                    text(f"""
                         SELECT event_value AS comment, created_at
                         FROM intake_events
-                        WHERE event_type = 'feedback_comment'
+                        {ev_where}{" AND" if ev_where else " WHERE"} event_type = 'feedback_comment'
                           AND COALESCE(TRIM(event_value), '') <> ''
                         ORDER BY created_at DESC
                         LIMIT 5
-                        """
-                    )
+                    """),
+                    ev_params,
                 ).mappings().all()
             except Exception:
                 feedback_comments = []
@@ -2020,17 +2156,31 @@ def admin_stats(request: Request):
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 
-def basic_analytics(request: Request, db: Session):
+def basic_analytics(request: Request, db: Session, period: Optional[str] = None):
     require_admin_access(request)
+    period_start = analytics_period_start_iso(period)
+    period_dt = analytics_period_start_datetime(period)
     try:
-        total_users = int(db.query(func.count(Intake.id)).scalar() or 0)
-        submissions = int(db.query(func.count(IntakeSubmission.id)).scalar() or 0)
+        intake_q = db.query(func.count(Intake.id))
+        if period_start:
+            intake_q = intake_q.filter(Intake.created_at >= period_start)
+        total_users = int(intake_q.scalar() or 0)
 
-        top_issue_row = (
+        submissions_q = db.query(func.count(IntakeSubmission.id))
+        if period_dt:
+            submissions_q = submissions_q.filter(IntakeSubmission.timestamp >= period_dt)
+        submissions = int(submissions_q.scalar() or 0)
+
+        top_issue_q = (
             db.query(
                 IntakeSubmission.issue_type.label("issue_type"),
                 func.count(IntakeSubmission.id).label("count"),
             )
+        )
+        if period_dt:
+            top_issue_q = top_issue_q.filter(IntakeSubmission.timestamp >= period_dt)
+        top_issue_row = (
+            top_issue_q
             .group_by(IntakeSubmission.issue_type)
             .order_by(desc("count"), IntakeSubmission.issue_type.asc())
             .first()

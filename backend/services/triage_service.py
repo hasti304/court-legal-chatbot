@@ -374,19 +374,21 @@ def normalize_step(step: Optional[str]) -> str:
 def get_step_progress(step: Optional[str]) -> dict:
     step = normalize_step(step)
     steps_map = {
-        "topic_selection": {"current": 1, "total": 6, "label_key": "progress.selectTopic"},
-        "emergency_check": {"current": 2, "total": 6, "label_key": "progress.emergencyCheck"},
-        "court_status": {"current": 3, "total": 6, "label_key": "progress.courtStatus"},
-        "income_check": {"current": 4, "total": 6, "label_key": "progress.incomeLevel"},
-        "problem_summary": {"current": 5, "total": 6, "label_key": "progress.problemSummary"},
-        "summary_topic_confirm": {"current": 5, "total": 6, "label_key": "progress.problemSummary"},
-        "topic_reconfirm": {"current": 6, "total": 6, "label_key": "progress.yourLocation"},
-        "get_zip": {"current": 6, "total": 6, "label_key": "progress.yourLocation"},
-        "complete": {"current": 6, "total": 6, "label_key": "progress.resourcesReady"},
-        "resource_selected": {"current": 6, "total": 6, "label_key": "progress.resourcesReady"},
-        "continue_check": {"current": 6, "total": 6, "label_key": "progress.resourcesReady"},
+        "topic_selection": {"current": 1, "total": 8, "label_key": "progress.selectTopic"},
+        "emergency_check": {"current": 2, "total": 8, "label_key": "progress.emergencyCheck"},
+        "court_status": {"current": 3, "total": 8, "label_key": "progress.courtStatus"},
+        "income_check": {"current": 4, "total": 8, "label_key": "progress.incomeLevel"},
+        "timeline_check": {"current": 5, "total": 8, "label_key": "progress.timelineCheck"},
+        "documents_check": {"current": 6, "total": 8, "label_key": "progress.documentsCheck"},
+        "problem_summary": {"current": 7, "total": 8, "label_key": "progress.problemSummary"},
+        "summary_topic_confirm": {"current": 7, "total": 8, "label_key": "progress.problemSummary"},
+        "topic_reconfirm": {"current": 8, "total": 8, "label_key": "progress.yourLocation"},
+        "get_zip": {"current": 8, "total": 8, "label_key": "progress.yourLocation"},
+        "complete": {"current": 8, "total": 8, "label_key": "progress.resourcesReady"},
+        "resource_selected": {"current": 8, "total": 8, "label_key": "progress.resourcesReady"},
+        "continue_check": {"current": 8, "total": 8, "label_key": "progress.resourcesReady"},
     }
-    return steps_map.get(step, {"current": 1, "total": 6, "label_key": "progress.defaultLabel"})
+    return steps_map.get(step, {"current": 1, "total": 8, "label_key": "progress.defaultLabel"})
 
 
 def _score_band(score: int) -> str:
@@ -408,6 +410,8 @@ def build_decision_support(state: dict) -> dict:
     in_court = bool(state.get("in_court"))
     income = str(state.get("income") or "yes").lower()
     summary = str(state.get("problem_summary") or "").strip().lower()
+    timeline = str(state.get("timeline") or "").lower()
+    has_documents = str(state.get("has_documents") or "").lower()
 
     urgency = 10
     urgency_reasons: List[str] = []
@@ -425,6 +429,14 @@ def build_decision_support(state: dict) -> dict:
     if any(k in summary for k in ("deadline", "hearing", "court date", "eviction", "notice")):
         urgency += 10
         urgency_reasons.append("Your summary mentions deadline-sensitive events.")
+
+    if timeline == "just_started" and has_documents == "yes":
+        urgency += 15
+        urgency_reasons.append("Issue is recent with official documents, suggesting active proceedings.")
+
+    if timeline == "over_a_year":
+        urgency -= 10
+        urgency_reasons.append("Issue has been ongoing for over a year, reducing immediate urgency.")
 
     urgency = max(0, min(100, urgency))
 
@@ -447,6 +459,10 @@ def build_decision_support(state: dict) -> dict:
     if len(summary) >= 300:
         complexity += 10
         complexity_reasons.append("A longer case summary suggests a multi-factor situation.")
+
+    if has_documents == "yes":
+        complexity += 10
+        complexity_reasons.append("Official documents indicate formal legal proceedings are involved.")
 
     complexity = max(0, min(100, complexity))
 
@@ -639,11 +655,51 @@ def run_chat_flow(request, referral_map: dict):
                 "conversation_state": state,
                 "progress": get_step_progress(state.get("step")),
             }
-        state["step"] = "problem_summary"
+        state["step"] = "timeline_check"
         return {
-            "response_key": "triage.summary.prompt",
+            "response_key": "triage.timeline.prompt",
             "response_params": {},
-            "options": [],
+            "options": ["just_started", "weeks", "months", "over_a_year"],
+            "conversation_state": state,
+            "progress": get_step_progress(state.get("step")),
+        }
+
+    if state.get("step") == "timeline_check":
+        if message in ["just_started", "weeks", "months", "over_a_year"]:
+            state["timeline"] = message
+            log_intake_event(request.intake_id, "timeline_answer", message)
+            state["step"] = "documents_check"
+            return {
+                "response_key": "triage.documents.prompt",
+                "response_params": {},
+                "options": ["yes", "no", "not_sure"],
+                "conversation_state": state,
+                "progress": get_step_progress(state.get("step")),
+            }
+        return {
+            "response_key": "triage.timeline.invalid",
+            "response_params": {},
+            "options": ["just_started", "weeks", "months", "over_a_year"],
+            "conversation_state": state,
+            "progress": get_step_progress(state.get("step")),
+        }
+
+    if state.get("step") == "documents_check":
+        if message in ["yes", "no", "not_sure"]:
+            state["has_documents"] = message
+            log_intake_event(request.intake_id, "documents_answer", message)
+            state["step"] = "problem_summary"
+            return {
+                "response_key": "triage.summary.prompt",
+                "response_params": {},
+                "options": [],
+                "conversation_state": state,
+                "progress": get_step_progress(state.get("step")),
+            }
+        return {
+            "response_key": "triage.documents.invalid",
+            "response_params": {},
+            "options": ["yes", "no", "not_sure"],
             "conversation_state": state,
             "progress": get_step_progress(state.get("step")),
         }

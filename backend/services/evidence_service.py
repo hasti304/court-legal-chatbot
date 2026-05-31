@@ -236,6 +236,62 @@ def save_evidence_record(
     return evidence_id
 
 
+def assert_client_intake_access(auth_intake_id: str, target_intake_id: str) -> None:
+    if not engine:
+        raise HTTPException(status_code=503, detail="Database not configured")
+    auth = (auth_intake_id or "").strip()
+    target = (target_intake_id or "").strip()
+    if not auth:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    if not target:
+        raise HTTPException(status_code=400, detail="intake_id is required")
+    with engine.begin() as conn:
+        row = conn.execute(
+            text(
+                """
+                SELECT 1
+                FROM intakes i1
+                JOIN intakes i2 ON i1.email = i2.email
+                WHERE i1.id = :auth AND i2.id = :target
+                """
+            ),
+            {"auth": auth, "target": target},
+        ).first()
+    if not row:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+
+def get_evidence_list_for_client(auth_intake_id: str, intake_id: str) -> Dict[str, Any]:
+    assert_client_intake_access(auth_intake_id, intake_id)
+    if not engine:
+        raise HTTPException(status_code=503, detail="Database not configured")
+    ensure_evidence_tables()
+    iid = (intake_id or "").strip()
+    with engine.begin() as conn:
+        rows = conn.execute(
+            text(
+                """
+                SELECT id, original_name, uploaded_at, document_context, file_size
+                FROM evidence_files
+                WHERE intake_id = :iid
+                ORDER BY uploaded_at DESC
+                """
+            ),
+            {"iid": iid},
+        ).mappings().all()
+    files = [
+        {
+            "id": d.get("id"),
+            "file_name": d.get("original_name"),
+            "uploaded_at": d.get("uploaded_at"),
+            "description": d.get("document_context") or "",
+            "file_size": d.get("file_size"),
+        }
+        for d in rows
+    ]
+    return {"intake_id": iid, "files": files}
+
+
 def assert_evidence_upload_allowed(intake_id: str, incoming_size: int) -> None:
     if not engine:
         raise HTTPException(status_code=503, detail="Database not configured")

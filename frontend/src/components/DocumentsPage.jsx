@@ -116,6 +116,7 @@ export default function DocumentsPage({ intakeId }) {
       formData.append("document_context", "user_documents_page");
       const resp = await fetch(`${getApiBaseUrl()}/documents/upload`, {
         method: "POST",
+        headers: { "X-Intake-Id": intakeId },
         body: formData,
       });
       const payload = await resp.json().catch(() => ({}));

@@ -338,6 +338,7 @@ export default function DocumentGeneratorPanel({ topic = "general", intakeId = "
       formData.append("document_context", templateId);
       const response = await fetch(`${getApiBaseUrl()}/documents/upload`, {
         method: "POST",
+        headers: { "X-Intake-Id": intakeId || "" },
         body: formData,
       });
       const payload = await response.json().catch(() => ({}));

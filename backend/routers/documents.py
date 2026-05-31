@@ -3,15 +3,17 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, File, Form, Header, HTTPException, Request, UploadFile
 
 try:
     from ..schemas.documents import DocumentEmailRequest
     from ..services.evidence_service import (
+        assert_client_intake_access,
         assert_evidence_upload_allowed,
         extract_text_for_file,
         generate_ai_evidence_summary,
         get_evidence_file_for_admin,
+        get_evidence_list_for_client,
         save_evidence_record,
         _extract_key_facts_timeline,
     )
@@ -20,10 +22,12 @@ try:
 except ImportError:
     from schemas.documents import DocumentEmailRequest  # type: ignore
     from services.evidence_service import (  # type: ignore
+        assert_client_intake_access,
         assert_evidence_upload_allowed,
         extract_text_for_file,
         generate_ai_evidence_summary,
         get_evidence_file_for_admin,
+        get_evidence_list_for_client,
         save_evidence_record,
         _extract_key_facts_timeline,
     )
@@ -94,12 +98,22 @@ def send_document_email(req: DocumentEmailRequest):
     return {"ok": True, "email_sent": ok}
 
 
+@router.get("/documents/list/{intake_id}")
+def list_uploaded_documents(intake_id: str, x_intake_id: str = Header(None)):
+    auth_intake_id = (x_intake_id or "").strip()
+    return get_evidence_list_for_client(auth_intake_id, intake_id)
+
+
 @router.post("/documents/upload")
 async def upload_supporting_document(
     file: UploadFile = File(...),
     intake_id: str = Form(...),
     document_context: str = Form(default=""),
+    x_intake_id: str = Header(None),
 ):
+    auth_intake_id = (x_intake_id or "").strip()
+    intake_value = (intake_id or "").strip()
+    assert_client_intake_access(auth_intake_id, intake_value)
     original_name = (file.filename or "").strip()
     if not original_name:
         raise HTTPException(status_code=400, detail="File name is required")
@@ -131,7 +145,6 @@ async def upload_supporting_document(
     safe_base = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in safe_base).strip("_")
     if not safe_base:
         safe_base = "document"
-    intake_value = (intake_id or "").strip()
     assert_evidence_upload_allowed(intake_value, size)
 
     UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)

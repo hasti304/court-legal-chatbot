@@ -272,6 +272,8 @@ export default function AdminPortal() {
   const [intakeDrawer, setIntakeDrawer] = useState(null);
   const [intakeDrawerNote, setIntakeDrawerNote] = useState("");
   const [intakeLocalNotes, setIntakeLocalNotes] = useState({});
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [noteSaveMsg, setNoteSaveMsg] = useState("");
   const [submissionsSearch, setSubmissionsSearch] = useState("");
   const [submissionsDrawer, setSubmissionsDrawer] = useState(null);
   const [submissionsReadMap, setSubmissionsReadMap] = useState({});
@@ -282,6 +284,11 @@ export default function AdminPortal() {
   const [lastExportedTime, setLastExportedTime] = useState(null);
   const [callbackPopover, setCallbackPopover] = useState(null); // null | intake_id string
   const [markCalledBusy, setMarkCalledBusy] = useState({});
+  const [selectedIntakeIds, setSelectedIntakeIds] = useState(() => new Set());
+  const [bulkStatus, setBulkStatus] = useState("pending");
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState(null);
+  const [bulkSuccessMessage, setBulkSuccessMessage] = useState("");
 
   const portalClass = `admin-portal-page${theme === "light" ? " admin-portal-page--light" : ""}`;
 
@@ -404,10 +411,11 @@ export default function AdminPortal() {
   const loadOverview = useCallback(async () => {
     setLoadError("");
     setLoading(true);
+    const period = encodeURIComponent(overviewDateFilter);
     try {
       const [r1, r2] = await Promise.all([
-        authFetch("/admin/basic-analytics"),
-        authFetch("/admin/stats"),
+        authFetch(`/admin/basic-analytics?period=${period}`),
+        authFetch(`/admin/stats?period=${period}`),
       ]);
       if (!r1.ok) {
         const d = await r1.json().catch(() => ({}));
@@ -426,7 +434,7 @@ export default function AdminPortal() {
     } finally {
       setLoading(false);
     }
-  }, [authFetch]);
+  }, [authFetch, overviewDateFilter]);
 
   const runHealthChecks = useCallback(async () => {
     if (healthBusy) return;
@@ -604,6 +612,62 @@ export default function AdminPortal() {
       if (ok) closeStatusModal();
     } finally {
       setModalBusy(false);
+    }
+  };
+
+  const anyStatusBusy = useMemo(
+    () => Object.values(statusBusy).some(Boolean),
+    [statusBusy]
+  );
+
+  useEffect(() => {
+    setSelectedIntakeIds(new Set());
+    setBulkSuccessMessage("");
+  }, [intakesSearch, intakesStatusFilter]);
+
+  const toggleIntakeSelection = (intakeId) => {
+    setSelectedIntakeIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(intakeId)) next.delete(intakeId);
+      else next.add(intakeId);
+      return next;
+    });
+  };
+
+  const toggleSelectAllVisible = (rows) => {
+    const ids = rows.map((r) => r.id);
+    const allSelected = ids.length > 0 && ids.every((id) => selectedIntakeIds.has(id));
+    setSelectedIntakeIds(allSelected ? new Set() : new Set(ids));
+  };
+
+  const clearIntakeSelection = () => setSelectedIntakeIds(new Set());
+
+  const applyBulkIntakeStatus = async () => {
+    if (bulkBusy || anyStatusBusy) return;
+    const ids = Array.from(selectedIntakeIds);
+    if (ids.length === 0) return;
+
+    setBulkBusy(true);
+    setBulkProgress({ current: 0, total: ids.length });
+    setBulkSuccessMessage("");
+    setLoadError("");
+
+    let successCount = 0;
+    for (let i = 0; i < ids.length; i++) {
+      setBulkProgress({ current: i + 1, total: ids.length });
+      const ok = await submitIntakeStatusUpdate(ids[i], bulkStatus, {
+        sendNotification: bulkStatus === "accepted" || bulkStatus === "rejected",
+        note: "",
+      });
+      if (ok) successCount += 1;
+    }
+
+    setBulkBusy(false);
+    setBulkProgress(null);
+    setSelectedIntakeIds(new Set());
+    await loadIntakes();
+    if (successCount > 0) {
+      setBulkSuccessMessage(`${successCount} case${successCount !== 1 ? "s" : ""} updated.`);
     }
   };
 
@@ -814,7 +878,7 @@ export default function AdminPortal() {
     if (tab === "intakes") loadIntakes();
     if (tab === "submissions") loadSubmissions();
     if (tab === "emergency") loadIntakes();
-  }, [token, tab, loadOverview, loadIntakes, loadSubmissions]);
+  }, [token, tab, loadOverview, loadIntakes, loadSubmissions, overviewDateFilter]);
 
   useEffect(() => {
     if (!token) return undefined;
@@ -906,13 +970,35 @@ export default function AdminPortal() {
 
   const openIntakeDrawer = (row) => {
     setIntakeDrawer(row);
-    setIntakeDrawerNote(intakeLocalNotes[row.email] || "");
+    const dbNote = row.admin_note || "";
+    const cachedNote = intakeLocalNotes[row.id] || "";
+    setIntakeDrawerNote(dbNote || cachedNote);
+    setNoteSaveMsg("");
   };
 
-  const saveIntakeNote = (emailKey, note) => {
-    const updated = { ...intakeLocalNotes, [emailKey]: note };
+  const saveIntakeNote = async (intakeId, note) => {
+    // Optimistic localStorage cache so note persists across browser sessions
+    const updated = { ...intakeLocalNotes, [intakeId]: note };
     setIntakeLocalNotes(updated);
     try { localStorage.setItem("admin_intake_notes", JSON.stringify(updated)); } catch { /* ignore */ }
+
+    setNoteSaving(true);
+    setNoteSaveMsg("");
+    try {
+      const res = await authFetch(`/admin/intakes/${encodeURIComponent(intakeId)}/notes`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail ? String(data.detail) : `Save failed (${res.status})`);
+      setNoteSaveMsg("Saved");
+      setIntakes((prev) => prev.map((r) => r.id === intakeId ? { ...r, admin_note: note } : r));
+    } catch (err) {
+      setNoteSaveMsg(err?.message && String(err.message).trim() ? String(err.message) : "Save failed");
+    } finally {
+      setNoteSaving(false);
+    }
   };
 
   const toggleSubmissionRead = (id) => {
@@ -1031,7 +1117,14 @@ export default function AdminPortal() {
   }
 
   // ─── Main portal ────────────────────────────────────────────────────────────
-  const renderIntakesTable = (rows, showToolbar, isEmergency) => (
+  const renderIntakesTable = (rows, showToolbar, isEmergency) => {
+    const showBulkSelect = showToolbar && !isEmergency;
+    const colCount = showBulkSelect ? 18 : 17;
+    const visibleIds = rows.map((r) => r.id);
+    const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIntakeIds.has(id));
+    const bulkToolbarDisabled = bulkBusy || anyStatusBusy;
+
+    return (
     <div className="admin-portal-panel">
       {showToolbar && (
         <div className="admin-panel-header">
@@ -1073,10 +1166,66 @@ export default function AdminPortal() {
         Showing {rows.length} client{rows.length !== 1 ? "s" : ""}
       </div>
 
+      {showBulkSelect && bulkSuccessMessage ? (
+        <StatusBanner type="info" style={{ marginBottom: 12 }}>{bulkSuccessMessage}</StatusBanner>
+      ) : null}
+
+      {showBulkSelect && bulkBusy && bulkProgress ? (
+        <StatusBanner type="info" style={{ marginBottom: 12 }}>
+          Updating {bulkProgress.current} of {bulkProgress.total}…
+        </StatusBanner>
+      ) : null}
+
+      {showBulkSelect && selectedIntakeIds.size > 0 ? (
+        <div className="admin-filter-row" style={{ marginBottom: 12 }}>
+          <span style={{ fontSize: "0.87rem", fontWeight: 600, color: "#374151" }}>
+            {selectedIntakeIds.size} selected
+          </span>
+          <select
+            className="admin-filter-select"
+            value={bulkStatus}
+            onChange={(e) => setBulkStatus(e.target.value)}
+            disabled={bulkToolbarDisabled}
+            aria-label="Bulk status"
+          >
+            <option value="pending">Pending</option>
+            <option value="accepted">Accepted</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <button
+            type="button"
+            className="admin-action-btn"
+            onClick={() => void applyBulkIntakeStatus()}
+            disabled={bulkToolbarDisabled}
+          >
+            Apply to selected
+          </button>
+          <button
+            type="button"
+            className="admin-action-btn"
+            onClick={clearIntakeSelection}
+            disabled={bulkToolbarDisabled}
+          >
+            Clear selection
+          </button>
+        </div>
+      ) : null}
+
       <div className="admin-portal-table-wrap">
         <table className="admin-portal-table admin-portal-table-cases">
           <thead>
             <tr>
+              {showBulkSelect ? (
+                <th style={{ width: 36 }}>
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={() => toggleSelectAllVisible(rows)}
+                    disabled={bulkToolbarDisabled || rows.length === 0}
+                    aria-label="Select all visible rows"
+                  />
+                </th>
+              ) : null}
               <th>First name</th>
               <th>Last name</th>
               <th>Email</th>
@@ -1100,14 +1249,14 @@ export default function AdminPortal() {
             {rows.length === 0 && !loading ? (
               isEmergency ? (
                 <tr>
-                  <td colSpan={17} className="admin-portal-empty-cell admin-empty-emergency">
+                  <td colSpan={colCount} className="admin-portal-empty-cell admin-empty-emergency">
                     <span className="admin-empty-check-icon">✓</span>
                     No emergency cases flagged
                   </td>
                 </tr>
               ) : (
                 <tr>
-                  <td colSpan={17} className="admin-portal-empty-cell">No intake accounts yet.</td>
+                  <td colSpan={colCount} className="admin-portal-empty-cell">No intake accounts yet.</td>
                 </tr>
               )
             ) : (
@@ -1125,10 +1274,26 @@ export default function AdminPortal() {
                     key={row.id}
                     className={`admin-portal-row-status admin-portal-row-status-${displayStatus} admin-table-row-clickable`}
                     onClick={(e) => {
-                      if (e.target.closest("button") || e.target.closest("select") || e.target.closest("a")) return;
+                      if (
+                        e.target.closest("button") ||
+                        e.target.closest("select") ||
+                        e.target.closest("a") ||
+                        e.target.closest("input[type=checkbox]")
+                      ) return;
                       openIntakeDrawer(row);
                     }}
                   >
+                    {showBulkSelect ? (
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIntakeIds.has(row.id)}
+                          onChange={() => toggleIntakeSelection(row.id)}
+                          disabled={bulkToolbarDisabled || !!statusBusy[row.id]}
+                          aria-label={`Select ${row.email || row.id}`}
+                        />
+                      </td>
+                    ) : null}
                     <td className="admin-portal-cell-name" title={row.first_name ?? "—"}>{row.first_name ?? "—"}</td>
                     <td className="admin-portal-cell-name" title={row.last_name ?? "—"}>{row.last_name ?? "—"}</td>
                     <td className="admin-portal-cell-email" title={row.email ?? "—"}>{row.email ?? "—"}</td>
@@ -1298,7 +1463,8 @@ export default function AdminPortal() {
         </table>
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <div className={portalClass}>
@@ -1399,7 +1565,6 @@ export default function AdminPortal() {
                   </div>
                 </div>
 
-                {/* Date range tabs — visual only */}
                 <div className="admin-date-tabs">
                   {[["today", "Today"], ["week", "This Week"], ["month", "This Month"]].map(([val, lbl]) => (
                     <button
@@ -1407,6 +1572,7 @@ export default function AdminPortal() {
                       type="button"
                       className={`admin-date-tab${overviewDateFilter === val ? " active" : ""}`}
                       onClick={() => setOverviewDateFilter(val)}
+                      disabled={loading}
                     >
                       {lbl}
                     </button>
@@ -1993,18 +2159,25 @@ export default function AdminPortal() {
                   id="drawer-note"
                   className="admin-drawer-textarea"
                   value={intakeDrawerNote}
-                  onChange={(e) => setIntakeDrawerNote(e.target.value)}
+                  onChange={(e) => { setIntakeDrawerNote(e.target.value); setNoteSaveMsg(""); }}
                   placeholder="Add a note about this client…"
                   rows={4}
                 />
-                <button
-                  type="button"
-                  className="admin-action-btn"
-                  style={{ marginTop: 8 }}
-                  onClick={() => saveIntakeNote(intakeDrawer.email, intakeDrawerNote)}
-                >
-                  Save note
-                </button>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+                  <button
+                    type="button"
+                    className="admin-action-btn"
+                    onClick={() => void saveIntakeNote(intakeDrawer.id, intakeDrawerNote)}
+                    disabled={noteSaving}
+                  >
+                    {noteSaving ? "Saving…" : "Save note"}
+                  </button>
+                  {noteSaveMsg && (
+                    <span style={{ fontSize: 13, color: noteSaveMsg === "Saved" ? "#16A34A" : "#EF4444" }}>
+                      {noteSaveMsg}
+                    </span>
+                  )}
+                </div>
               </div>
               {intakeDrawer.email && (
                 <a

@@ -22,6 +22,7 @@ try:
         mark_callback_called,
         require_admin_access,
         send_intake_staff_email,
+        set_intake_admin_note,
         set_intake_admin_status,
     )
 except ImportError:
@@ -42,6 +43,7 @@ except ImportError:
         mark_callback_called,
         require_admin_access,
         send_intake_staff_email,
+        set_intake_admin_note,
         set_intake_admin_status,
     )
 
@@ -59,6 +61,15 @@ class AdminIntakeStatusBody(BaseModel):
     notification_note: str = Field(default="", max_length=4000)
 
     @field_validator("notification_note")
+    @classmethod
+    def strip_note(cls, v: str) -> str:
+        return (v or "").strip()
+
+
+class AdminIntakeNoteBody(BaseModel):
+    note: str = Field(default="", max_length=8000)
+
+    @field_validator("note")
     @classmethod
     def strip_note(cls, v: str) -> str:
         return (v or "").strip()
@@ -150,6 +161,16 @@ def admin_intake_status_endpoint(
     )
 
 
+@router.patch("/admin/intakes/{intake_id}/notes")
+def admin_intake_note_endpoint(
+    intake_id: str,
+    body: AdminIntakeNoteBody,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    return set_intake_admin_note(request=request, intake_id=intake_id, note=body.note, db=db)
+
+
 @router.post("/admin/intakes/{intake_id}/email")
 def admin_intake_send_email_endpoint(
     intake_id: str,
@@ -166,13 +187,13 @@ def export_intakes_csv_endpoint(request: Request):
 
 
 @router.get("/admin/stats")
-def admin_stats_endpoint(request: Request):
-    return admin_stats(request)
+def admin_stats_endpoint(request: Request, period: str | None = None):
+    return admin_stats(request, period=period)
 
 
 @router.get("/admin/basic-analytics")
-def basic_analytics_endpoint(request: Request, db: Session = Depends(get_db)):
-    return basic_analytics(request=request, db=db)
+def basic_analytics_endpoint(request: Request, db: Session = Depends(get_db), period: str | None = None):
+    return basic_analytics(request=request, db=db, period=period)
 
 
 @router.post("/admin/intakes/{intake_id}/callback/mark-called")

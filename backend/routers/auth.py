@@ -277,6 +277,7 @@ def delete_account(
         db.execute(text("DELETE FROM intake_events WHERE intake_id = :iid"), {"iid": iid})
         db.execute(text("DELETE FROM triage_sessions WHERE intake_id = :iid"), {"iid": iid})
         db.execute(text("DELETE FROM intake_deadlines WHERE intake_id = :iid"), {"iid": iid})
+        db.execute(text("DELETE FROM notifications WHERE intake_id = :iid"), {"iid": iid})
         if email:
             db.query(MagicLinkToken).filter(MagicLinkToken.email == email).delete(synchronize_session=False)
             db.query(PasswordResetToken).filter(PasswordResetToken.email == email).delete(synchronize_session=False)

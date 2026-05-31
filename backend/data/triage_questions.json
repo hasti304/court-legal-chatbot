@@ -6,6 +6,8 @@
     "emergency": "Is this an emergency?",
     "court_status": "Do you currently have an open court case?",
     "income": "Are you low-income or receiving public benefits?",
+    "timeline": "How long has this issue been going on?",
+    "documents": "Have you received any official documents related to this issue? (court papers, notices, letters)",
     "problem_summary": "In a few sentences, what is going on and what help are you looking for?",
     "zip_code": "What is your Illinois ZIP code?"
   },

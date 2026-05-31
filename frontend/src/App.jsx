@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense, useMemo } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense, useMemo, useCallback } from "react";
 import {
   FaPaperPlane,
   FaRedo,
@@ -405,6 +405,7 @@ function App() {
     try { return JSON.parse(localStorage.getItem(INTAKE_PROFILE_KEY) || "{}").phone || ""; } catch { return ""; }
   });
   const [sidebarSection, setSidebarSection] = useState(null);
+  const [notifications, setNotifications] = useState([]);
   const [intakeConsent, setIntakeConsent] = useState(false);
   const chatSessionIdRef = useRef(null);
 
@@ -1510,6 +1511,60 @@ function App() {
       }
     };
   }, [intakeSaved, intakeId]);
+
+  const fetchNotifications = useCallback(async () => {
+    if (!intakeId) return;
+    try {
+      const res = await fetchWithTimeout(
+        `${getApiBaseUrl()}/notifications`,
+        { headers: { "X-Intake-Id": intakeId } },
+        8000,
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(Array.isArray(data) ? data : []);
+      }
+    } catch {
+      // non-fatal
+    }
+  }, [intakeId]);
+
+  useEffect(() => {
+    if (!intakeId) { setNotifications([]); return undefined; }
+    fetchNotifications();
+    const id = setInterval(fetchNotifications, 60000);
+    return () => clearInterval(id);
+  }, [intakeId, fetchNotifications]);
+
+  const handleMarkNotificationRead = useCallback(async (notificationId) => {
+    if (!intakeId) return;
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
+    );
+    try {
+      await fetchWithTimeout(
+        `${getApiBaseUrl()}/notifications/${notificationId}/read`,
+        { method: "PATCH", headers: { "X-Intake-Id": intakeId } },
+        8000,
+      );
+    } catch {
+      // non-fatal
+    }
+  }, [intakeId]);
+
+  const handleMarkAllNotificationsRead = useCallback(async () => {
+    if (!intakeId) return;
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    try {
+      await fetchWithTimeout(
+        `${getApiBaseUrl()}/notifications/read-all`,
+        { method: "PATCH", headers: { "X-Intake-Id": intakeId } },
+        8000,
+      );
+    } catch {
+      // non-fatal
+    }
+  }, [intakeId]);
 
   // Save current session to case history whenever messages or conversationState changes
   useEffect(() => {
@@ -3620,6 +3675,9 @@ function App() {
     onBack: () => {},
     topbarExtras: <TopbarActions />,
     topbarClassName: "app-topbar--navy",
+    notifications,
+    onMarkNotificationRead: handleMarkNotificationRead,
+    onMarkAllNotificationsRead: handleMarkAllNotificationsRead,
   };
 
   if (sidebarSection === "cases") {

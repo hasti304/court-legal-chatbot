@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Home,
@@ -12,6 +12,7 @@ import {
   Phone,
   Mail,
   X,
+  Bell,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
@@ -71,12 +72,19 @@ export default function AppSidebar({
   onStartAIAssistant,
   onSignOut,
   onCloseMobile,
+  notifications = [],
+  onMarkNotificationRead,
+  onMarkAllNotificationsRead,
 }) {
   const { t } = useTranslation();
   const recentSessions = useMemo(getRecentSessions, []);
   const [showSupport, setShowSupport] = useState(false);
   const [showNewCaseModal, setShowNewCaseModal] = useState(false);
   const [previousCasesCount, setPreviousCasesCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const bellRef = useRef(null);
+
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   const handleNewCaseClick = () => {
     setPreviousCasesCount(getPreviousCasesCount());
@@ -206,6 +214,177 @@ export default function AppSidebar({
           )}
         </nav>
       </ScrollArea>
+
+      {/* Notification bell */}
+      <div className="px-3 pb-2 shrink-0 relative" ref={bellRef}>
+        <button
+          type="button"
+          onClick={() => setShowNotifications((v) => !v)}
+          className="relative w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
+          style={{ color: "rgba(255,255,255,0.70)", background: "transparent" }}
+          aria-label="Notifications"
+          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#ffffff"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.70)"; }}
+        >
+          <Bell className="w-4 h-4 shrink-0" aria-hidden />
+          <span>Notifications</span>
+          {unreadCount > 0 && (
+            <span
+              className="ml-auto flex items-center justify-center rounded-full text-[10px] font-bold leading-none"
+              style={{
+                background: "#ef4444",
+                color: "#ffffff",
+                minWidth: 18,
+                height: 18,
+                padding: "0 5px",
+              }}
+            >
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
+        </button>
+
+        {showNotifications && (
+          <>
+            <div
+              style={{ position: "fixed", inset: 0, zIndex: 49 }}
+              onClick={() => setShowNotifications(false)}
+            />
+            <div
+              style={{
+                position: "fixed",
+                left: 240,
+                bottom: 80,
+                width: 340,
+                maxHeight: 420,
+                background: "#ffffff",
+                borderRadius: 12,
+                boxShadow: "0 8px 32px rgba(0,0,0,0.22)",
+                zIndex: 50,
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+              }}
+            >
+              {/* Panel header */}
+              <div
+                style={{
+                  padding: "12px 16px",
+                  borderBottom: "1px solid #e5e7eb",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexShrink: 0,
+                }}
+              >
+                <span style={{ fontWeight: 700, fontSize: 14, color: "#1B2A4A" }}>
+                  Notifications
+                </span>
+                {unreadCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => { onMarkAllNotificationsRead?.(); }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: GOLD,
+                      fontWeight: 600,
+                      fontSize: 12,
+                      padding: 0,
+                    }}
+                  >
+                    Mark all as read
+                  </button>
+                )}
+              </div>
+
+              {/* Notification list */}
+              <div style={{ overflowY: "auto", flex: 1 }}>
+                {notifications.length === 0 ? (
+                  <div
+                    style={{
+                      padding: "32px 16px",
+                      textAlign: "center",
+                      color: "#9CA3AF",
+                      fontSize: 13,
+                    }}
+                  >
+                    No notifications yet
+                  </div>
+                ) : (
+                  notifications.map((n) => (
+                    <button
+                      key={n.id}
+                      type="button"
+                      onClick={() => {
+                        onMarkNotificationRead?.(n.id);
+                        setShowNotifications(false);
+                        onNavigate?.("chat");
+                      }}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "12px 16px",
+                        borderBottom: "1px solid #f3f4f6",
+                        background: n.is_read ? "transparent" : "rgba(201,168,76,0.08)",
+                        cursor: "pointer",
+                        border: "none",
+                        borderBottomColor: "#f3f4f6",
+                        borderBottomWidth: 1,
+                        borderBottomStyle: "solid",
+                      }}
+                    >
+                      {!n.is_read && (
+                        <span
+                          style={{
+                            display: "inline-block",
+                            width: 7,
+                            height: 7,
+                            borderRadius: "50%",
+                            background: GOLD,
+                            marginRight: 8,
+                            verticalAlign: "middle",
+                            flexShrink: 0,
+                          }}
+                        />
+                      )}
+                      <span
+                        style={{
+                          fontSize: 13,
+                          color: "#1B2A4A",
+                          fontWeight: n.is_read ? 400 : 600,
+                          lineHeight: 1.5,
+                          display: "inline",
+                        }}
+                      >
+                        {n.message}
+                      </span>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: "#9CA3AF",
+                          marginTop: 4,
+                        }}
+                      >
+                        {n.created_at
+                          ? new Date(n.created_at).toLocaleString(undefined, {
+                              month: "short",
+                              day: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })
+                          : ""}
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
 
       {/* Footer */}
       <div
