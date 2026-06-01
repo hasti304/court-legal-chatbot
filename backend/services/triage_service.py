@@ -331,7 +331,7 @@ def filter_referrals_for_income(referrals: List[dict], income_value: Optional[st
     return filtered
 
 
-def get_referrals_for_topic(referral_map: dict, topic: str, level: int, income_value: Optional[str]) -> List[dict]:
+def get_referrals_for_topic(referral_map: dict, topic: str, level: int, income_value: Optional[str], has_representation: Optional[str] = None) -> List[dict]:
     topic_bucket = referral_map.get(topic, {}) if isinstance(referral_map, dict) else {}
 
     candidate_levels = []
@@ -349,6 +349,16 @@ def get_referrals_for_topic(referral_map: dict, topic: str, level: int, income_v
         referrals = filter_referrals_for_income(referrals, income_value)
         if referrals:
             _attach_office_coordinates(referrals)
+            if has_representation == "yes":
+                filtered = [
+                    ref for ref in referrals
+                    if not any(
+                        keyword in ref.get("name", "").lower()
+                        for keyword in ["legal aid", "prairie state", "carpls"]
+                    )
+                ]
+                if filtered:
+                    return filtered
             return referrals
 
     for fallback_topic in ["housing", "education", "child_support", "divorce", "custody", "general"]:
@@ -378,12 +388,11 @@ def get_step_progress(step: Optional[str]) -> dict:
         "emergency_check": {"current": 2, "total": 8, "label_key": "progress.emergencyCheck"},
         "court_status": {"current": 3, "total": 8, "label_key": "progress.courtStatus"},
         "income_check": {"current": 4, "total": 8, "label_key": "progress.incomeLevel"},
-        "timeline_check": {"current": 5, "total": 8, "label_key": "progress.timelineCheck"},
-        "documents_check": {"current": 6, "total": 8, "label_key": "progress.documentsCheck"},
-        "problem_summary": {"current": 7, "total": 8, "label_key": "progress.problemSummary"},
+        "representation_check": {"current": 5, "total": 7, "label_key": "progress.representation"},
+        "problem_summary": {"current": 6, "total": 7, "label_key": "progress.problemSummary"},
         "summary_topic_confirm": {"current": 7, "total": 8, "label_key": "progress.problemSummary"},
         "topic_reconfirm": {"current": 8, "total": 8, "label_key": "progress.yourLocation"},
-        "get_zip": {"current": 8, "total": 8, "label_key": "progress.yourLocation"},
+        "get_zip": {"current": 7, "total": 7, "label_key": "progress.yourLocation"},
         "complete": {"current": 8, "total": 8, "label_key": "progress.resourcesReady"},
         "resource_selected": {"current": 8, "total": 8, "label_key": "progress.resourcesReady"},
         "continue_check": {"current": 8, "total": 8, "label_key": "progress.resourcesReady"},
@@ -412,6 +421,7 @@ def build_decision_support(state: dict) -> dict:
     summary = str(state.get("problem_summary") or "").strip().lower()
     timeline = str(state.get("timeline") or "").lower()
     has_documents = str(state.get("has_documents") or "").lower()
+    has_rep = str(state.get("has_representation") or "no").lower()
 
     urgency = 10
     urgency_reasons: List[str] = []
@@ -487,12 +497,16 @@ def build_decision_support(state: dict) -> dict:
         self_help += 10
         self_help_reasons.append("You may qualify for legal-aid pathways that improve support options.")
 
+    if has_rep == "no":
+        self_help += 5
+        self_help_reasons.append("No existing representation suggests self-help pathways may be appropriate.")
+
     self_help = max(0, min(100, self_help))
 
     overall_risk = round((urgency * 0.45) + (complexity * 0.35) + ((100 - self_help) * 0.20))
     overall_risk = max(0, min(100, overall_risk))
 
-    return {
+    result = {
         "overall_risk": overall_risk,
         "overall_band": _score_band(overall_risk),
         "urgency": {
@@ -512,6 +526,9 @@ def build_decision_support(state: dict) -> dict:
         },
         "note": "Informational triage support only; not legal advice.",
     }
+    if has_rep == "yes":
+        result["representation_note"] = "Client has existing legal representation"
+    return result
 
 
 def run_chat_flow(request, referral_map: dict):
@@ -655,49 +672,29 @@ def run_chat_flow(request, referral_map: dict):
                 "conversation_state": state,
                 "progress": get_step_progress(state.get("step")),
             }
-        state["step"] = "timeline_check"
+        state["step"] = "representation_check"
         return {
-            "response_key": "triage.timeline.prompt",
+            "response_key": "triage.representation.prompt",
             "response_params": {},
-            "options": ["just_started", "weeks", "months", "over_a_year"],
+            "options": ["yes", "no", "not_sure"],
             "conversation_state": state,
             "progress": get_step_progress(state.get("step")),
         }
 
-    if state.get("step") == "timeline_check":
-        if message in ["just_started", "weeks", "months", "over_a_year"]:
-            state["timeline"] = message
-            log_intake_event(request.intake_id, "timeline_answer", message)
-            state["step"] = "documents_check"
-            return {
-                "response_key": "triage.documents.prompt",
-                "response_params": {},
-                "options": ["yes", "no", "not_sure"],
-                "conversation_state": state,
-                "progress": get_step_progress(state.get("step")),
-            }
-        return {
-            "response_key": "triage.timeline.invalid",
-            "response_params": {},
-            "options": ["just_started", "weeks", "months", "over_a_year"],
-            "conversation_state": state,
-            "progress": get_step_progress(state.get("step")),
-        }
-
-    if state.get("step") == "documents_check":
+    if state.get("step") == "representation_check":
         if message in ["yes", "no", "not_sure"]:
-            state["has_documents"] = message
-            log_intake_event(request.intake_id, "documents_answer", message)
+            state["has_representation"] = message
+            log_intake_event(request.intake_id, "representation_answer", message)
             state["step"] = "problem_summary"
             return {
-                "response_key": "triage.summary.prompt",
+                "response_key": "triage.representation.prompt_done",
                 "response_params": {},
                 "options": [],
                 "conversation_state": state,
                 "progress": get_step_progress(state.get("step")),
             }
         return {
-            "response_key": "triage.documents.invalid",
+            "response_key": "triage.representation.invalid",
             "response_params": {},
             "options": ["yes", "no", "not_sure"],
             "conversation_state": state,
@@ -858,7 +855,7 @@ def run_chat_flow(request, referral_map: dict):
 
         state["level"] = level
         log_intake_event(request.intake_id, "triage_level_assigned", str(level))
-        referrals = get_referrals_for_topic(referral_map=referral_map, topic=topic, level=level, income_value=state.get("income", "yes"))
+        referrals = get_referrals_for_topic(referral_map=referral_map, topic=topic, level=level, income_value=state.get("income", "yes"), has_representation=state.get("has_representation"))
         referral_names = [ref.get("name", "").strip() for ref in referrals if ref.get("name")]
         log_intake_event(request.intake_id, "referrals_shown", json.dumps(referral_names, ensure_ascii=False))
         log_intake_event(request.intake_id, "triage_completed", "complete")
@@ -875,6 +872,8 @@ def run_chat_flow(request, referral_map: dict):
             final_state["problem_summary"] = ps
         if state.get("zip_skipped"):
             final_state["zip_skipped"] = True
+        if state.get("has_representation"):
+            final_state["has_representation"] = state["has_representation"]
         decision_support = build_decision_support(state)
         final_state["decision_support"] = decision_support
         return {
@@ -947,7 +946,7 @@ def run_chat_flow(request, referral_map: dict):
             level = state.get("level", 1)
             zip_code = state.get("zip_code", "")
             income = state.get("income", "yes")
-            referrals = get_referrals_for_topic(referral_map=referral_map, topic=topic, level=level, income_value=income)
+            referrals = get_referrals_for_topic(referral_map=referral_map, topic=topic, level=level, income_value=income, has_representation=state.get("has_representation"))
             top_resource = referrals[0] if referrals else None
             if top_resource:
                 selected_state = {"step": "resource_selected", "topic": topic, "level": level, "zip_code": zip_code, "income": income}

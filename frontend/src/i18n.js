@@ -484,10 +484,11 @@ const resources = {
           invalid: "Please select one of the options below.",
         },
 
-        documents: {
+        representation: {
           prompt:
-            "Have you received any official documents related to this issue? (court papers, notices, letters)",
-          invalid: "Please select yes, no, or not sure.",
+            "Do you currently have any legal representation? (a lawyer or legal aid helping you)",
+          invalid: "Please select one of the options.",
+          prompt_done: "",
         },
 
         summary: {
@@ -1020,10 +1021,11 @@ const resources = {
           invalid: "Por favor seleccione una de las opciones de abajo.",
         },
 
-        documents: {
+        representation: {
           prompt:
-            "¿Ha recibido documentos oficiales relacionados con este asunto? (papeles de la corte, avisos, cartas)",
-          invalid: "Por favor seleccione sí, no, o no estoy seguro.",
+            "¿Actualmente tiene representación legal? (un abogado o ayuda legal que le asiste)",
+          invalid: "Por favor seleccione una de las opciones.",
+          prompt_done: "",
         },
 
         summary: {
