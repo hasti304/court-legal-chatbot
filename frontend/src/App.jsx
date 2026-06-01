@@ -26,7 +26,14 @@ import SiteFooter from "./components/SiteFooter";
 import TrustPanel from "./components/TrustPanel";
 import { printReferralsSummary } from "./utils/printReferrals";
 import { STORAGE_KEY } from "./utils/storageKeys";
-import { getApiBaseUrl, rewriteLegacyRenderFetchUrl } from "./utils/apiBase";
+import {
+  FETCH_TIMEOUT_MS,
+  getApiBaseUrl,
+  isFetchTimeoutError,
+  rewriteLegacyRenderFetchUrl,
+  SERVER_STARTUP_TIMEOUT_MESSAGE,
+  WARMUP_FETCH_TIMEOUT_MS,
+} from "./utils/apiBase";
 import {
   getPendingTriageFromStorage,
   clearSavedChatState,
@@ -93,11 +100,10 @@ function isValidUSPhone(phone) {
   return digits.length === 10;
 }
 
-const DEFAULT_FETCH_TIMEOUT_MS = 8000;
-/** Backend / DB (e.g. Render cold start, remote Postgres) often needs more than 8s. */
-const INTAKE_FETCH_TIMEOUT_MS = 45000;
-const CHAT_FETCH_TIMEOUT_MS = 30000;
-const WARMUP_TIMEOUT_MS = 15000;
+const DEFAULT_FETCH_TIMEOUT_MS = FETCH_TIMEOUT_MS;
+const INTAKE_FETCH_TIMEOUT_MS = FETCH_TIMEOUT_MS;
+const CHAT_FETCH_TIMEOUT_MS = FETCH_TIMEOUT_MS;
+const WARMUP_TIMEOUT_MS = WARMUP_FETCH_TIMEOUT_MS;
 
 function initialAuthView() {
   try {
@@ -197,18 +203,8 @@ function stripResetTokenFromLocation() {
 /** Survives React StrictMode double-effect so we do not POST verify twice for one token. */
 let __magicLinkAutoVerifyToken = "";
 
-async function postIntakeStartWithRetry(url, payload, onRetryStart) {
-  const run = () =>
-    fetchWithTimeout(
-      url,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      },
-      INTAKE_FETCH_TIMEOUT_MS
-    );
-
+async function fetchWithColdStartRetry(url, options, onRetryStart) {
+  const run = () => fetchWithTimeout(url, options, INTAKE_FETCH_TIMEOUT_MS);
   try {
     return await run();
   } catch (error) {
@@ -220,6 +216,18 @@ async function postIntakeStartWithRetry(url, payload, onRetryStart) {
     }
     throw error;
   }
+}
+
+async function postIntakeStartWithRetry(url, payload, onRetryStart) {
+  return fetchWithColdStartRetry(
+    url,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+    onRetryStart
+  );
 }
 
 function inferTopicFromFreeText(input) {
@@ -814,14 +822,14 @@ function App() {
     setMagicVerifyBusy(true);
     setMagicVerifyError("");
     try {
-      const res = await fetchWithTimeout(
+      const res = await fetchWithColdStartRetry(
         apiUrl("/auth/magic-link/verify"),
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token }),
         },
-        INTAKE_FETCH_TIMEOUT_MS
+        () => setMagicVerifyError(i18n.t("login.wakingServer", { defaultValue: "Waking up server, trying again…" }))
       );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -1250,14 +1258,14 @@ function App() {
     setPasswordLoginError("");
     setMagicVerifyError("");
     try {
-      const res = await fetchWithTimeout(
+      const res = await fetchWithColdStartRetry(
         apiUrl("/auth/password/login"),
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
         },
-        INTAKE_FETCH_TIMEOUT_MS
+        () => setPasswordLoginError(t("login.wakingServer", { defaultValue: "Waking up server, trying again…" }))
       );
       const data = await res.json().catch(() => ({}));
       if (res.status === 403) {
@@ -1518,7 +1526,7 @@ function App() {
       const res = await fetchWithTimeout(
         `${getApiBaseUrl()}/notifications`,
         { headers: { "X-Intake-Id": intakeId } },
-        8000,
+        FETCH_TIMEOUT_MS,
       );
       if (res.ok) {
         const data = await res.json();
@@ -1545,7 +1553,7 @@ function App() {
       await fetchWithTimeout(
         `${getApiBaseUrl()}/notifications/${notificationId}/read`,
         { method: "PATCH", headers: { "X-Intake-Id": intakeId } },
-        8000,
+        FETCH_TIMEOUT_MS,
       );
     } catch {
       // non-fatal
@@ -1559,7 +1567,7 @@ function App() {
       await fetchWithTimeout(
         `${getApiBaseUrl()}/notifications/read-all`,
         { method: "PATCH", headers: { "X-Intake-Id": intakeId } },
-        8000,
+        FETCH_TIMEOUT_MS,
       );
     } catch {
       // non-fatal
@@ -2096,7 +2104,7 @@ function App() {
             intake_id: intakeId || null,
           }),
         },
-        15000
+        FETCH_TIMEOUT_MS
       );
       if (!res.ok) throw new Error();
       setEmailSummaryToast(`Summary sent to ${email}`);
@@ -2140,7 +2148,7 @@ function App() {
             intake_id: intakeId || null,
           }),
         },
-        15000
+        FETCH_TIMEOUT_MS
       );
       if (!res.ok) throw new Error();
       void postIntakeEvent("callback_requested", callbackTime);
@@ -2156,7 +2164,7 @@ function App() {
               preferred_time: callbackTime,
             }),
           },
-          10000
+          FETCH_TIMEOUT_MS
         ).catch(() => {});
       }
       setCallbackToast("Callback request sent. We'll reach out to you soon.");
@@ -2298,8 +2306,10 @@ function App() {
       }
     } catch (error) {
       console.error("Connection error details:", error);
-      const friendlyError =
-        error?.message && String(error.message).trim().length > 0
+      const timedOut = isFetchTimeoutError(error);
+      const friendlyError = timedOut
+        ? SERVER_STARTUP_TIMEOUT_MESSAGE
+        : error?.message && String(error.message).trim().length > 0
           ? String(error.message)
           : "We’re having trouble connecting right now.";
       setChatError(friendlyError);
@@ -2307,8 +2317,9 @@ function App() {
         ...prev,
         {
           role: "bot",
-          content:
-            "We’re having trouble connecting right now. Please try again in a moment or use the resource links below when available.",
+          content: timedOut
+            ? SERVER_STARTUP_TIMEOUT_MESSAGE
+            : "We’re having trouble connecting right now. Please try again in a moment or use the resource links below when available.",
           options: [],
         },
       ]);

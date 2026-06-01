@@ -58,6 +58,7 @@ _BASE_ALLOWED_ORIGINS = [
     "https://court-legal-chatbot-frontend.onrender.com",
     "https://hasti304.github.io",
     "https://court-legal-chatbot.vercel.app",
+    "https://court-legal-chatbot-3m4sgkcjn-hasti-panchals-projects.vercel.app",
     "http://localhost:3000",
     "http://localhost:5173",
     "http://127.0.0.1:5173",

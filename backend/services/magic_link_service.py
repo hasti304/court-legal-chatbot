@@ -167,7 +167,7 @@ def verify_magic_link(payload, db: Session) -> dict:
         except ImportError:
             from services.intake_service import record_navigator_sign_in  # type: ignore
 
-        record_navigator_sign_in(intake.id, db)
+        record_navigator_sign_in(intake.id, db, intake_row=intake)
 
         return {"intake_id": intake.id, "email": intake.email, "first_name": getattr(intake, "first_name", "") or "", "last_name": getattr(intake, "last_name", "") or ""}
     except HTTPException:

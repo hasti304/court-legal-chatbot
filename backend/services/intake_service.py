@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import re
+import threading
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
@@ -364,10 +365,24 @@ def ensure_triage_sessions_table_exists() -> None:
         print(f"Warning: ensure_triage_sessions_table_exists failed: {e}")
 
 
+_tables_ensured = False
+_tables_ensure_lock = threading.Lock()
+
+
 def ensure_tables():
+    global _tables_ensured
     if not engine:
         return
+    if _tables_ensured:
+        return
+    with _tables_ensure_lock:
+        if _tables_ensured:
+            return
+        _run_ensure_tables()
+        _tables_ensured = True
 
+
+def _run_ensure_tables():
     create_intakes = """
     CREATE TABLE IF NOT EXISTS intakes (
       id TEXT PRIMARY KEY,
@@ -819,8 +834,8 @@ def update_triage_session_from_event(conn, intake_id: str, event_type: str, even
 def log_intake_event(intake_id: Optional[str], event_type: str, event_value: Optional[str] = None):
     if not engine or not intake_id:
         return
+    event_type_norm = (event_type or "").strip().lower()
     try:
-        ensure_tables()
         with engine.begin() as conn:
             conn.execute(
                 text("""
@@ -835,8 +850,11 @@ def log_intake_event(intake_id: Optional[str], event_type: str, event_value: Opt
                     "created_at": utc_now_iso(),
                 },
             )
+            # Login events only need the audit row; skip triage session lookups/updates.
+            if event_type_norm == "navigator_login":
+                return
             update_triage_session_from_event(conn=conn, intake_id=intake_id, event_type=event_type, event_value=event_value)
-            if (event_type or "").strip().lower() in {"problem_summary", "problem_summary_alternate_topic"}:
+            if event_type_norm in {"problem_summary", "problem_summary_alternate_topic"}:
                 refresh_deadlines_for_intake(conn, intake_id)
     except Exception as e:
         print(f"Warning: failed to log intake event '{event_type}': {e}")
@@ -1118,12 +1136,16 @@ def _humanize_topic(topic: Optional[str]) -> str:
     return str(topic).replace("_", " ").strip().title()
 
 
-def record_navigator_sign_in(intake_id: str, db: Session) -> None:
+def record_navigator_sign_in(
+    intake_id: str,
+    db: Session,
+    intake_row: Optional[Intake] = None,
+) -> None:
     """Increment login_count and append a navigator_login row to intake_events."""
     iid = (intake_id or "").strip()
     if not iid:
         return
-    row = db.query(Intake).filter(Intake.id == iid).first()
+    row = intake_row if intake_row is not None else db.query(Intake).filter(Intake.id == iid).first()
     if not row:
         return
     try:

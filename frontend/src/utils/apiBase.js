@@ -1,3 +1,18 @@
+/** Default timeout for API fetch calls (cold start on Render can take ~60s). */
+export const FETCH_TIMEOUT_MS = 60000;
+
+/** Health / warmup pings during cold-start retry. */
+export const WARMUP_FETCH_TIMEOUT_MS = 60000;
+
+export const SERVER_STARTUP_TIMEOUT_MESSAGE =
+  "The server is starting up — this can take up to 60 seconds on first load. Please wait a moment and try again.";
+
+export function isFetchTimeoutError(error) {
+  return String(error?.message || "")
+    .toLowerCase()
+    .includes("timeout");
+}
+
 /** API origin for fetch(). In Vite dev, empty string = same origin -> dev server proxy (no CORS). */
 function normalizeUrl(value) {
   const input = String(value || "").trim();

@@ -25,11 +25,17 @@ import {
   FaExternalLinkAlt,
   FaChevronRight,
 } from "react-icons/fa";
-import { getApiBaseUrl, rewriteLegacyRenderFetchUrl } from "../utils/apiBase";
+import {
+  FETCH_TIMEOUT_MS,
+  getApiBaseUrl,
+  isFetchTimeoutError,
+  rewriteLegacyRenderFetchUrl,
+  SERVER_STARTUP_TIMEOUT_MESSAGE,
+} from "../utils/apiBase";
 import "./AIChat.css";
 
 const SUPPORT_EMAIL = "intake@chicagoadvocatelegal.com";
-const AI_CHAT_FETCH_TIMEOUT_MS = 30000;
+const AI_CHAT_FETCH_TIMEOUT_MS = 60000;
 const QUERY_HISTORY_KEY = "cal_ai_query_history_v1";
 const INTAKE_SAVED_KEY = "cal_intake_saved_v1";
 
@@ -232,7 +238,7 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
     return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
   };
 
-  const fetchWithTimeout = (url, options = {}, timeout = 8000) =>
+  const fetchWithTimeout = (url, options = {}, timeout = FETCH_TIMEOUT_MS) =>
     Promise.race([
       fetch(typeof url === "string" ? rewriteLegacyRenderFetchUrl(url) : url, options),
       new Promise((_, reject) =>
@@ -412,13 +418,18 @@ const AIChat = ({ topic, onBack, intakeId = null, isDiscreetMode = false, useCal
       });
     } catch (error) {
       console.error("AI request failed:", error);
-      const errorContent = isDiscreetMode
-        ? "I'm having trouble connecting right now. Please try again in a moment, or use the support contact information below."
-        : "I'm having trouble connecting right now. Please try again in a moment, or contact Chicago Advocate Legal, NFP directly using the information below.";
+      const timedOut = isFetchTimeoutError(error);
+      const errorContent = timedOut
+        ? SERVER_STARTUP_TIMEOUT_MESSAGE
+        : isDiscreetMode
+          ? "I'm having trouble connecting right now. Please try again in a moment, or use the support contact information below."
+          : "I'm having trouble connecting right now. Please try again in a moment, or contact Chicago Advocate Legal, NFP directly using the information below.";
       setRequestError(
-        error?.message && String(error.message).trim().length > 0
-          ? String(error.message)
-          : "Unable to connect to the AI assistant right now."
+        timedOut
+          ? SERVER_STARTUP_TIMEOUT_MESSAGE
+          : error?.message && String(error.message).trim().length > 0
+            ? String(error.message)
+            : "Unable to connect to the AI assistant right now."
       );
       setMessages((prev) => [...prev, { role: "assistant", content: errorContent }]);
       setIsLoading(false);
