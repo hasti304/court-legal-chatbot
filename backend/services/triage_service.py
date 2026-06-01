@@ -384,20 +384,19 @@ def normalize_step(step: Optional[str]) -> str:
 def get_step_progress(step: Optional[str]) -> dict:
     step = normalize_step(step)
     steps_map = {
-        "topic_selection": {"current": 1, "total": 8, "label_key": "progress.selectTopic"},
-        "emergency_check": {"current": 2, "total": 8, "label_key": "progress.emergencyCheck"},
-        "court_status": {"current": 3, "total": 8, "label_key": "progress.courtStatus"},
-        "income_check": {"current": 4, "total": 8, "label_key": "progress.incomeLevel"},
-        "representation_check": {"current": 5, "total": 7, "label_key": "progress.representation"},
-        "problem_summary": {"current": 6, "total": 7, "label_key": "progress.problemSummary"},
-        "summary_topic_confirm": {"current": 7, "total": 8, "label_key": "progress.problemSummary"},
-        "topic_reconfirm": {"current": 8, "total": 8, "label_key": "progress.yourLocation"},
-        "get_zip": {"current": 7, "total": 7, "label_key": "progress.yourLocation"},
-        "complete": {"current": 8, "total": 8, "label_key": "progress.resourcesReady"},
-        "resource_selected": {"current": 8, "total": 8, "label_key": "progress.resourcesReady"},
-        "continue_check": {"current": 8, "total": 8, "label_key": "progress.resourcesReady"},
+        "topic_selection": {"current": 1, "total": 6, "label_key": "progress.selectTopic"},
+        "emergency_check": {"current": 2, "total": 6, "label_key": "progress.emergencyCheck"},
+        "court_status": {"current": 3, "total": 6, "label_key": "progress.courtStatus"},
+        "income_check": {"current": 4, "total": 6, "label_key": "progress.incomeLevel"},
+        "problem_summary": {"current": 5, "total": 6, "label_key": "progress.problemSummary"},
+        "summary_topic_confirm": {"current": 5, "total": 6, "label_key": "progress.problemSummary"},
+        "topic_reconfirm": {"current": 5, "total": 6, "label_key": "progress.yourLocation"},
+        "get_zip": {"current": 6, "total": 6, "label_key": "progress.yourLocation"},
+        "complete": {"current": 6, "total": 6, "label_key": "progress.resourcesReady"},
+        "resource_selected": {"current": 6, "total": 6, "label_key": "progress.resourcesReady"},
+        "continue_check": {"current": 6, "total": 6, "label_key": "progress.resourcesReady"},
     }
-    return steps_map.get(step, {"current": 1, "total": 8, "label_key": "progress.defaultLabel"})
+    return steps_map.get(step, {"current": 1, "total": 6, "label_key": "progress.defaultLabel"})
 
 
 def _score_band(score: int) -> str:
@@ -421,7 +420,6 @@ def build_decision_support(state: dict) -> dict:
     summary = str(state.get("problem_summary") or "").strip().lower()
     timeline = str(state.get("timeline") or "").lower()
     has_documents = str(state.get("has_documents") or "").lower()
-    has_rep = str(state.get("has_representation") or "no").lower()
 
     urgency = 10
     urgency_reasons: List[str] = []
@@ -497,10 +495,6 @@ def build_decision_support(state: dict) -> dict:
         self_help += 10
         self_help_reasons.append("You may qualify for legal-aid pathways that improve support options.")
 
-    if has_rep == "no":
-        self_help += 5
-        self_help_reasons.append("No existing representation suggests self-help pathways may be appropriate.")
-
     self_help = max(0, min(100, self_help))
 
     overall_risk = round((urgency * 0.45) + (complexity * 0.35) + ((100 - self_help) * 0.20))
@@ -526,8 +520,6 @@ def build_decision_support(state: dict) -> dict:
         },
         "note": "Informational triage support only; not legal advice.",
     }
-    if has_rep == "yes":
-        result["representation_note"] = "Client has existing legal representation"
     return result
 
 
@@ -672,31 +664,11 @@ def run_chat_flow(request, referral_map: dict):
                 "conversation_state": state,
                 "progress": get_step_progress(state.get("step")),
             }
-        state["step"] = "representation_check"
+        state["step"] = "problem_summary"
         return {
-            "response_key": "triage.representation.prompt",
+            "response_key": "triage.summary.prompt",
             "response_params": {},
-            "options": ["yes", "no", "not_sure"],
-            "conversation_state": state,
-            "progress": get_step_progress(state.get("step")),
-        }
-
-    if state.get("step") == "representation_check":
-        if message in ["yes", "no", "not_sure"]:
-            state["has_representation"] = message
-            log_intake_event(request.intake_id, "representation_answer", message)
-            state["step"] = "problem_summary"
-            return {
-                "response_key": "triage.representation.prompt_done",
-                "response_params": {},
-                "options": [],
-                "conversation_state": state,
-                "progress": get_step_progress(state.get("step")),
-            }
-        return {
-            "response_key": "triage.representation.invalid",
-            "response_params": {},
-            "options": ["yes", "no", "not_sure"],
+            "options": [],
             "conversation_state": state,
             "progress": get_step_progress(state.get("step")),
         }
