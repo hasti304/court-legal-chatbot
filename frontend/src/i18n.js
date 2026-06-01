@@ -373,6 +373,8 @@ const resources = {
         emergencyCheck: "Emergency Check",
         courtStatus: "Court Status",
         incomeLevel: "Income Level",
+        timelineCheck: "Timeline",
+        documentsCheck: "Documents",
         problemSummary: "Your summary",
         yourLocation: "Your Location",
         resourcesReady: "Resources Ready",
@@ -434,6 +436,10 @@ const resources = {
           continueToLegalResources: "Continue to Legal Resources",
           summaryTopicSame: "Yes — same topic I selected",
           summaryTopicChange: "No — I need a different topic",
+          just_started: "Just started",
+          weeks: "A few weeks",
+          months: "Several months",
+          over_a_year: "Over a year",
           topic_child_support: "Child Support",
           topic_education: "Education",
           topic_housing: "Housing",
@@ -471,6 +477,17 @@ const resources = {
           prompt:
             "Are you low-income or receiving public benefits (like SNAP, Medicaid, SSI)?",
           invalid: "Please select an option.",
+        },
+
+        timeline: {
+          prompt: "How long has this issue been going on?",
+          invalid: "Please select one of the options below.",
+        },
+
+        documents: {
+          prompt:
+            "Have you received any official documents related to this issue? (court papers, notices, letters)",
+          invalid: "Please select yes, no, or not sure.",
         },
 
         summary: {
@@ -892,6 +909,8 @@ const resources = {
         emergencyCheck: "Emergencia",
         courtStatus: "Situación del caso",
         incomeLevel: "Ingresos",
+        timelineCheck: "Cronología",
+        documentsCheck: "Documentos",
         problemSummary: "Su resumen",
         yourLocation: "Ubicación",
         resourcesReady: "Recursos listos",
@@ -953,6 +972,10 @@ const resources = {
           continueToLegalResources: "Continuar a recursos legales",
           summaryTopicSame: "Sí — el mismo tema que elegí",
           summaryTopicChange: "No — necesito otro tema",
+          just_started: "Recién comenzó",
+          weeks: "Unas semanas",
+          months: "Varios meses",
+          over_a_year: "Más de un año",
           topic_child_support: "Manutención infantil",
           topic_education: "Educación",
           topic_housing: "Vivienda",
@@ -990,6 +1013,17 @@ const resources = {
           prompt:
             "¿Tiene bajos ingresos o recibe beneficios públicos (como SNAP, Medicaid, SSI)?",
           invalid: "Por favor seleccione una opción.",
+        },
+
+        timeline: {
+          prompt: "¿Hace cuánto tiempo tiene este problema?",
+          invalid: "Por favor seleccione una de las opciones de abajo.",
+        },
+
+        documents: {
+          prompt:
+            "¿Ha recibido documentos oficiales relacionados con este asunto? (papeles de la corte, avisos, cartas)",
+          invalid: "Por favor seleccione sí, no, o no estoy seguro.",
         },
 
         summary: {
